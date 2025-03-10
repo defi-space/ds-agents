@@ -1,0 +1,36 @@
+{
+  "name": "ds-agents",
+  "module": "src/run-agents.ts",
+  "type": "module",
+  "scripts": {
+    "start-all": "bun run src/run-agents.ts",
+    "start-agents-2": "bun run src/run-agents.ts 2",
+    "start-agents-3": "bun run src/run-agents.ts 3",
+    "start-agents-4": "bun run src/run-agents.ts 4",
+    "start-agents-5": "bun run src/run-agents.ts 5",
+    "start-agents-6": "bun run src/run-agents.ts 6",
+    "start-agent1": "bun run src/agents/agent1.ts",
+    "start-agent2": "bun run src/agents/agent2.ts",
+    "start-agent3": "bun run src/agents/agent3.ts",
+    "start-agent4": "bun run src/agents/agent4.ts",
+    "start-agent5": "bun run src/agents/agent5.ts",
+    "start-agent6": "bun run src/agents/agent6.ts",
+    "start-agent7": "bun run src/agents/agent7.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.3"
+  },
+  "peerDependencies": {
+    "typescript": "^5.7.3"
+  },
+  "dependencies": {
+    "@ai-sdk/google": "^1.1.17",
+    "@daydreamsai/core": "file:vendored/daydreams",
+    "chromadb": "^1.10.4",
+    "dotenv": "^16.4.7",
+    "graphql": "^16.10.0",
+    "graphql-request": "^7.1.2",
+    "starknet": "^6.23.1",
+    "zod": "^3.24.2"
+  }
+}
