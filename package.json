@@ -1,6 +1,6 @@
 {
   "name": "ds-agents",
-  "module": "src/run-agents.ts",
+  "module": "src/agent.ts",
   "type": "module",
   "scripts": {
     "start-all": "bun run src/run-agents.ts",
@@ -26,6 +26,7 @@
   "dependencies": {
     "@ai-sdk/google": "^1.1.17",
     "@daydreamsai/core": "file:vendored/daydreams",
+    "@google/generative-ai": "^0.23.0",
     "chromadb": "^1.10.4",
     "dotenv": "^16.4.7",
     "graphql": "^16.10.0",
