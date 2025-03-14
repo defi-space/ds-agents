@@ -77,7 +77,6 @@ export function createAgent(config: AgentConfig) {
   // Initialize Google AI model
   const google = createGoogleGenerativeAI({
     apiKey: googleApiKey,
-    baseURL: "https://generativelanguage.googleapis.com/v1alpha/",
   });
   const model = google("gemini-2.0-flash");
 
