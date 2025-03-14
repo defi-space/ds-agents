@@ -3,7 +3,7 @@ import { z } from "zod";
 import { convertU256ToDecimal, getTokenBalance, starknetChain, toHex } from "../../utils/starknet";
 import { toUint256WithSpread, calculateOptimalLiquidity } from "../../utils/starknet";
 import { executeMultiCall, getApproveCall } from '../../utils/starknet';
-import { getContractAddress } from "src/utils/contracts";
+import { getContractAddress } from "../../utils/contracts";
 import { getAgentAddress } from "../../utils/starknet";
 
 export const ammActions = [

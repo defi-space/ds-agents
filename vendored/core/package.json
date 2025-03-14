@@ -1,0 +1,60 @@
+{
+  "name": "@daydreamsai/core",
+  "version": "0.2.14",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": {
+        "development": "./src/index.ts",
+        "default": "./dist/index.js"
+      }
+    },
+    "./extensions": {
+      "types": "./dist/extensions/index.d.ts",
+      "import": {
+        "development": "./src/extensions/index.ts",
+        "default": "./dist/extensions/index.js"
+      }
+    },
+    "./io/*": {
+      "types": "./dist/io/*.d.ts",
+      "import": {
+        "development": "./src/io/*.ts",
+        "default": "./dist/io/*.js"
+      }
+    }
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "tsup": "^8.3.6",
+    "vitest": "^3.0.5"
+  },
+  "peerDependencies": {
+    "typescript": "^5.8.2"
+  },
+  "scripts": {
+    "test": "vitest",
+    "build": "tsup --dts-resolve"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^1.1.14",
+    "@langchain/core": "^0.3.39",
+    "@langchain/textsplitters": "^0.1.0",
+    "@modelcontextprotocol/sdk": "^1.6.1",
+    "@tavily/core": "^0.3.1",
+    "ai": "^4.1.46",
+    "chromadb-default-embed": "^2.13.2",
+    "dotenv": "^16.4.7",
+    "js-tiktoken": "^1.0.18",
+    "openai": "^4.83.0",
+    "p-defer": "^4.0.1",
+    "uuid": "^11.1.0",
+    "zod": "^3.24.2",
+    "zod-to-json-schema": "^3.24.1"
+  }
+}

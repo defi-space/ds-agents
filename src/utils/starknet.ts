@@ -1,4 +1,4 @@
-import { StarknetChain } from "@daydreamsai/core";
+import { StarknetChain } from "@daydreamsai/defai";
 import { uint256, cairo, type Call } from "starknet";
 import { StarknetConfigStore } from "../agents/common";
 import { getContractAddress } from "./contracts";

@@ -22,17 +22,6 @@
     // Some stricter flags (disabled by default)
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noPropertyAccessFromIndexSignature": false,
-
-    "types": ["bun-types"],
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-
-    "baseUrl": ".",
-    "paths": {
-      "@daydreamsai/core": ["vendored/core/src/index"],
-      "@daydreamsai/defai": ["vendored/defai/src/index"],
-      "@daydreamsai/chromadb": ["vendored/chroma/src/index"],
-    }
+    "noPropertyAccessFromIndexSignature": false
   }
 }

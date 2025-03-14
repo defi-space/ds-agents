@@ -25,9 +25,11 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^1.1.17",
-    "@daydreamsai/core": "file:vendored/daydreams",
+    "@daydreamsai/core": "workspace:vendored/core",
+    "@daydreamsai/defai": "workspace:vendored/defai",
+    "@daydreamsai/chromadb": "workspace:vendored/chroma",
     "@google/generative-ai": "^0.23.0",
-    "chromadb": "^1.10.4",
+    "chromadb": "^2.0.1",
     "dotenv": "^16.4.7",
     "graphql": "^16.10.0",
     "graphql-request": "^7.1.2",

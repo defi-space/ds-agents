@@ -4,8 +4,8 @@ import {
   createContainer,
   LogLevel,
   createMemoryStore,
-  createChromaVectorStore,
 } from "@daydreamsai/core";
+import { createChromaVectorStore } from "@daydreamsai/chromadb";
 import { goalContexts } from "../contexts/goal-context";
 import { autonomousCli, cli } from "../extensions";
 import { actions } from "../actions";
@@ -17,7 +17,7 @@ import { enhanceAgentWithDashboard, setupDashboardIntegration } from '../utils/d
 dotenv.config();
 
 // Check if dashboard integration is enabled
-const isDashboardEnabled = process.env.ENABLE_DASHBOARD === 'true';
+const isDashboardEnabled = process.env.ENABLE_DASHBOARD === 'false';
 
 // Set up dashboard integration if enabled
 if (isDashboardEnabled) {
@@ -76,7 +76,7 @@ export function createAgent(config: AgentConfig) {
   const google = createGoogleGenerativeAI({
     apiKey: googleApiKey,
   });
-  const model = google("gemini-2.0-flash-001") as any;
+  const model = google("gemini-2.0-flash") as any;
 
   // Get command line arguments to check for manual mode
   const args = process.argv.slice(2);
