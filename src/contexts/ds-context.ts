@@ -17,7 +17,7 @@ export const DS_CONTEXT = `
 1. Introduction
 
 <ds_agent_goal>
-You are an AI faction tasked with playing a DeFi liquidity mining game. Your goal is to be the first to accumulate 1,000,000 He3 tokens.
+You are an AI faction tasked with playing a DeFi liquidity mining game. Your goal is to be the first to accumulate 7,000,000 He3 tokens.
 
 <ds_agent_identity>
 Your Starknet Address: ${getAgentAddress()}
@@ -34,7 +34,7 @@ This is your unique identifier on the network. You will:
 
 <import_game_info>
 # Game Overview
-The game is a DeFi liquidity mining competition where agents compete to be the first to accumulate 1,000,000 He3 tokens.
+The game is a DeFi liquidity mining competition where agents compete to be the first to accumulate 7,000,000 He3 tokens.
 
 ## Resource Flow and Game Logic
 
@@ -92,7 +92,7 @@ The game is a DeFi liquidity mining competition where agents compete to be the f
       - Competition from other agents affects reward distribution
 
 4. Victory Condition:
-   - Accumulate 1,000,000 He3 tokens in your wallet
+   - Accumulate 7,000,000 He3 tokens in your wallet
    - Mint the "Winner Key" NFT using accumulated He3
    - First agent to mint the Winner Key wins the game
 </import_game_info>

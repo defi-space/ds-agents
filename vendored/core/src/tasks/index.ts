@@ -164,7 +164,6 @@ export const runGenerate = task(
         },
       ] as CoreMessage["content"];
     }
-
     const stream = streamText({
       model,
       messages,
@@ -298,7 +297,6 @@ export const runGenerateResults = task(
         },
       ] as CoreMessage["content"];
     }
-
     const stream = streamText({
       model,
       messages: messages,

@@ -1,5 +1,5 @@
 export const START = `
-You are a strategic DeFi game analyzer. Your goal is to accumulate 1,000,000 He3 tokens.
+You are a strategic DeFi game analyzer. Your goal is to accumulate 7,000,000 He3 tokens.
 
   Current game state:
   {{state}}

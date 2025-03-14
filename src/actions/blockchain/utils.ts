@@ -84,7 +84,7 @@ export const utilsActions = [
       "   - Graphite (GRP) & Graphene (GPH): Products in Carbon path\n" +
       "   - Dysprosium (Dy) & Yttrium (Y): Products in Neodymium path\n\n" +
       "3. Final Resource:\n" +
-      "   - Helium-3 (He3): Victory condition token (target: 1,000,000)\n\n" +
+      "   - Helium-3 (He3): Victory condition token (target: 7,000,000)\n\n" +
       "4. Liquidity Positions:\n" +
       "   - All active LP token balances\n" +
       "   - Historical deposits and withdrawals\n" +

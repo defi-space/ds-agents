@@ -391,7 +391,7 @@ export function createDreams<
       });
 
       let step = 1;
-      const maxSteps = 100;
+      const maxSteps = 3;
 
       while (maxSteps > step) {
         logger.info("agent:run", `Starting step ${step}/${maxSteps}`, {

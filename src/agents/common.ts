@@ -6,7 +6,7 @@ import {
   createMemoryStore,
 } from "@daydreamsai/core";
 import { createChromaVectorStore } from "@daydreamsai/chromadb";
-import { goalContexts } from "../contexts/goal-context";
+import { allContexts } from "../contexts";
 import { autonomousCli, cli } from "../extensions";
 import { actions } from "../actions";
 import { outputs } from "../outputs";
@@ -61,22 +61,25 @@ export class StarknetConfigStore {
 // Factory function to create an agent with specific configuration
 export function createAgent(config: AgentConfig) {
   // Get Google API key - prioritize the agent-specific key
-  const googleApiKey = config.googleApiKey;
+  const googleApiKey = config.googleApiKey || process.env[`AGENT${config.id.split('-')[1]}_API_KEY`] || process.env.GOOGLE_API_KEY;
+  
   // Ensure API key is available
   if (!googleApiKey) {
     console.error(`No Google API key found for agent ${config.id}. Check your .env file.`);
-    throw new Error(`No Google API key is set for agent ${config.id}. Please check your .env file for AGENT${config.id.split('-')[1]}_API_KEY`);
+    throw new Error(`No Google API key is set for agent ${config.id}. Please check your .env file for AGENT${config.id.split('-')[1]}_API_KEY or GOOGLE_API_KEY`);
   }
 
   // Store Starknet configuration if provided
   if (config.starknetConfig) {
     StarknetConfigStore.getInstance().setConfig(config.id, config.starknetConfig);
   }
+
   // Initialize Google AI model
   const google = createGoogleGenerativeAI({
     apiKey: googleApiKey,
+    baseURL: "https://generativelanguage.googleapis.com/v1alpha/",
   });
-  const model = google("gemini-2.0-flash") as any;
+  const model = google("gemini-2.0-flash");
 
   // Get command line arguments to check for manual mode
   const args = process.argv.slice(2);
@@ -96,7 +99,9 @@ export function createAgent(config: AgentConfig) {
       store: createMemoryStore(),
       vector: createChromaVectorStore(collectionName, "http://localhost:8000"),
     },
-    context: goalContexts,
+    exportTrainingData: true,
+    trainingDataPath: `./grpo/group-training-data-${config.id}.jsonl`,
+    context: allContexts,
     actions,
     outputs,
   };
