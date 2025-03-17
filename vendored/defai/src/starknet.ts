@@ -5,6 +5,7 @@ import {
   CallData,
   constants,
   num,
+  type GetTransactionReceiptResponse,
 } from "starknet";
 import type { IChain } from "../../core/src";
 
@@ -18,8 +19,6 @@ export interface StarknetChainConfig {
   address: string;
   /** Private key for signing transactions. Should be managed securely! */
   privateKey: string;
-  /** Use legacy transactions instead of V3 transactions (V3 is default) */
-  useLegacyTransactions?: boolean;
   /** Default transaction options for V3 transactions */
   defaultV3Options?: V3TransactionOptions;
   /** Gas price buffer multiplier (default: 1.2 or 20% buffer) */
@@ -54,6 +53,15 @@ export interface V3TransactionOptions {
 }
 
 /**
+ * Network parameters for transaction fee estimation
+ */
+interface NetworkParams {
+  gasPrice: bigint;
+  recommendedMaxFee: bigint;
+  recommendedTip: bigint;
+}
+
+/**
  * Implementation of the IChain interface for interacting with the Starknet L2 blockchain
  *
  * @example
@@ -67,17 +75,19 @@ export interface V3TransactionOptions {
  */
 export class StarknetChain implements IChain {
   /** Unique identifier for this chain implementation */
-  public chainId = "starknet";
+  public readonly chainId = "starknet";
   /** RPC provider instance for connecting to Starknet */
-  private provider: RpcProvider;
+  private readonly provider: RpcProvider;
   /** Account instance for transaction signing */
   private account: Account;
-  /** Whether to use V3 transactions */
-  private useV3Transactions: boolean;
   /** Default V3 transaction options */
   private defaultV3Options: V3TransactionOptions;
   /** Gas price buffer multiplier */
   private gasPriceBufferMultiplier: number;
+  /** Default L1 gas amount for simple transactions */
+  private static readonly DEFAULT_L1_GAS_AMOUNT = BigInt(2000);
+  /** Default gas price in wei (0.1 Gwei) */
+  private static readonly DEFAULT_GAS_PRICE = BigInt(100000000);
 
   /**
    * Creates a new StarknetChain instance
@@ -85,22 +95,16 @@ export class StarknetChain implements IChain {
    */
   constructor(config: StarknetChainConfig) {
     this.provider = new RpcProvider({ nodeUrl: config.rpcUrl });
-    // V3 transactions are the default, unless explicitly disabled
-    this.useV3Transactions = !config.useLegacyTransactions;
-
-    // Set gas price buffer multiplier
     this.gasPriceBufferMultiplier = config.gasPriceBufferMultiplier || 1.2;
-
-    // Set default V3 transaction options (empty object to be filled dynamically)
     this.defaultV3Options = config.defaultV3Options || {};
-
-    // Initialize account with V3 transaction version by default
+    
+    // Initialize account with V3 transaction version
     this.account = new Account(
       this.provider,
       config.address,
       config.privateKey,
       undefined,
-      this.useV3Transactions ? constants.TRANSACTION_VERSION.V3 : undefined
+      constants.TRANSACTION_VERSION.V3
     );
   }
 
@@ -121,11 +125,9 @@ export class StarknetChain implements IChain {
   public async read(call: Call): Promise<any> {
     try {
       call.calldata = CallData.compile(call.calldata || []);
-      return this.provider.callContract(call);
+      return await this.provider.callContract(call);
     } catch (error) {
-      return error instanceof Error
-        ? error
-        : new Error("Unknown error occurred");
+      throw this.formatError(error, `Failed to read from contract ${call.contractAddress}`);
     }
   }
 
@@ -133,74 +135,170 @@ export class StarknetChain implements IChain {
    * Gets current network conditions for transaction parameters
    * @returns Current recommended transaction parameters
    */
-  private async getNetworkParams(): Promise<{
-    gasPrice: bigint;
-    recommendedMaxFee: bigint;
-    recommendedTip: bigint;
-  }> {
+  private async getNetworkParams(): Promise<NetworkParams> {
     try {
-      // Instead of using a nonce call, use a simple balance check on the ERC20 contract
-      // This is more likely to work across different account implementations
-      const dummyCall: Call = {
-        contractAddress: this.account.address,
-        entrypoint: "getBalance",
-        calldata: [],
-      };
-
-      // Use hardcoded values if estimation fails
-      let gasPrice = BigInt(100000000); // 0.1 Gwei fallback
-      let recommendedMaxFee = gasPrice * BigInt(2000);
+      // Default fallback values
+      let gasPrice = StarknetChain.DEFAULT_GAS_PRICE;
+      let recommendedMaxFee = gasPrice * StarknetChain.DEFAULT_L1_GAS_AMOUNT;
       let recommendedTip = recommendedMaxFee / BigInt(100); // 1% of max fee
 
+      // Try to get gas price from the latest block
       try {
-        // Try to estimate fee, but don't fail if it doesn't work
-        const estimate = await this.account.estimateFee(dummyCall);
-
-        // Extract current gas price based on response format
-        if (estimate && "gas_price" in estimate) {
-          // For older response format
-          gasPrice = BigInt(estimate.gas_price);
-          recommendedMaxFee = BigInt(estimate.overall_fee);
-        } else if (estimate && "resourceBounds" in estimate) {
-          // For newer response format with resourceBounds
-          const resourceBounds = (estimate as any).resourceBounds;
-          const l1GasPrice = resourceBounds?.l1_gas?.max_price_per_unit;
-          if (l1GasPrice) {
-            gasPrice = BigInt(l1GasPrice);
-
-            // Calculate a reasonable max fee based on resource bounds
-            const l1GasAmount = resourceBounds?.l1_gas?.max_amount;
-            if (l1GasAmount) {
-              recommendedMaxFee = BigInt(l1GasAmount) * gasPrice;
-            }
-          }
+        const block = await this.provider.getBlock('latest');
+        
+        if (block && typeof block === 'object') {
+          gasPrice = this.extractGasPriceFromBlock(block);
         }
+        
+        // If we couldn't get gas price from block, try a fee estimation
+        if (gasPrice === StarknetChain.DEFAULT_GAS_PRICE) {
+          const params = await this.estimateGasPriceFromDummyCall();
+          gasPrice = params.gasPrice;
+          recommendedMaxFee = params.recommendedMaxFee;
+        }
+
+        // Apply buffer to gas price for safety
+        const bufferedGasPrice = this.applyGasPriceBuffer(gasPrice);
+        
+        // If we have a gas price but couldn't calculate max fee, estimate it
+        if (recommendedMaxFee === gasPrice * StarknetChain.DEFAULT_L1_GAS_AMOUNT) {
+          recommendedMaxFee = bufferedGasPrice * StarknetChain.DEFAULT_L1_GAS_AMOUNT;
+        }
+
+        // Calculate a reasonable tip (1% of max fee)
+        recommendedTip = recommendedMaxFee / BigInt(100);
+
+        return {
+          gasPrice: bufferedGasPrice,
+          recommendedMaxFee,
+          recommendedTip,
+        };
       } catch (error) {
-        // If estimation fails, use the default values
         console.warn("Fee estimation failed, using default values:", error);
+        return this.getDefaultNetworkParams();
       }
-
-      // Calculate a reasonable tip based on network conditions
-      // Typically a small percentage of the max fee
-      recommendedTip = recommendedMaxFee / BigInt(100); // 1% of max fee
-
-      return {
-        gasPrice,
-        recommendedMaxFee,
-        recommendedTip,
-      };
     } catch (error) {
-      // Fallback to reasonable defaults if anything goes wrong
-      const gasPrice = BigInt(100000000); // 0.1 Gwei
-      const recommendedMaxFee = gasPrice * BigInt(2000);
-      const recommendedTip = recommendedMaxFee / BigInt(100); // 1% of max fee
-
-      return {
-        gasPrice,
-        recommendedMaxFee,
-        recommendedTip,
-      };
+      console.warn("Network parameter retrieval failed, using defaults:", error);
+      return this.getDefaultNetworkParams();
     }
+  }
+
+  /**
+   * Extracts gas price from a block object
+   * @param block - The block object from provider
+   * @returns The extracted gas price
+   */
+  private extractGasPriceFromBlock(block: any): bigint {
+    // Try to extract gas_price
+    if ('gas_price' in block && block.gas_price) {
+      const gasPriceValue = this.normalizeNumberValue(block.gas_price);
+      try {
+        return BigInt(gasPriceValue);
+      } catch (e) {
+        console.warn("Failed to parse gas_price from block:", e);
+      }
+    } 
+    // Try to extract l1_gas_price
+    else if ('l1_gas_price' in block && block.l1_gas_price) {
+      try {
+        if (typeof block.l1_gas_price === 'object' && 
+            block.l1_gas_price !== null && 
+            'price_in_fri' in block.l1_gas_price) {
+          return BigInt(block.l1_gas_price.price_in_fri);
+        } else {
+          return BigInt(this.normalizeNumberValue(block.l1_gas_price));
+        }
+      } catch (e) {
+        console.warn("Failed to parse l1_gas_price from block:", e);
+      }
+    }
+    
+    // Return default if extraction failed
+    return StarknetChain.DEFAULT_GAS_PRICE;
+  }
+
+  /**
+   * Normalizes a value to string for BigInt conversion
+   * @param value - The value to normalize
+   * @returns A string representation of the value
+   */
+  private normalizeNumberValue(value: any): string {
+    if (typeof value === 'string') {
+      return value;
+    } else if (typeof value === 'number') {
+      return String(value);
+    } else {
+      return JSON.stringify(value);
+    }
+  }
+
+  /**
+   * Estimates gas price using a dummy call
+   * @returns Estimated gas price and max fee
+   */
+  private async estimateGasPriceFromDummyCall(): Promise<{
+    gasPrice: bigint;
+    recommendedMaxFee: bigint;
+  }> {
+    // Use a simple no-op call for estimation (get_nonce is available on all account contracts)
+    const dummyCall: Call = {
+      contractAddress: this.account.address,
+      entrypoint: "get_nonce",
+      calldata: [],
+    };
+
+    // Try to estimate fee for the dummy call
+    const estimate = await this.account.estimateFee(dummyCall);
+    let gasPrice = StarknetChain.DEFAULT_GAS_PRICE;
+    let recommendedMaxFee = gasPrice * StarknetChain.DEFAULT_L1_GAS_AMOUNT;
+
+    // Extract gas price based on response format
+    if (estimate && "gas_price" in estimate) {
+      // For older response format
+      gasPrice = BigInt(estimate.gas_price);
+      recommendedMaxFee = BigInt(estimate.overall_fee);
+    } else if (estimate && "resourceBounds" in estimate) {
+      // For newer response format with resourceBounds
+      const resourceBounds = (estimate as any).resourceBounds;
+      const l1GasPrice = resourceBounds?.l1_gas?.max_price_per_unit;
+      if (l1GasPrice) {
+        gasPrice = BigInt(l1GasPrice);
+
+        // Calculate a reasonable max fee based on resource bounds
+        const l1GasAmount = resourceBounds?.l1_gas?.max_amount;
+        if (l1GasAmount) {
+          recommendedMaxFee = BigInt(l1GasAmount) * gasPrice;
+        }
+      }
+    }
+
+    return { gasPrice, recommendedMaxFee };
+  }
+
+  /**
+   * Applies buffer to gas price
+   * @param gasPrice - The base gas price
+   * @returns Buffered gas price
+   */
+  private applyGasPriceBuffer(gasPrice: bigint): bigint {
+    return BigInt(Math.ceil(Number(gasPrice) * this.gasPriceBufferMultiplier));
+  }
+
+  /**
+   * Gets default network parameters
+   * @returns Default network parameters
+   */
+  private getDefaultNetworkParams(): NetworkParams {
+    const gasPrice = StarknetChain.DEFAULT_GAS_PRICE;
+    const bufferedGasPrice = this.applyGasPriceBuffer(gasPrice);
+    const recommendedMaxFee = bufferedGasPrice * StarknetChain.DEFAULT_L1_GAS_AMOUNT;
+    const recommendedTip = recommendedMaxFee / BigInt(100);
+
+    return {
+      gasPrice: bufferedGasPrice,
+      recommendedMaxFee,
+      recommendedTip,
+    };
   }
 
   /**
@@ -215,21 +313,16 @@ export class StarknetChain implements IChain {
     const { gasPrice, recommendedMaxFee, recommendedTip } =
       await this.getNetworkParams();
 
-    // Apply buffer to gas price for safety
-    const bufferedGasPrice = BigInt(
-      Math.ceil(Number(gasPrice) * this.gasPriceBufferMultiplier)
-    );
-
     // Apply default values from config if present, otherwise use network parameters
     const maxL1GasAmount =
       options?.maxL1GasAmount ??
       this.defaultV3Options.maxL1GasAmount ??
-      BigInt(2000); // Default if all else fails
+      StarknetChain.DEFAULT_L1_GAS_AMOUNT;
 
     const maxL1GasPricePerUnit =
       options?.maxL1GasPricePerUnit ??
       this.defaultV3Options.maxL1GasPricePerUnit ??
-      bufferedGasPrice;
+      gasPrice;
 
     const tip = options?.tip ?? this.defaultV3Options.tip ?? recommendedTip;
 
@@ -241,14 +334,14 @@ export class StarknetChain implements IChain {
       this.defaultV3Options.feeDataAvailabilityMode ??
       0; // L1 mode as default
 
-    // Return the formatted transaction options
+    // Return the formatted transaction options according to StarknetJS v7+ format
     return {
-      version: 3,
-      // maxFee included for compatibility
+      version: constants.TRANSACTION_VERSION.V3,
       maxFee: num.toHex(maxFee),
       feeDataAvailabilityMode,
       tip: num.toHex(tip),
-      paymasterData: [],
+      paymasterData: [], // Empty array for no paymaster
+      nonce: undefined, // Let the account implementation handle nonce management
       resourceBounds: {
         l1_gas: {
           max_amount: num.toHex(maxL1GasAmount),
@@ -263,6 +356,80 @@ export class StarknetChain implements IChain {
   }
 
   /**
+   * Dynamically estimates appropriate gas parameters for a transaction
+   * @param call - The call or calls to estimate gas for
+   * @param v3Options - Optional V3 transaction options to use as base
+   * @returns Optimized V3 transaction options
+   */
+  private async estimateGasParameters(
+    call: Call | Call[],
+    v3Options?: V3TransactionOptions
+  ): Promise<any> {
+    try {
+      // First try to estimate the fee to get accurate gas parameters
+      const estimatedFee = await this.account.estimateFee(call);
+      
+      // Extract gas parameters based on the response format
+      let gasPrice: bigint | undefined;
+      let gasAmount: bigint | undefined;
+      
+      if (estimatedFee && "gas_price" in estimatedFee) {
+        // For older response format
+        gasPrice = BigInt(estimatedFee.gas_price);
+        // Try to extract gas used if available
+        if ("gas_usage" in estimatedFee) {
+          gasAmount = BigInt((estimatedFee as any).gas_usage);
+        }
+      } else if (estimatedFee && "resourceBounds" in estimatedFee) {
+        // For newer response format with resourceBounds
+        const resourceBounds = (estimatedFee as any).resourceBounds;
+        
+        // Extract L1 gas parameters
+        if (resourceBounds?.l1_gas) {
+          const l1Gas = resourceBounds.l1_gas;
+          if (l1Gas.max_price_per_unit) {
+            gasPrice = BigInt(l1Gas.max_price_per_unit);
+          }
+          if (l1Gas.max_amount) {
+            gasAmount = BigInt(l1Gas.max_amount);
+          }
+        }
+      }
+      
+      // If we couldn't get specific gas parameters, fall back to network params
+      if (!gasPrice || !gasAmount) {
+        const networkParams = await this.getNetworkParams();
+        gasPrice = gasPrice || networkParams.gasPrice;
+        gasAmount = gasAmount || StarknetChain.DEFAULT_L1_GAS_AMOUNT;
+      }
+      
+      // Apply buffer to gas price for safety
+      const bufferedGasPrice = this.applyGasPriceBuffer(gasPrice);
+      
+      // Apply buffer to gas amount for safety (add 10%)
+      const bufferedGasAmount = BigInt(Math.ceil(Number(gasAmount) * 1.1));
+      
+      // Calculate max fee based on buffered values
+      const calculatedMaxFee = bufferedGasPrice * bufferedGasAmount;
+      
+      // Merge with provided options, prioritizing user-provided values
+      const dynamicOptions: V3TransactionOptions = {
+        ...v3Options,
+        maxL1GasAmount: v3Options?.maxL1GasAmount ?? bufferedGasAmount,
+        maxL1GasPricePerUnit: v3Options?.maxL1GasPricePerUnit ?? bufferedGasPrice,
+        maxFee: v3Options?.maxFee ?? calculatedMaxFee,
+      };
+      
+      // Prepare final transaction options
+      return this.prepareV3TransactionOptions(dynamicOptions);
+    } catch (error) {
+      console.warn("Dynamic gas estimation failed, using default parameters:", error);
+      // If estimation fails, fall back to default parameters
+      return this.prepareV3TransactionOptions(v3Options);
+    }
+  }
+
+  /**
    * Executes a state-changing transaction on Starknet
    * @param call - The transaction parameters
    * @param v3Options - Optional V3 transaction options
@@ -274,58 +441,93 @@ export class StarknetChain implements IChain {
     v3Options?: V3TransactionOptions
   ): Promise<any> {
     try {
+      // Ensure calldata is properly compiled
       call.calldata = CallData.compile(call.calldata || []);
 
-      let txOptions = {};
-      if (this.useV3Transactions) {
-        // First estimate the fee to get current gas price
-        const estimatedFee = await this.account.estimateFee(call);
+      // Use dynamic gas estimation for optimal parameters
+      const txOptions = await this.estimateGasParameters(call, v3Options);
 
-        // Extract gas price from the estimate
-        let gasPrice;
-
-        if (estimatedFee && "gas_price" in estimatedFee) {
-          // For older response format
-          gasPrice = BigInt(estimatedFee.gas_price);
-        } else if (estimatedFee && "resourceBounds" in estimatedFee) {
-          // For newer response format with resourceBounds
-          const resourceBounds = (estimatedFee as any).resourceBounds;
-          const l1GasPrice = resourceBounds?.l1_gas?.max_price_per_unit;
-          if (l1GasPrice) {
-            gasPrice = BigInt(l1GasPrice);
-          }
-        }
-
-        // Apply buffer to gas price if we got a value
-        if (gasPrice) {
-          const bufferedGasPrice = BigInt(
-            Math.ceil(Number(gasPrice) * this.gasPriceBufferMultiplier)
-          );
-
-          // Merge with provided options, prioritizing user-provided values
-          const dynamicOptions: V3TransactionOptions = {
-            ...v3Options,
-            maxL1GasPricePerUnit:
-              v3Options?.maxL1GasPricePerUnit ?? bufferedGasPrice,
-          };
-
-          txOptions = await this.prepareV3TransactionOptions(dynamicOptions);
-        } else {
-          // If we couldn't extract gas price, use provided options or default
-          txOptions = await this.prepareV3TransactionOptions(v3Options);
-        }
-      }
-
+      // Execute the transaction with optimized V3 transaction options
       const { transaction_hash } = await this.account.execute(call, txOptions);
+      
+      // Wait for transaction confirmation
       const receipt = await this.provider.waitForTransaction(transaction_hash, {
         retryInterval: 1000,
       });
 
+      // Check if transaction was successful
+      this.validateTransactionReceipt(receipt);
+
       return receipt;
     } catch (error) {
-      return error instanceof Error
-        ? error
-        : new Error("Unknown error occurred");
+      throw this.formatError(error, "Transaction execution failed");
+    }
+  }
+
+  /**
+   * Validates a transaction receipt to check for success
+   * @param receipt - The transaction receipt
+   * @throws Error if the transaction failed
+   */
+  private validateTransactionReceipt(receipt: GetTransactionReceiptResponse): void {
+    // Check transaction status using type-safe property access
+    // Different StarknetJS versions have different receipt formats
+    const status = this.getTransactionStatus(receipt);
+    if (status === 'REJECTED' || status === 'REVERTED') {
+      const revertReason = this.getRevertReason(receipt);
+      throw new Error(`Transaction reverted: ${revertReason}`);
+    }
+  }
+
+  /**
+   * Safely extracts transaction status from receipt
+   * @param receipt - The transaction receipt
+   * @returns The transaction status
+   */
+  private getTransactionStatus(receipt: GetTransactionReceiptResponse): string {
+    // Handle different receipt formats safely
+    if ('status' in receipt && receipt.status) {
+      return receipt.status as string;
+    }
+    
+    if ('execution_status' in receipt && receipt.execution_status) {
+      return receipt.execution_status as string;
+    }
+    
+    // Default to a safe value if status can't be determined
+    return 'UNKNOWN';
+  }
+
+  /**
+   * Safely extracts revert reason from receipt
+   * @param receipt - The transaction receipt
+   * @returns The revert reason or default message
+   */
+  private getRevertReason(receipt: GetTransactionReceiptResponse): string {
+    if ('revert_reason' in receipt && receipt.revert_reason) {
+      return receipt.revert_reason as string;
+    }
+    
+    if ('revertReason' in receipt && (receipt as any).revertReason) {
+      return (receipt as any).revertReason as string;
+    }
+    
+    return 'Unknown reason';
+  }
+
+  /**
+   * Formats an error for consistent error handling
+   * @param error - The original error
+   * @param defaultMessage - Default message if error is not an Error instance
+   * @returns Formatted Error object
+   */
+  private formatError(error: unknown, defaultMessage: string): Error {
+    if (error instanceof Error) {
+      return error;
+    } else if (typeof error === 'string') {
+      return new Error(error);
+    } else {
+      return new Error(defaultMessage);
     }
   }
 
@@ -335,59 +537,26 @@ export class StarknetChain implements IChain {
    * @param v3Options - Optional V3 transaction options
    * @returns The transaction result with receipt and status
    */
-  public async executeMulticall(
+  public async writeMulticall(
     calls: Call[],
     v3Options?: V3TransactionOptions
   ): Promise<MulticallResult> {
     try {
-      // Compile calldata for each call
-      const compiledCalls = calls.map((call) => ({
-        ...call,
-        calldata: CallData.compile(call.calldata || []),
-      }));
-
-      // Prepare transaction options
-      let txOptions = {};
-      if (this.useV3Transactions) {
-        // First estimate the fee to get current gas price
-        const estimatedFee = await this.account.estimateFee(compiledCalls);
-
-        // Extract gas price from the estimate
-        let gasPrice;
-
-        if (estimatedFee && "gas_price" in estimatedFee) {
-          // For older response format
-          gasPrice = BigInt(estimatedFee.gas_price);
-        } else if (estimatedFee && "resourceBounds" in estimatedFee) {
-          // For newer response format with resourceBounds
-          const resourceBounds = (estimatedFee as any).resourceBounds;
-          const l1GasPrice = resourceBounds?.l1_gas?.max_price_per_unit;
-          if (l1GasPrice) {
-            gasPrice = BigInt(l1GasPrice);
-          }
-        }
-
-        // Apply buffer to gas price if we got a value
-        if (gasPrice) {
-          const bufferedGasPrice = BigInt(
-            Math.ceil(Number(gasPrice) * this.gasPriceBufferMultiplier)
-          );
-
-          // Merge with provided options, prioritizing user-provided values
-          const dynamicOptions: V3TransactionOptions = {
-            ...v3Options,
-            maxL1GasPricePerUnit:
-              v3Options?.maxL1GasPricePerUnit ?? bufferedGasPrice,
-          };
-
-          txOptions = await this.prepareV3TransactionOptions(dynamicOptions);
-        } else {
-          // If we couldn't extract gas price, use provided options or default
-          txOptions = await this.prepareV3TransactionOptions(v3Options);
-        }
+      // Validate input
+      if (!calls || calls.length === 0) {
+        return {
+          success: false,
+          error: "No calls provided for multicall"
+        };
       }
 
-      // Execute the multicall
+      // Compile calldata for each call
+      const compiledCalls = this.compileCalldata(calls);
+
+      // Use dynamic gas estimation for optimal parameters
+      const txOptions = await this.estimateGasParameters(compiledCalls, v3Options);
+
+      // Execute the multicall with optimized V3 transaction options
       const { transaction_hash } = await this.account.execute(
         compiledCalls,
         txOptions
@@ -398,17 +567,67 @@ export class StarknetChain implements IChain {
         retryInterval: 1000,
       });
 
+      // Extract results from receipt if available
+      const results = this.extractResultsFromReceipt(receipt);
+      
+      // Determine success based on execution status using helper methods
+      const status = this.getTransactionStatus(receipt);
+      const success = status === 'ACCEPTED_ON_L1' || status === 'ACCEPTED_ON_L2' || status === 'SUCCEEDED';
+      
+      // Get revert reason if available
+      const revertReason = !success ? this.getRevertReason(receipt) : undefined;
+      
       return {
-        success: receipt.isSuccess?.() ?? true,
+        success,
         transactionHash: transaction_hash,
         receipt,
+        results,
+        error: revertReason
       };
     } catch (error) {
+      // Properly format errors for the MulticallResult
       return {
         success: false,
-        error:
-          error instanceof Error ? error.message : "Unknown error occurred",
+        error: error instanceof Error ? error.message : 
+               (typeof error === 'string' ? error : "Unknown error occurred during multicall")
       };
+    }
+  }
+
+  /**
+   * Compiles calldata for an array of calls
+   * @param calls - Array of calls to compile
+   * @returns Array of calls with compiled calldata
+   */
+  private compileCalldata(calls: Call[]): Call[] {
+    return calls.map((call) => ({
+      ...call,
+      calldata: CallData.compile(call.calldata || []),
+    }));
+  }
+
+  /**
+   * Extracts results from a transaction receipt
+   * @param receipt - The transaction receipt
+   * @returns Array of results if available
+   */
+  private extractResultsFromReceipt(receipt: GetTransactionReceiptResponse): any[] | undefined {
+    // Safely access events property
+    const events = 'events' in receipt ? receipt.events : undefined;
+    if (!events || !Array.isArray(events) || events.length === 0) {
+      return undefined;
+    }
+
+    try {
+      // Attempt to extract results from events
+      return events.map((event: any) => ({
+        contractAddress: event.from_address,
+        data: event.data,
+        keys: event.keys
+      }));
+    } catch (e) {
+      console.warn("Failed to parse multicall results from events:", e);
+      return undefined;
     }
   }
 
@@ -424,24 +643,15 @@ export class StarknetChain implements IChain {
   ): Promise<any> {
     try {
       // Compile calldata for each call
-      const compiledCalls = calls.map((call) => ({
-        ...call,
-        calldata: CallData.compile(call.calldata || []),
-      }));
+      const compiledCalls = this.compileCalldata(calls);
 
-      // Prepare transaction options
-      let txOptions = {};
-      if (this.useV3Transactions) {
-        // For fee estimation, use current network parameters and provided options
-        txOptions = await this.prepareV3TransactionOptions(v3Options);
-      }
+      // For fee estimation, use current network parameters and provided options
+      const txOptions = await this.prepareV3TransactionOptions(v3Options);
 
       // Estimate fee for the multicall
       return this.account.estimateFee(compiledCalls, txOptions);
     } catch (error) {
-      throw error instanceof Error
-        ? error
-        : new Error("Unknown error occurred");
+      throw this.formatError(error, "Fee estimation failed");
     }
   }
 
@@ -450,24 +660,46 @@ export class StarknetChain implements IChain {
    * @param calls - Array of contract calls to execute
    * @returns Array of results from each call
    */
-  public async multiCall(calls: Call[]): Promise<any[]> {
+  public async readMulticall(calls: Call[]): Promise<any[]> {
     try {
-      // Compile calldata for each call
-      const compiledCalls = calls.map((call) => ({
-        ...call,
-        calldata: CallData.compile(call.calldata || []),
-      }));
+      // Validate input
+      if (!calls || calls.length === 0) {
+        return [];
+      }
 
-      // Execute all calls in parallel
-      const results = await Promise.all(
-        compiledCalls.map((call) => this.provider.callContract(call))
+      // Compile calldata for each call
+      const compiledCalls = this.compileCalldata(calls);
+
+      // For better error handling, we'll use allSettled instead of all
+      const settledResults = await Promise.allSettled(
+        compiledCalls.map(async (call) => {
+          try {
+            return await this.provider.callContract(call);
+          } catch (error) {
+            throw this.formatError(
+              error, 
+              `Call failed for contract ${call.contractAddress}, entrypoint ${call.entrypoint}`
+            );
+          }
+        })
       );
 
-      return results;
+      // Process the results
+      return settledResults.map((result, index) => {
+        if (result.status === 'fulfilled') {
+          return result.value;
+        } else {
+          // For rejected promises, return an error object
+          return {
+            error: true,
+            message: result.reason?.message || 'Unknown error',
+            contractAddress: compiledCalls[index].contractAddress,
+            entrypoint: compiledCalls[index].entrypoint,
+          };
+        }
+      });
     } catch (error) {
-      throw error instanceof Error
-        ? error
-        : new Error("Unknown error occurred");
+      throw this.formatError(error, "Failed to execute readMulticall operation");
     }
   }
 
@@ -487,30 +719,9 @@ export class StarknetChain implements IChain {
    * @param multiplier - Multiplier to apply to gas price estimates (e.g., 1.2 for 20% buffer)
    */
   public setGasPriceBufferMultiplier(multiplier: number): void {
+    if (multiplier <= 0) {
+      throw new Error("Gas price buffer multiplier must be positive");
+    }
     this.gasPriceBufferMultiplier = multiplier;
-  }
-
-  /**
-   * Enables or disables V3 transactions
-   * @param enable - Whether to enable V3 transactions
-   */
-  public setUseV3Transactions(enable: boolean): void {
-    this.useV3Transactions = enable;
-
-    // Use the original private key from constructor
-    const privateKey =
-      this.account.signer instanceof Object &&
-      "privateKey" in this.account.signer
-        ? String(this.account.signer.privateKey)
-        : "";
-
-    // Recreate the account with the appropriate transaction version
-    this.account = new Account(
-      this.provider,
-      this.account.address,
-      privateKey,
-      undefined,
-      enable ? constants.TRANSACTION_VERSION.V3 : undefined
-    );
   }
 }

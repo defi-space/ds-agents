@@ -61,7 +61,13 @@ export async function chainOfExperts({
   model: LanguageModelV1;
 }): Promise<any> {
   const context = render(chainExpertManagerPrompt, {
-    context: JSON.stringify(state),
+    context: JSON.stringify(state, (key, value) => {
+      // Convert BigInt to string with 'n' suffix
+      if (typeof value === 'bigint') {
+        return value.toString() + 'n';
+      }
+      return value;
+    }),
     experts: experts
       .map((expert) =>
         formatXml({

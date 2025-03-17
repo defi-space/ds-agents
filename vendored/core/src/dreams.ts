@@ -538,7 +538,12 @@ export function createDreams<
 
       const episodicMemory = await agent.memory.vector.query(
         `${contextId}`,
-        JSON.stringify(data)
+        JSON.stringify(data, (key, value) => {
+          if (typeof value === 'bigint') {
+            return value.toString() + 'n';
+          }
+          return value;
+        })
       );
 
       logger.trace("agent:send", "Episodic memory retrieved", {
@@ -846,12 +851,28 @@ async function handleOutput({
     if (typeof parsedContent === "string") {
       if (output.schema._def.typeName !== "ZodString") {
         try {
-          parsedContent = JSON.parse(parsedContent.trim());
+          // Check if the string looks like JSON before trying to parse it
+          const trimmed = parsedContent.trim();
+          if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || 
+              (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+            parsedContent = JSON.parse(trimmed);
+          } else {
+            // If it doesn't look like JSON, log it and keep it as string but wrapped in an object
+            logger.debug("agent:output", "Content doesn't appear to be JSON, wrapping in content object", {
+              content: trimmed.substring(0, 100) + (trimmed.length > 100 ? '...' : '')
+            });
+            // Wrap the string in a content object to satisfy schemas expecting objects
+            parsedContent = { content: trimmed };
+          }
         } catch (error) {
-          console.log("failed parsing output content", {
-            content: parsedContent,
+          logger.debug("agent:output", "Failed parsing output content, wrapping in content object", {
+            content: typeof parsedContent === 'string' ? 
+              parsedContent.substring(0, 100) + (parsedContent.length > 100 ? '...' : '') : 
+              parsedContent,
+            error: error instanceof Error ? error.message : String(error)
           });
-          throw error;
+          // Wrap the string in a content object to satisfy schemas expecting objects
+          parsedContent = { content: typeof parsedContent === 'string' ? parsedContent : String(parsedContent) };
         }
       }
     }
@@ -859,8 +880,23 @@ async function handleOutput({
     try {
       data = output.schema.parse(parsedContent);
     } catch (error) {
-      console.log("failed parsing output schema");
-      throw error;
+      logger.error("agent:output", "Schema validation error", {
+        type: outputRef.type,
+        content: typeof parsedContent === 'string' ? 
+          parsedContent.substring(0, 100) + (parsedContent.length > 100 ? '...' : '') : 
+          JSON.stringify(parsedContent).substring(0, 100) + (JSON.stringify(parsedContent).length > 100 ? '...' : ''),
+        error: error instanceof Error ? error.message : String(error)
+      });
+      
+      // If schema validation fails, create a fallback object with the original content
+      // This prevents the error from propagating and allows the agent to continue
+      return {
+        ...outputRef,
+        params: { error: "SCHEMA_VALIDATION_ERROR" },
+        timestamp: Date.now(),
+        data: { content: outputRef.data, error: error instanceof Error ? error.message : String(error) },
+        processed: true // Mark as processed to avoid retrying
+      };
     }
 
     const response = await output.handler(

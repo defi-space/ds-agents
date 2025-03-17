@@ -1,12 +1,31 @@
 import { output } from "@daydreamsai/core";
 import { z } from "zod";
 import axios from "axios";
+import { isDashboardEnabled } from "../agents/utils";
 
-// Dashboard server URL
-const DASHBOARD_URL = process.env.DASHBOARD_URL || 'http://localhost:3000';
+// Dashboard server URL - only set if dashboard is enabled
+const DASHBOARD_URL = isDashboardEnabled() ? (process.env.DASHBOARD_URL || 'http://localhost:3000') : null;
 
 // Check if dashboard integration is enabled
-const isDashboardEnabled = process.env.ENABLE_DASHBOARD === 'true';
+// const isDashboardEnabled = process.env.ENABLE_DASHBOARD === 'true';
+
+// Helper function to safely make dashboard API calls
+async function safeDashboardApiCall(url: string, data: any): Promise<any> {
+  // Skip API calls entirely if dashboard is disabled
+  if (!isDashboardEnabled() || !DASHBOARD_URL) {
+    return null;
+  }
+  
+  try {
+    return await axios.post(url, data);
+  } catch (error: any) {
+    // Only log errors if dashboard is enabled
+    if (isDashboardEnabled()) {
+      console.error(`Dashboard API call failed: ${error.message}`);
+    }
+    return null;
+  }
+}
 
 /**
  * Extract a readable action type from action data
@@ -45,7 +64,7 @@ function createActionDisplayLabel(actionType: string, actionData: any): string {
  */
 export async function captureAgentThink(logData: any) {
   // Only process if dashboard is enabled
-  if (!isDashboardEnabled) return;
+  if (!isDashboardEnabled()) return;
   
   try {
     // Extract the thought data from the log
@@ -77,18 +96,20 @@ export async function captureAgentThink(logData: any) {
       timestamp: thought.timestamp || Date.now(),
     };
     
-    await axios.post(`${DASHBOARD_URL}/api/thoughts`, {
+    await safeDashboardApiCall(`${DASHBOARD_URL}/api/thoughts`, {
       agentId,
       thought: dashboardThought,
     });
     
     // Also update agent status to thinking
-    await axios.post(`${DASHBOARD_URL}/api/agents/${agentId}/status`, {
+    await safeDashboardApiCall(`${DASHBOARD_URL}/api/agents/${agentId}/status`, {
       status: 'thinking',
     });
   } catch (error: any) {
     // Silently fail if dashboard is not available
-    console.error('Error processing agent:think log:', error.message);
+    if (isDashboardEnabled()) {
+      console.error('Error processing agent:think log:', error.message);
+    }
   }
 }
 
@@ -99,7 +120,7 @@ export async function captureAgentThink(logData: any) {
  */
 export async function captureAgentAction(logData: any) {
   // Only process if dashboard is enabled
-  if (!isDashboardEnabled) return;
+  if (!isDashboardEnabled()) return;
   
   try {
     // Extract the action data from the log
@@ -153,20 +174,20 @@ export async function captureAgentAction(logData: any) {
       timestamp: Date.now(),
     };
     
-    console.log(`Sending action to dashboard for agent: ${agentId}, type: ${actionType}, display: ${displayName}, status: ${actionStatus}, id: ${actionId}`);
-    
-    await axios.post(`${DASHBOARD_URL}/api/actions`, {
+    await safeDashboardApiCall(`${DASHBOARD_URL}/api/actions`, {
       agentId,
       action,
     });
     
     // Also update agent status to executing
-    await axios.post(`${DASHBOARD_URL}/api/agents/${agentId}/status`, {
+    await safeDashboardApiCall(`${DASHBOARD_URL}/api/agents/${agentId}/status`, {
       status: 'executing',
     });
   } catch (error: any) {
     // Silently fail if dashboard is not available
-    console.error('Error processing agent:action log:', error.message);
+    if (isDashboardEnabled()) {
+      console.error('Error processing agent:action log:', error.message);
+    }
   }
 }
 
@@ -180,7 +201,7 @@ export const dashboardThought = output({
   }),
   handler: async (content, ctx, agent?: any) => {
     // Only send to dashboard if enabled
-    if (isDashboardEnabled) {
+    if (isDashboardEnabled()) {
       try {
         // Try to get agent ID from context, agent object, or use a default
         let agentId = ctx.id || 'unknown-agent';
@@ -206,18 +227,20 @@ export const dashboardThought = output({
           timestamp: Date.now(),
         };
         
-        await axios.post(`${DASHBOARD_URL}/api/thoughts`, {
+        await safeDashboardApiCall(`${DASHBOARD_URL}/api/thoughts`, {
           agentId,
           thought,
         });
         
         // Also update agent status to thinking
-        await axios.post(`${DASHBOARD_URL}/api/agents/${agentId}/status`, {
+        await safeDashboardApiCall(`${DASHBOARD_URL}/api/agents/${agentId}/status`, {
           status: 'thinking',
         });
       } catch (error: any) {
         // Silently fail if dashboard is not available
-        console.error('Error sending thought to dashboard:', error.message);
+        if (isDashboardEnabled()) {
+          console.error('Error sending thought to dashboard:', error.message);
+        }
       }
     }
     
@@ -240,7 +263,7 @@ export const dashboardAction = output({
   }),
   handler: async (content, ctx, agent?: any) => {
     // Only send to dashboard if enabled
-    if (isDashboardEnabled) {
+    if (isDashboardEnabled()) {
       try {
         // Try to get agent ID from context, agent object, or use a default
         let agentId = ctx.id || 'unknown-agent';
@@ -290,22 +313,22 @@ export const dashboardAction = output({
           timestamp: Date.now(),
         };
         
-        console.log(`Sending action to dashboard for agent: ${agentId}, type: ${content.type}, status: ${content.status}, id: ${actionId}`);
-        
-        await axios.post(`${DASHBOARD_URL}/api/actions`, {
+        await safeDashboardApiCall(`${DASHBOARD_URL}/api/actions`, {
           agentId,
           action,
         });
         
         // Also update agent status to executing if action is pending
         if (content.status === 'pending') {
-          await axios.post(`${DASHBOARD_URL}/api/agents/${agentId}/status`, {
+          await safeDashboardApiCall(`${DASHBOARD_URL}/api/agents/${agentId}/status`, {
             status: 'executing',
           });
         }
       } catch (error: any) {
         // Silently fail if dashboard is not available
-        console.error('Error sending action to dashboard:', error.message);
+        if (isDashboardEnabled()) {
+          console.error('Error sending action to dashboard:', error.message);
+        }
       }
     }
     
@@ -326,7 +349,7 @@ export const dashboardStatus = output({
   }),
   handler: async (content, ctx, agent?: any) => {
     // Only send to dashboard if enabled
-    if (isDashboardEnabled) {
+    if (isDashboardEnabled()) {
       try {
         // Try to get agent ID from context, agent object, or use a default
         let agentId = ctx.id || 'unknown-agent';
@@ -345,12 +368,14 @@ export const dashboardStatus = output({
           agentId = process.env.CURRENT_AGENT_ID;
         }
         
-        await axios.post(`${DASHBOARD_URL}/api/agents/${agentId}/status`, {
+        await safeDashboardApiCall(`${DASHBOARD_URL}/api/agents/${agentId}/status`, {
           status: content.status,
         });
       } catch (error: any) {
         // Silently fail if dashboard is not available
-        console.error('Error updating agent status in dashboard:', error.message);
+        if (isDashboardEnabled()) {
+          console.error('Error updating agent status in dashboard:', error.message);
+        }
       }
     }
     

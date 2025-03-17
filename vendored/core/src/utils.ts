@@ -41,7 +41,13 @@ export function render<Template extends string>(
  */
 export function formatValue(value: any): string {
   if (Array.isArray(value)) return value.map((t) => formatValue(t)).join("\n");
-  if (typeof value !== "string") return JSON.stringify(value);
+  if (typeof value !== "string") return JSON.stringify(value, (key, val) => {
+    // Convert BigInt to string with 'n' suffix
+    if (typeof val === 'bigint') {
+      return val.toString() + 'n';
+    }
+    return val;
+  });
   return value.trim();
 }
 

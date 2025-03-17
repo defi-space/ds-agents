@@ -115,7 +115,13 @@ export const runGenerate = task(
     debug(
       contextId,
       ["workingMemory", callId],
-      JSON.stringify(workingMemory, null, 2)
+      JSON.stringify(workingMemory, (key, value) => {
+        // Convert BigInt to string with 'n' suffix to indicate it was a BigInt
+        if (typeof value === 'bigint') {
+          return value.toString() + 'n';
+        }
+        return value;
+      }, 2)
     );
 
     const mainContext = contexts.find((ctx) => ctx.id === contextId)!;
@@ -234,7 +240,13 @@ export const runGenerateResults = task(
     debug(
       contextId,
       ["workingMemory", callId],
-      JSON.stringify(workingMemory, null, 2)
+      JSON.stringify(workingMemory, (key, value) => {
+        // Convert BigInt to string with 'n' suffix to indicate it was a BigInt
+        if (typeof value === 'bigint') {
+          return value.toString() + 'n';
+        }
+        return value;
+      }, 2)
     );
 
     const mainContext = contexts.find((ctx) => ctx.id === contextId)!;
@@ -357,7 +369,13 @@ export const runAction = task(
       logger.info(
         "agent:action_call:" + call.id,
         call.name,
-        JSON.stringify(call.data)
+        JSON.stringify(call.data, (key, value) => {
+          // Convert BigInt to string with 'n' suffix to indicate it was a BigInt
+          if (typeof value === 'bigint') {
+            return value.toString() + 'n';
+          }
+          return value;
+        })
       );
       const result = await action.handler(call, ctx, agent);
       logger.debug("agent:action_result:" + call.id, call.name, result);

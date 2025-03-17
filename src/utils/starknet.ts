@@ -111,7 +111,7 @@ export const starknetChain = {
     if (!_starknetChain) {
       _starknetChain = getStarknetChain();
     }
-    return _starknetChain.executeMulticall(calls);
+    return _starknetChain.writeMulticall(calls);
   }
 };
 
@@ -134,7 +134,7 @@ export const getApproveCall = (tokenAddress: string, spenderAddress: string, amo
 export const executeMultiCall = async (calls: Call[]) => {
   try {
     // Execute multicall
-    const result = await getStarknetChain().executeMulticall(calls);
+    const result = await getStarknetChain().writeMulticall(calls);
 
     return result;
   } catch (error) {

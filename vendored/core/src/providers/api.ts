@@ -70,6 +70,11 @@ export async function fetchGraphQL<DataType = unknown>(
       body: JSON.stringify({
         query,
         variables,
+      }, (key, value) => {
+        if (typeof value === 'bigint') {
+          return value.toString() + 'n';
+        }
+        return value;
       }),
     });
 

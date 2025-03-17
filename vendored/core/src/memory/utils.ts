@@ -94,17 +94,35 @@ export const generateEpisodicMemory = async (
 
     ## Context
     <thoughts>
-    ${JSON.stringify(thoughts)}
+    ${JSON.stringify(thoughts, (key, value) => {
+      // Convert BigInt to string with 'n' suffix
+      if (typeof value === 'bigint') {
+        return value.toString() + 'n';
+      }
+      return value;
+    })}
     </thoughts>
 
     ## Actions Taken
     <actions>
-    ${JSON.stringify(actions)}
+    ${JSON.stringify(actions, (key, value) => {
+      // Convert BigInt to string with 'n' suffix
+      if (typeof value === 'bigint') {
+        return value.toString() + 'n';
+      }
+      return value;
+    })}
     </actions>
 
     ## Results & Outcomes
     <results>
-    ${JSON.stringify(results)}
+    ${JSON.stringify(results, (key, value) => {
+      // Convert BigInt to string with 'n' suffix
+      if (typeof value === 'bigint') {
+        return value.toString() + 'n';
+      }
+      return value;
+    })}
     </results>
     
     ## Instructions
@@ -193,7 +211,13 @@ export async function saveTrainingData(
 
     // Convert each object to a JSON string and join with newlines
     const jsonLines = trainingData
-      .map((item) => JSON.stringify(item))
+      .map((item) => JSON.stringify(item, (key, value) => {
+        // Convert BigInt to string with 'n' suffix
+        if (typeof value === 'bigint') {
+          return value.toString() + 'n';
+        }
+        return value;
+      }))
       .join("\n");
 
     // Write to file

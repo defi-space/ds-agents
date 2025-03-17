@@ -1,5 +1,6 @@
 import { setupLogInterceptor } from './logInterceptor';
 import { dashboardThought, dashboardAction, dashboardStatus } from '../outputs/dashboard';
+import { isDashboardEnabled } from '../agents/utils';
 
 // Create a minimal agent context type
 interface MinimalAgentContext {
@@ -25,7 +26,7 @@ interface MinimalAgent {
  */
 export function setupDashboardIntegration() {
   // Only set up if dashboard is enabled
-  if (process.env.ENABLE_DASHBOARD !== 'true') {
+  if (!isDashboardEnabled()) {
     console.log('Dashboard integration is disabled');
     return;
   }
@@ -84,7 +85,8 @@ export function setupDashboardIntegration() {
  */
 export function enhanceAgentWithDashboard(agent: any) {
   // Only enhance if dashboard is enabled
-  if (process.env.ENABLE_DASHBOARD !== 'true') {
+  if (!isDashboardEnabled()) {
+    console.log('Dashboard integration is disabled, skipping agent enhancement');
     return agent;
   }
   

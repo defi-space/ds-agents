@@ -3,6 +3,7 @@ import { context, extension, formatMsg, input, output, service } from "@daydream
 import { z } from "zod";
 import chalk from "chalk";
 import { PROMPTS } from "../prompts";
+import { isDashboardEnabled } from '../agents/utils';
 
 /**
  * CLI context configuration
@@ -80,6 +81,11 @@ const getTimestamp = () => {
  */
 const interceptBlockchainAction = (agent: any, actionType: string, originalHandler: Function) => {
   return async (call: any, ...args: any[]) => {
+    // Skip dashboard integration if disabled
+    if (!isDashboardEnabled()) {
+      return originalHandler(call, ...args);
+    }
+    
     // Get the context from args (typically the first argument after call)
     const ctx = args.length > 0 ? args[0] : {};
     
@@ -146,8 +152,6 @@ export const autonomousCli = extension({
   },
   // Add install method to intercept blockchain actions
   install: async (agent: any) => {
-    const isDashboardEnabled = process.env.ENABLE_DASHBOARD === 'true';
-    
     // Log the agent ID and dashboard status
     const agentId = process.env.CURRENT_AGENT_ID || 
                    (agent && agent.config && agent.config.id) || 
@@ -155,9 +159,9 @@ export const autonomousCli = extension({
                    'unknown-agent';
     
     console.log(`Installing autonomous-cli extension for agent: ${agentId}`);
-    console.log(`Dashboard enabled: ${isDashboardEnabled}`);
+    console.log(`Dashboard enabled: ${isDashboardEnabled()}`);
     
-    if (!isDashboardEnabled) {
+    if (!isDashboardEnabled()) {
       console.log('Dashboard is disabled, skipping action interception');
       return;
     }
@@ -303,8 +307,8 @@ export const autonomousCli = extension({
         console.log(`${getTimestamp()} ${styles.agentLabel}: ${content.message}\n`);
         console.log(styles.separator + '\n');
         
-        // Also send to dashboard if available
-        if (agent && agent.outputs && agent.outputs["dashboard:thought"]) {
+        // Also send to dashboard if available and enabled
+        if (isDashboardEnabled() && agent && agent.outputs && agent.outputs["dashboard:thought"]) {
           // Get agent ID from environment variable if available
           let agentId = process.env.CURRENT_AGENT_ID || 'unknown-agent';
           
@@ -314,8 +318,6 @@ export const autonomousCli = extension({
               agentId = String(agent.config.id);
             }
           }
-          
-          console.log(`Sending thought to dashboard for agent: ${agentId}`);
           
           // Create a context with the agent ID if not already present
           const contextWithId = ctx.id ? ctx : { ...ctx, id: agentId };

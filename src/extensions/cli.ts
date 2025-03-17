@@ -2,6 +2,7 @@ import * as readline from "readline/promises";
 import { z } from "zod";
 import { context, extension, formatMsg, input, output, service } from "@daydreamsai/core";
 import chalk from "chalk";
+import { isDashboardEnabled } from '../agents/utils';
 
 const cliContext = context({
   type: "cli",
@@ -63,8 +64,7 @@ const getTimestamp = () => {
 const interceptBlockchainAction = (agent: any, actionName: string, originalHandler: Function) => {
   return async (call: any, ...args: any[]) => {
     // Only intercept if dashboard is enabled
-    const isDashboardEnabled = process.env.ENABLE_DASHBOARD === 'true';
-    if (!isDashboardEnabled || !agent || !agent.outputs || !agent.outputs["dashboard:action"]) {
+    if (!isDashboardEnabled() || !agent || !agent.outputs || !agent.outputs["dashboard:action"]) {
       return originalHandler(call, ...args);
     }
     
@@ -117,8 +117,7 @@ export const cli = extension({
   },
   // Add install method to intercept blockchain actions
   install: async (agent: any) => {
-    const isDashboardEnabled = process.env.ENABLE_DASHBOARD === 'true';
-    if (!isDashboardEnabled || !agent || !agent.actions) return;
+    if (!isDashboardEnabled() || !agent || !agent.actions) return;
     
     // Intercept blockchain actions
     const blockchainActionPrefixes = ['blockchain:'];
@@ -200,8 +199,8 @@ export const cli = extension({
         console.log(`${getTimestamp()} ${styles.agentLabel}: ${content.message}\n`);
         console.log(styles.separator + '\n');
         
-        // Also send to dashboard if available
-        if (agent && agent.outputs && agent.outputs["dashboard:thought"]) {
+        // Also send to dashboard if available and enabled
+        if (isDashboardEnabled() && agent && agent.outputs && agent.outputs["dashboard:thought"]) {
           agent.outputs["dashboard:thought"].handler({
             content: content.message
           }, ctx, agent);

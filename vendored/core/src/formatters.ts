@@ -23,7 +23,13 @@ export function formatInput(input: InputRef) {
     tag: "input",
     params: { name: input.type, ...input.params },
     content:
-      typeof input.data === "string" ? input.data : JSON.stringify(input.data),
+      typeof input.data === "string" ? input.data : JSON.stringify(input.data, (key, value) => {
+        // Convert BigInt to string with 'n' suffix
+        if (typeof value === 'bigint') {
+          return value.toString() + 'n';
+        }
+        return value;
+      }),
   });
 }
 
@@ -39,7 +45,13 @@ export function formatOutput(output: OutputRef) {
     content:
       typeof output.data === "string"
         ? output.data
-        : JSON.stringify(output.data),
+        : JSON.stringify(output.data, (key, value) => {
+            // Convert BigInt to string with 'n' suffix
+            if (typeof value === 'bigint') {
+              return value.toString() + 'n';
+            }
+            return value;
+          }),
   });
 }
 
@@ -70,7 +82,13 @@ export function formatOutputInterface(output: Output) {
       output.schema
         ? {
             tag: "schema",
-            content: JSON.stringify(zodToJsonSchema(output.schema, "output")),
+            content: JSON.stringify(zodToJsonSchema(output.schema, "output"), (key, value) => {
+              // Convert BigInt to string with 'n' suffix
+              if (typeof value === 'bigint') {
+                return value.toString() + 'n';
+              }
+              return value;
+            }),
           }
         : null,
     ].filter((c) => !!c),
@@ -97,7 +115,13 @@ export function formatAction(action: Action<any, any, any>) {
       action.schema
         ? {
             tag: "schema",
-            content: JSON.stringify(zodToJsonSchema(action.schema, "action")),
+            content: JSON.stringify(zodToJsonSchema(action.schema, "action"), (key, value) => {
+              // Convert BigInt to string with 'n' suffix
+              if (typeof value === 'bigint') {
+                return value.toString() + 'n';
+              }
+              return value;
+            }),
           }
         : null,
     ].filter((t) => !!t),
@@ -199,13 +223,25 @@ export function formatContextLog(i: Log) {
       return formatXml({
         tag: "action_call",
         params: { id: i.id, name: i.name },
-        content: JSON.stringify(i.data),
+        content: JSON.stringify(i.data, (key, value) => {
+          // Convert BigInt to string with 'n' suffix to indicate it was a BigInt
+          if (typeof value === 'bigint') {
+            return value.toString() + 'n';
+          }
+          return value;
+        }),
       });
     case "action_result":
       return formatXml({
         tag: "action_result",
         params: { name: i.name, callId: i.callId },
-        content: i.formatted ?? JSON.stringify(i.data),
+        content: i.formatted ?? JSON.stringify(i.data, (key, value) => {
+          // Convert BigInt to string with 'n' suffix to indicate it was a BigInt
+          if (typeof value === 'bigint') {
+            return value.toString() + 'n';
+          }
+          return value;
+        }),
       });
     default:
       throw new Error("invalid context");

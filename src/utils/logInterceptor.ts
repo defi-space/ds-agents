@@ -1,4 +1,5 @@
 import { captureAgentThink, captureAgentAction } from '../outputs/dashboard';
+import { isDashboardEnabled } from '../agents/utils';
 
 /**
  * Check if an action is a blockchain invocation
@@ -37,6 +38,11 @@ function isBlockchainAction(actionData: any): boolean {
  * and forward them to the dashboard
  */
 export function setupLogInterceptor() {
+  // Only set up if dashboard is enabled
+  if (!isDashboardEnabled()) {
+    return;
+  }
+  
   // Store the original console.log function
   const originalConsoleLog = console.log;
   
@@ -233,7 +239,7 @@ export function parseAgentLogLine(logLine: string): { type: string, data: any } 
  * @param parsedLog The parsed log data
  */
 export function processAgentLog(parsedLog: { type: string, data: any }) {
-  if (!parsedLog) return;
+  if (!parsedLog || !isDashboardEnabled()) return;
   
   if (parsedLog.type === 'think') {
     captureAgentThink({ 
