@@ -6,7 +6,7 @@ import {
   createMemoryStore,
 } from "@daydreamsai/core";
 import { createChromaVectorStore } from "@daydreamsai/chromadb";
-import { allContexts } from "../contexts";
+import { goalContexts } from "../contexts/goal-context";
 import { autonomousCli, cli } from "../extensions";
 import { actions } from "../actions";
 import { outputs } from "../outputs";
@@ -82,7 +82,7 @@ export function createAgent(config: AgentConfig) {
     },
     exportTrainingData: true,
     trainingDataPath: `./grpo/group-training-data-${config.id}.jsonl`,
-    context: allContexts,
+    context: goalContexts,
     actions,
     outputs,
   };
