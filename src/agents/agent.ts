@@ -10,21 +10,31 @@ import { allContexts } from "../contexts";
 import { autonomousCli, cli } from "../extensions";
 import { actions } from "../actions";
 import { outputs } from "../outputs";
-import dotenv from 'dotenv';
 import { enhanceAgentWithDashboard, setupDashboardIntegration } from '../utils/dashboardIntegration';
+import { setCurrentAgentId } from "../utils/starknet";
+import dotenv from 'dotenv';
+
+import { 
+  StarknetConfigStore, 
+  validateAgentNumber, 
+  getAgentId, 
+  isDashboardEnabled,
+  isManualMode,
+  getGoogleApiKey,
+  getStarknetConfig
+} from './utils';
 
 // Load environment variables
 dotenv.config();
 
-// Check if dashboard integration is enabled
-const isDashboardEnabled = process.env.ENABLE_DASHBOARD === 'false';
-
 // Set up dashboard integration if enabled
-if (isDashboardEnabled) {
+if (isDashboardEnabled()) {
   setupDashboardIntegration();
 }
 
-// Define agent configuration type
+/**
+ * Agent configuration interface
+ */
 export interface AgentConfig {
   id: string;
   googleApiKey?: string;
@@ -35,39 +45,15 @@ export interface AgentConfig {
   };
 }
 
-// Create a Starknet configuration store
-export class StarknetConfigStore {
-  private static instance: StarknetConfigStore;
-  private configs: Map<string, { rpcUrl: string; address: string; privateKey: string }> = new Map();
-
-  private constructor() {}
-
-  public static getInstance(): StarknetConfigStore {
-    if (!StarknetConfigStore.instance) {
-      StarknetConfigStore.instance = new StarknetConfigStore();
-    }
-    return StarknetConfigStore.instance;
-  }
-
-  public setConfig(agentId: string, config: { rpcUrl: string; address: string; privateKey: string }): void {
-    this.configs.set(agentId, config);
-  }
-
-  public getConfig(agentId: string): { rpcUrl: string; address: string; privateKey: string } | undefined {
-    return this.configs.get(agentId);
-  }
-}
-
-// Factory function to create an agent with specific configuration
+/**
+ * Creates an agent with the specified configuration
+ * @param config The agent configuration
+ * @returns The created agent instance
+ */
 export function createAgent(config: AgentConfig) {
   // Get Google API key - prioritize the agent-specific key
-  const googleApiKey = config.googleApiKey || process.env[`AGENT${config.id.split('-')[1]}_API_KEY`] || process.env.GOOGLE_API_KEY;
-  
-  // Ensure API key is available
-  if (!googleApiKey) {
-    console.error(`No Google API key found for agent ${config.id}. Check your .env file.`);
-    throw new Error(`No Google API key is set for agent ${config.id}. Please check your .env file for AGENT${config.id.split('-')[1]}_API_KEY or GOOGLE_API_KEY`);
-  }
+  const agentNumber = parseInt(config.id.split('-')[1], 10);
+  const googleApiKey = config.googleApiKey || getGoogleApiKey(config.id, agentNumber);
 
   // Store Starknet configuration if provided
   if (config.starknetConfig) {
@@ -79,21 +65,17 @@ export function createAgent(config: AgentConfig) {
     apiKey: googleApiKey,
   });
   const model = google("gemini-2.0-flash");
-
-  // Get command line arguments to check for manual mode
-  const args = process.argv.slice(2);
-  const isManualMode = args.includes('--manual');
   
   // Create a unique collection name for this agent's vector store
   const collectionName = `agent-${config.id}-collection`;
   
   // Configure agent settings
   const agentConfig = {
-    id: config.id, // Make sure ID is included in the agent config
+    id: config.id,
     logger: LogLevel.DEBUG,
     container: createContainer(),
     model,
-    extensions: [isManualMode ? cli : autonomousCli],
+    extensions: [isManualMode() ? cli : autonomousCli],
     memory: {
       store: createMemoryStore(),
       vector: createChromaVectorStore(collectionName, "http://localhost:8000"),
@@ -112,10 +94,47 @@ export function createAgent(config: AgentConfig) {
   process.env.CURRENT_AGENT_ID = config.id;
   
   // Enhance agent with dashboard integration if enabled
-  if (isDashboardEnabled) {
+  if (isDashboardEnabled()) {
     return enhanceAgentWithDashboard(agent);
   }
   
   // Return the agent
   return agent;
 }
+
+/**
+ * Creates and starts an agent with the specified agent number
+ * @param agentNumber The agent number (1-7)
+ * @returns The created agent instance
+ */
+export function createAndStartAgent(agentNumber: number) {
+  // Validate agent number
+  validateAgentNumber(agentNumber);
+
+  // Set the current agent ID for Starknet operations
+  const AGENT_ID = getAgentId(agentNumber);
+  setCurrentAgentId(AGENT_ID);
+
+  // Create agent configuration
+  const config = {
+    id: AGENT_ID,
+    googleApiKey: process.env[`AGENT${agentNumber}_API_KEY`] || process.env.GOOGLE_API_KEY,
+    starknetConfig: getStarknetConfig(agentNumber)
+  };
+
+  // Create agent with specific configuration
+  const agent = createAgent(config);
+
+  // Start the agent
+  agent.start({
+    id: AGENT_ID,
+  });
+
+  return agent;
+}
+
+// If this file is run directly, start the agent based on the provided agent number
+if (require.main === module) {
+  const agentNumber = parseInt(process.env.AGENT_NUMBER || "1", 10);
+  createAndStartAgent(agentNumber);
+} 

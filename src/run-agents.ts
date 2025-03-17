@@ -1,6 +1,5 @@
 import { spawn, ChildProcess } from 'child_process';
 import path from 'path';
-import fs from 'fs';
 import chalk from 'chalk';
 
 // Parse command line arguments
@@ -18,22 +17,7 @@ if (args.length > 0) {
   }
 }
 
-// Get all agent files
-const agentsDir = path.join(__dirname, 'agents');
-const allAgentFiles = fs.readdirSync(agentsDir)
-  .filter(file => file.startsWith('agent') && file.endsWith('.ts') && !file.includes('common'));
-
-// Sort agent files by number to ensure we run them in order (agent1, agent2, etc.)
-allAgentFiles.sort((a, b) => {
-  const numA = parseInt(a.replace('agent', '').replace('.ts', ''), 10);
-  const numB = parseInt(b.replace('agent', '').replace('.ts', ''), 10);
-  return numA - numB;
-});
-
-// Limit to the specified number of agents
-const agentFiles = allAgentFiles.slice(0, numAgentsToRun);
-
-console.log(`Running ${chalk.bold(agentFiles.length.toString())} out of ${chalk.bold(allAgentFiles.length.toString())} available agents`);
+console.log(`Running ${chalk.bold(numAgentsToRun.toString())} agents`);
 
 // More aesthetic color combinations using chalk
 const colorStyles = [
@@ -48,12 +32,9 @@ const colorStyles = [
 ];
 
 // Function to get a consistent color for an agent
-function getAgentColor(agentName: string): (text: string) => string {
-  // Extract agent number from name (e.g., "agent1" -> 1)
-  const agentNumber = parseInt(agentName.replace('agent', ''), 10);
-  
+function getAgentColor(agentNumber: number): (text: string) => string {
   // Ensure agent number is valid (1-7), otherwise default to index 0
-  const colorIndex = isNaN(agentNumber) || agentNumber < 1 || agentNumber > 7 
+  const colorIndex = agentNumber < 1 || agentNumber > 7 
     ? 0 
     : agentNumber - 1;
     
@@ -61,22 +42,19 @@ function getAgentColor(agentName: string): (text: string) => string {
 }
 
 // Function to run an agent
-function runAgent(agentFile: string): ChildProcess {
-  const agentPath = path.join(agentsDir, agentFile);
-  const agentName = agentFile.replace('.ts', '');
-  const colorize = getAgentColor(agentName);
+function runAgent(agentNumber: number): ChildProcess {
+  const agentName = `agent${agentNumber}`;
+  const colorize = getAgentColor(agentNumber);
   
   console.log(`Starting ${colorize(agentName)}...`);
   
-  // Extract agent number from filename (e.g., "agent1.ts" -> "1")
-  const agentNumber = agentName.replace('agent', '');
-  
-  // Use Bun to run the agent with unbuffered output
-  const agentProcess = spawn('bun', ['run', '--no-warnings', agentPath], {
+  // Use Bun to run the agent with the specified agent number
+  const agentProcess = spawn('bun', ['run', '--no-warnings', path.join(__dirname, 'agents/agent.ts')], {
     stdio: ['ignore', 'pipe', 'pipe'],
     env: { 
       ...process.env, 
       AGENT_NAME: agentName,
+      AGENT_NUMBER: agentNumber.toString(),
       CURRENT_AGENT_ID: `agent-${agentNumber}`, // Set the agent ID explicitly
       ENABLE_DASHBOARD: 'true', // Enable dashboard integration
       FORCE_COLOR: '1', // Force colored output
@@ -114,8 +92,11 @@ function runAgent(agentFile: string): ChildProcess {
 async function runAgentsSimultaneously() {
   const processes: ChildProcess[] = [];
   
-  for (const file of agentFiles) {
-    const process = runAgent(file);
+  // Create an array of agent numbers from 1 to numAgentsToRun
+  const agentNumbers = Array.from({ length: numAgentsToRun }, (_, i) => i + 1);
+  
+  for (const agentNumber of agentNumbers) {
+    const process = runAgent(agentNumber);
     processes.push(process);
   }
   

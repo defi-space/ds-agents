@@ -1,6 +1,6 @@
 import { StarknetChain } from "@daydreamsai/defai";
 import { uint256, cairo, type Call } from "starknet";
-import { StarknetConfigStore } from "../agents/common";
+import { StarknetConfigStore } from "../agents/utils";
 import { getContractAddress } from "./contracts";
 
 // Create a function to get the current agent ID
