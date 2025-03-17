@@ -10,55 +10,124 @@ export const ammActions = [
   // Router Operations - Price Calculations
   action({
     name: "getAmountOut",
-    description: "Calculate the exact output amount for a token swap given an input amount and the current reserves of both tokens. Uses the constant product formula (x * y = k) to determine the new price after the swap. Accounts for fees and slippage in the calculation. Returns the maximum output amount possible for the given input.",
+    description: "Calculates the exact output amount for a token swap given an input amount using the AMM's constant product formula (x * y = k). Example: getAmountOut({ tokenIn: '0x123...', tokenOut: '0x456...', amountIn: '1000000000000000000' })",
     schema: z.object({
-      tokenIn: z.string().describe("The address of the token you want to swap from"),
-      tokenOut: z.string().describe("The address of the token you want to receive"),
-      amountIn: z.string().describe("Input amount (in token base units)"),
+      tokenIn: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The address of the token you want to swap from (in hex format)"),
+      tokenOut: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The address of the token you want to receive (in hex format)"),
+      amountIn: z.string().describe("Input amount in token base units (as string to prevent precision issues)"),
     }),
     handler: async (call, ctx, agent) => {
       try {
+        // Input validation
+        if (call.data.tokenIn === call.data.tokenOut) {
+          return {
+            success: false,
+            error: "Token addresses must be different",
+            message: "Cannot calculate amount out: input and output tokens are the same",
+            timestamp: Date.now()
+          };
+        }
+        
+        const { tokenIn, tokenOut, amountIn } = call.data;
+        
+        // Get contract addresses
         const routerAddress = getContractAddress('core', 'router');
+        if (!routerAddress) {
+          return {
+            success: false,
+            error: "Router address not found",
+            message: "Cannot calculate amount out: router contract address not found",
+            timestamp: Date.now()
+          };
+        }
 
+        // Get factory address
         const factoryAddress = toHex(await starknetChain.read({
           contractAddress: routerAddress,
           entrypoint: "factory",
           calldata: []
         }));
-  
+        
+        // Get pair address
         const pairAddress = toHex(await starknetChain.read({
           contractAddress: factoryAddress,
           entrypoint: "get_pair",
-          calldata: [call.data.tokenIn, call.data.tokenOut]
+          calldata: [tokenIn, tokenOut]
         }));
+        
+        if (pairAddress === "0x0" || pairAddress === "0x00") {
+          return {
+            success: false,
+            error: "Liquidity pair not found",
+            message: `Cannot calculate amount out: no liquidity pair exists for ${tokenIn} and ${tokenOut}`,
+            timestamp: Date.now()
+          };
+        }
 
+        // Get reserves
         const reserves = await starknetChain.read({
           contractAddress: pairAddress,
           entrypoint: "get_reserves",
           calldata: []
         });
+        
         const reserveIn = convertU256ToDecimal(reserves[0], reserves[1]);
         const reserveOut = convertU256ToDecimal(reserves[2], reserves[3]);
+        
+        // Check if reserves are sufficient - fix for type error
+        if (reserveIn.toString() === "0" || reserveOut.toString() === "0") {
+          return {
+            success: false,
+            error: "Insufficient liquidity",
+            message: "Cannot calculate amount out: insufficient liquidity in the pool",
+            timestamp: Date.now()
+          };
+        }
+        
+        // Calculate amount out
         const result = await starknetChain.read({
           contractAddress: routerAddress,
           entrypoint: "get_amount_out",
           calldata: [
-            ...toUint256WithSpread(call.data.amountIn),
+            ...toUint256WithSpread(amountIn),
             ...toUint256WithSpread(reserveIn.toString()),
             ...toUint256WithSpread(reserveOut.toString())
           ]
         });
+        
+        const amountOut = convertU256ToDecimal(result[0], result[1]);
+        
+        // Store in context for reference if needed later
+        if (ctx.agentMemory) {
+          ctx.agentMemory.lastAmountOutCalculation = {
+            tokenIn,
+            tokenOut,
+            amountIn,
+            amountOut,
+            reserveIn,
+            reserveOut,
+            timestamp: new Date().toISOString()
+          };
+        }
+        
         return {
           success: true,
-          amountOut: convertU256ToDecimal(result[0], result[1]),
-          timestamp: Date.now(),
+          data: {
+            amountOut,
+            reserveIn,
+            reserveOut,
+            pairAddress
+          },
+          message: `For ${amountIn} of token ${tokenIn}, you will receive approximately ${amountOut} of token ${tokenOut}`,
+          timestamp: Date.now()
         };
       } catch (error) {
-        console.error('Failed to calculate amount out:', error);
+        console.error('Failed to get amount out:', error);
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to calculate amount out',
-          timestamp: Date.now(),
+          error: (error as Error).message || "Failed to calculate output amount",
+          message: `Failed to calculate swap output amount: ${(error as Error).message}`,
+          timestamp: Date.now()
         };
       }
     },

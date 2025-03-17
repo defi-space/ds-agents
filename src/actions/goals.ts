@@ -18,19 +18,25 @@ import {
 export const goalActions = [
   action({
     name: "addTask",
-    description: "Creates and adds a new task to the agent's long-term goal list. Automatically generates a unique task ID using timestamp and random string for tracking. Initializes the task with default priority and difficulty values, empty success criteria, and no dependencies. If the goal structure doesn't exist in memory, it creates the necessary hierarchy (long-term, medium-term, short-term goals).",
+    description: "Creates and adds a new task to the agent's goal list. The task will be categorized based on the specified term (long, medium, or short). Example: addTask({ task: 'Research new DeFi protocols', priority: 8, term: 'medium_term' })",
     schema: z.object({ 
       task: z.string().describe("The description of the task to be added to the goal list"),
-      priority: z.number().min(1).max(10).optional().describe("Priority of the task (1-10)"),
-      term: z.enum(["long_term", "medium_term", "short_term"]).optional().default("long_term")
+      priority: z.number().min(1).max(10).optional().default(5).describe("Priority of the task (1-10)"),
+      term: z.enum(["long_term", "medium_term", "short_term"]).default("long_term").describe("The timeframe category for this task")
     }),
     handler(call, ctx, agent) {
       if (!ctx.agentMemory) {
-        return { error: "Agent memory not initialized", timestamp: Date.now() };
+        return { 
+          success: false,
+          error: "Agent memory not initialized", 
+          message: "Cannot add task: agent memory is not initialized",
+          timestamp: Date.now() 
+        };
       }
 
       const agentMemory = ctx.agentMemory as GoalMemory;
       
+      // Initialize goal structure if it doesn't exist
       if (!agentMemory.goal) {
         agentMemory.goal = {
           long_term: [],
@@ -45,7 +51,7 @@ export const goalActions = [
         description: call.data.task,
         success_criteria: [],
         dependencies: [],
-        priority: call.data.priority ?? 1,
+        priority: call.data.priority ?? 5, // Use default from schema
         required_resources: [],
         estimated_difficulty: 1,
         tasks: []
@@ -55,38 +61,52 @@ export const goalActions = [
       agentMemory.goal[term].push(newTask);
       
       // Initialize history array if it doesn't exist
-      if (!agentMemory.history) {
-        agentMemory.history = [];
-      }
+      agentMemory.history = agentMemory.history || [];
       
       // Update history
       agentMemory.history.push(`Added new ${term} task: ${call.data.task}`);
       agentMemory.lastUpdated = Date.now();
       
       return { 
-        task: newTask,
+        success: true,
+        data: {
+          task: newTask,
+          term: term
+        },
+        message: `Successfully added new ${term} task: ${call.data.task}`,
         timestamp: Date.now()
       };
     },
   }),
+  
   action({
     name: "setGoalPlan",
-    description: "Set the complete goal planning structure including long-term, medium-term, and short-term goals",
+    description: "Sets the complete goal planning structure including long-term, medium-term, and short-term goals. Can optionally preserve existing history. Example: setGoalPlan({ goal: { long_term: [], medium_term: [], short_term: [] }, preserveHistory: true })",
     schema: z.object({ 
-      goal: goalPlanningSchema,
-      preserveHistory: z.boolean().optional().default(true)
+      goal: goalPlanningSchema.describe("The complete goal structure with long_term, medium_term, and short_term goals"),
+      preserveHistory: z.boolean().optional().default(true).describe("Whether to preserve existing history entries")
     }),
     handler(call, ctx, agent) {
-      const agentMemory = ctx.agentMemory as GoalMemory;
-      const oldHistory = agentMemory.history;
+      if (!ctx.agentMemory) {
+        return { 
+          success: false,
+          error: "Agent memory not initialized", 
+          message: "Cannot set goal plan: agent memory is not initialized",
+          timestamp: Date.now() 
+        };
+      }
       
+      const agentMemory = ctx.agentMemory as GoalMemory;
+      const oldHistory = agentMemory.history || [];
+      
+      // Set the new goal structure
       agentMemory.goal = call.data.goal;
       
       // Preserve history if requested
       if (call.data.preserveHistory) {
         agentMemory.history = oldHistory;
-      } else if (!agentMemory.history) {
-        // Initialize history array if it doesn't exist
+      } else {
+        // Initialize history array if it doesn't exist or if not preserving
         agentMemory.history = [];
       }
       
@@ -95,27 +115,48 @@ export const goalActions = [
       agentMemory.lastUpdated = Date.now();
       
       return {
-        newGoal: call.data.goal,
+        success: true,
+        data: {
+          newGoal: call.data.goal,
+        },
+        message: "Successfully updated the complete goal plan",
         timestamp: Date.now()
       };
     },
   }),
+  
   action({
     name: "updateGoal",
-    description: "Update a specific goal's properties across any term (long, medium, short)",
+    description: "Updates a specific goal's properties by ID, optionally specifying which term to search (long, medium, short). If term is not specified, all terms will be searched. Example: updateGoal({ goal: { id: 'task_123', description: 'Updated task' }, term: 'short_term' })",
     schema: z.object({ 
-      goal: goalSchema,
-      term: z.enum(["long_term", "medium_term", "short_term"]).optional()
+      goal: goalSchema.describe("The goal object with updated fields (must include id)"),
+      term: z.enum(["long_term", "medium_term", "short_term"]).optional().describe("Optional term to specify where the goal is located")
     }),
     handler(call, ctx, agent) {
+      if (!ctx.agentMemory) {
+        return { 
+          success: false,
+          error: "Agent memory not initialized", 
+          message: "Cannot update goal: agent memory is not initialized",
+          timestamp: Date.now() 
+        };
+      }
+      
       const agentMemory = ctx.agentMemory as GoalMemory;
       
       if (!agentMemory.goal) {
-        return { error: "No goals initialized" };
+        return { 
+          success: false,
+          error: "No goals initialized",
+          message: "Cannot update goal: no goals have been initialized yet",
+          timestamp: Date.now()
+        };
       }
 
       const terms: GoalTerm[] = call.data.term ? [call.data.term as GoalTerm] : ["long_term", "medium_term", "short_term"];
       let updated = false;
+      let updatedGoal = null;
+      let updatedTerm = null;
 
       for (const term of terms) {
         const goalIndex = agentMemory.goal[term].findIndex(
@@ -124,51 +165,79 @@ export const goalActions = [
 
         if (goalIndex !== -1) {
           const oldGoal = agentMemory.goal[term][goalIndex];
-          agentMemory.goal[term][goalIndex] = {
+          updatedGoal = {
             ...oldGoal,
             ...call.data.goal
           };
           
+          agentMemory.goal[term][goalIndex] = updatedGoal;
+          
           // Initialize history array if it doesn't exist
-          if (!agentMemory.history) {
-            agentMemory.history = [];
-          }
+          agentMemory.history = agentMemory.history || [];
           
           // Add to history
-          agentMemory.history.push(`Updated ${term} goal: ${call.data.goal.description}`);
+          agentMemory.history.push(`Updated ${term} goal: ${updatedGoal.description}`);
           agentMemory.lastUpdated = Date.now();
           
           updated = true;
+          updatedTerm = term;
           break;
         }
       }
 
       if (!updated) {
-        return { error: `Goal with id ${call.data.goal.id} not found` };
+        return { 
+          success: false,
+          error: `Goal with id ${call.data.goal.id} not found`,
+          message: `Cannot update goal: no goal with ID ${call.data.goal.id} was found`,
+          timestamp: Date.now()
+        };
       }
 
       return {
-        goal: call.data.goal,
+        success: true,
+        data: {
+          goal: updatedGoal,
+          term: updatedTerm
+        },
+        message: `Successfully updated ${updatedTerm} goal: ${updatedGoal?.description}`,
         timestamp: Date.now()
       };
     },
   }),
+  
   action({
     name: "deleteGoal",
-    description: "Delete a goal from any term by its ID",
+    description: "Deletes a goal by its ID, optionally specifying which term to search (long, medium, short). If term is not specified, all terms will be searched. Example: deleteGoal({ goalId: 'task_123', term: 'short_term' })",
     schema: z.object({
-      goalId: z.string(),
-      term: z.enum(["long_term", "medium_term", "short_term"]).optional()
+      goalId: z.string().describe("The unique ID of the goal to delete"),
+      term: z.enum(["long_term", "medium_term", "short_term"]).optional().describe("Optional term to specify where the goal is located")
     }),
     handler(call, ctx, agent) {
+      if (!ctx.agentMemory) {
+        return { 
+          success: false,
+          error: "Agent memory not initialized", 
+          message: "Cannot delete goal: agent memory is not initialized",
+          timestamp: Date.now() 
+        };
+      }
+      
       const agentMemory = ctx.agentMemory as GoalMemory;
       
       if (!agentMemory.goal) {
-        return { error: "No goals initialized" };
+        return { 
+          success: false, 
+          error: "No goals initialized",
+          message: "Cannot delete goal: no goals have been initialized yet",
+          timestamp: Date.now()
+        };
       }
 
       const terms: GoalTerm[] = call.data.term ? [call.data.term as GoalTerm] : ["long_term", "medium_term", "short_term"];
       let deleted = false;
+      let deletedGoal = null;
+      let deletedTerm = null;
 
       for (const term of terms) {
         const goalIndex = agentMemory.goal[term].findIndex(
@@ -176,36 +245,46 @@ export const goalActions = [
         );
 
         if (goalIndex !== -1) {
-          const deletedGoal = agentMemory.goal[term][goalIndex];
+          deletedGoal = agentMemory.goal[term][goalIndex];
           agentMemory.goal[term].splice(goalIndex, 1);
           
           // Initialize history array if it doesn't exist
-          if (!agentMemory.history) {
-            agentMemory.history = [];
-          }
+          agentMemory.history = agentMemory.history || [];
           
           // Add to history
           agentMemory.history.push(`Deleted ${term} goal: ${deletedGoal.description}`);
           agentMemory.lastUpdated = Date.now();
           
           deleted = true;
+          deletedTerm = term;
           break;
         }
       }
 
       if (!deleted) {
-        return { error: `Goal with id ${call.data.goalId} not found` };
+        return { 
+          success: false,
+          error: `Goal with id ${call.data.goalId} not found`,
+          message: `Cannot delete goal: no goal with ID ${call.data.goalId} was found`,
+          timestamp: Date.now()
+        };
       }
 
       return {
         success: true,
+        data: {
+          deletedGoal,
+          term: deletedTerm
+        },
+        message: `Successfully deleted ${deletedTerm} goal: ${deletedGoal?.description || "unknown goal"}`,
         timestamp: Date.now()
       };
     },
   }),
+  
   action({
     name: "getCompetitiveIntelligence",
-    description: "Retrieves comprehensive competitive intelligence about all agents in the game, including their resource balances, liquidity positions, staking positions, and strategies. This helps the agent adapt its strategy based on competitor actions.",
+    description: "Retrieves comprehensive competitive intelligence about all agents in the game, including resource balances, positions, and strategies. Example: getCompetitiveIntelligence()",
     schema: z.object({
       message: z.string().describe("Ignore this field, it is not needed").default("None"),
     }),
@@ -258,6 +337,7 @@ export const goalActions = [
             competitiveMetrics,
             timestamp: new Date().toISOString()
           },
+          message: `Retrieved competitive intelligence on ${competitiveMetrics.agentsWithData} agents. Current rank: ${competitiveMetrics.currentAgentRank} of ${competitiveMetrics.totalAgents}.`,
           timestamp: Date.now(),
         };
       } catch (error) {
@@ -265,6 +345,7 @@ export const goalActions = [
         return {
           success: false,
           error: (error as Error).message || "Failed to get competitive intelligence",
+          message: `Failed to retrieve competitive intelligence: ${(error as Error).message}`,
           timestamp: Date.now(),
         };
       }
@@ -272,8 +353,8 @@ export const goalActions = [
   }),
   
   action({
-    name: "detectCompetitorStrategies",
-    description: "Analyzes competitor positions and transactions to detect their strategies and provide insights for counter-strategies.",
+    name: "analyzeCompetitorStrategies",
+    description: "Analyzes competitor positions and transactions to detect their strategies and provide insights for counter-strategies. Example: analyzeCompetitorStrategies()",
     schema: z.object({
       message: z.string().describe("Ignore this field, it is not needed").default("None"),
     }),
@@ -281,6 +362,12 @@ export const goalActions = [
       try {
         // Get competitive intelligence using the utility function
         const competitiveIntelligence = await getCompetitiveIntelligence();
+        
+        // Update context with intelligence data
+        if (ctx.agentMemory) {
+          ctx.agentMemory.competitiveIntelligence = competitiveIntelligence;
+          ctx.agentMemory.lastCompetitiveAnalysis = new Date().toISOString();
+        }
         
         // Analyze strategies for each competitor
         const strategicAnalysis = await analyzeCompetitorStrategies(competitiveIntelligence);
@@ -291,6 +378,7 @@ export const goalActions = [
             strategicAnalysis,
             timestamp: new Date().toISOString()
           },
+          message: `Successfully analyzed strategies for ${Object.keys(strategicAnalysis).length} competitors`,
           timestamp: Date.now(),
         };
       } catch (error) {
@@ -298,6 +386,7 @@ export const goalActions = [
         return {
           success: false,
           error: (error as Error).message || "Failed to detect competitor strategies",
+          message: `Failed to analyze competitor strategies: ${(error as Error).message}`,
           timestamp: Date.now(),
         };
       }
