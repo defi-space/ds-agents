@@ -43,8 +43,8 @@ export class StarknetConfigStore {
  * @throws Error if agent number is invalid
  */
 export function validateAgentNumber(agentNumber: number): void {
-  if (agentNumber < 1 || agentNumber > 7) {
-    throw new Error(`Invalid agent number: ${agentNumber}. Must be between 1 and 7.`);
+  if (agentNumber < 1 || agentNumber > 4) {
+    throw new Error(`Invalid agent number: ${agentNumber}. Must be between 1 and 4.`);
   }
 }
 

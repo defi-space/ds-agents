@@ -4,16 +4,16 @@ import chalk from 'chalk';
 
 // Parse command line arguments
 const args = process.argv.slice(2);
-let numAgentsToRun = 7; // Default to 7 agents
+let numAgentsToRun = 4; // Default to 4 agents
 
 // Check if number of agents is specified
 if (args.length > 0) {
   const parsedNum = parseInt(args[0], 10);
-  if (!isNaN(parsedNum) && parsedNum >= 2 && parsedNum <= 7) {
+  if (!isNaN(parsedNum) && parsedNum >= 2 && parsedNum <= 4) {
     numAgentsToRun = parsedNum;
   } else {
     console.log(chalk.yellow(`Invalid number of agents specified. Using default (${numAgentsToRun}).`));
-    console.log(chalk.yellow('Usage: bun run src/run-agents.ts [number of agents (2-7)]'));
+    console.log(chalk.yellow('Usage: bun run src/run-agents.ts [number of agents (2-4)]'));
   }
 }
 
@@ -26,15 +26,12 @@ const colorStyles = [
   chalk.hex('#dd513c').bold,          // Agent 2 - FS - Freehold of Syndicates (Red)
   chalk.hex('#FFFF84').bold,          // Agent 3 - CP - Celestial Priesthood (Yellow)
   chalk.hex('#2a9d8f').bold,          // Agent 4 - MWU - Mechanized Workers' Union (Teal)
-  chalk.hex('#4DDCFF').bold,          // Agent 5 - SO - Scientific Order (Light Blue)
-  chalk.hex('#ffb78a').bold,          // Agent 6 - ES - Esoteric Syndicate (Peach)
-  chalk.hex('#3df2ad').bold,          // Agent 7 - TG - Technomancers' Guild (Mint Green)
 ];
 
 // Function to get a consistent color for an agent
 function getAgentColor(agentNumber: number): (text: string) => string {
-  // Ensure agent number is valid (1-7), otherwise default to index 0
-  const colorIndex = agentNumber < 1 || agentNumber > 7 
+  // Ensure agent number is valid (1-4), otherwise default to index 0
+  const colorIndex = agentNumber < 1 || agentNumber > 4 
     ? 0 
     : agentNumber - 1;
     

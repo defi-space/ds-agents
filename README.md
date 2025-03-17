@@ -10,7 +10,7 @@ This project allows running multiple agents simultaneously, each with its own co
 
 ## Features
 
-- Run up to 7 agents simultaneously in autonomous mode
+- Run up to 4 agents simultaneously in autonomous mode
 - Each agent has isolated memory and vector storage
 - Individual Starknet wallet configuration for each agent
 - Dashboard integration for monitoring agent activities
@@ -111,18 +111,16 @@ DASHBOARD_URL="http://localhost:5173"  # URL to the ds-agents-dashboard
 bun run start-all
 ```
 
-This will start all 7 agents in parallel, with output from each agent prefixed with its name. All agents will run in autonomous mode.
+This will start all 4 agents in parallel, with output from each agent prefixed with its name. All agents will run in autonomous mode.
 
 ### Run a Specific Number of Agents
 
-You can run a specific number of agents (from 2 to 6) using the following commands:
+You can run a specific number of agents (from 2 to 4) using the following commands:
 
 ```bash
 bun run start-agents-2  # Run 2 agents (agent1 and agent2)
 bun run start-agents-3  # Run 3 agents (agent1, agent2, and agent3)
 bun run start-agents-4  # Run 4 agents
-bun run start-agents-5  # Run 5 agents
-bun run start-agents-6  # Run 6 agents
 ```
 
 You can also specify the number of agents directly:
@@ -139,7 +137,7 @@ You can also run agents individually in autonomous mode:
 bun run start-agent1
 bun run start-agent2
 bun run start-agent3
-# ... and so on
+bun run start-agent4
 ```
 
 ### Run an Agent in Manual Mode
@@ -223,7 +221,7 @@ ds-agents/
 
 ### Adding a New Agent
 
-1. Create a new agent file in `src/agents/` (e.g., `agent8.ts`)
+1. Create a new agent file in `src/agents/` (e.g., `agent4.ts`)
 2. Add the agent's configuration to `.env`
 3. Add a new script to `package.json` for running the agent
 4. Update the agent runner if necessary
