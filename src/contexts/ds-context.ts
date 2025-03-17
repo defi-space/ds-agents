@@ -102,7 +102,7 @@ The following contracts are available on Starknet:
 </ds_conduit>
 <ds_faucet>
     Faucet Contract address: ${getContractAddress('core', 'faucet')}
-</ds_faucet>s
+</ds_faucet>
 
 <ds_resource_contract_addresses>
    - wattDollar (wD)
