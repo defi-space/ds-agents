@@ -741,9 +741,33 @@ async function prepareActionCall({
   }
 
   try {
-    const data = action.schema.parse(JSON.parse(call.content));
-    call.data = data;
-    return { action, data };
+    // Log the content being parsed for debugging
+    logger.debug("agent:action", "Parsing action call content", {
+      name: call.name,
+      content: call.content,
+    });
+    
+    // Try to sanitize the JSON first before parsing
+    let contentToUse = call.content;
+    // Trim whitespace
+    contentToUse = contentToUse.trim();
+    
+    // Ensure the content is valid JSON
+    try {
+      const data = action.schema.parse(JSON.parse(contentToUse));
+      call.data = data;
+      return { action, data };
+    } catch (jsonError) {
+      // Log the specific JSON parsing error
+      logger.error("agent:action", "JSON_PARSE_ERROR", {
+        name: call.name,
+        content: contentToUse,
+        error: jsonError instanceof Error ? jsonError.message : String(jsonError)
+      });
+      
+      // Rethrow with more details
+      throw jsonError;
+    }
   } catch (error) {
     throw new ParsingError(error);
   }
@@ -1088,30 +1112,79 @@ function createContextStreamHandler({
       return pushLogStream(call, false);
     }
 
-    // todo: handle errors
-    const { action } = await prepareActionCall({
-      call,
-      actions,
-      logger,
-    });
+    try {
+      // Validate the content format before processing
+      if (typeof call.content !== 'string') {
+        logger.error("agent:action", "INVALID_CONTENT_FORMAT", {
+          name: call.name,
+          contentType: typeof call.content
+        });
+        throw new Error(`Invalid content format for action ${call.name}: content is not a string`);
+      }
 
-    pushLogStream(call, true);
+      // Check if content looks like valid JSON
+      const trimmedContent = call.content.trim();
+      if (!trimmedContent.startsWith('{') || !trimmedContent.endsWith('}')) {
+        logger.error("agent:action", "MALFORMED_JSON", {
+          name: call.name,
+          content: trimmedContent.substring(0, 100) + (trimmedContent.length > 100 ? '...' : '')
+        });
+        
+        // Try to fix common JSON issues
+        let fixedContent = trimmedContent;
+        
+        // If it doesn't look like JSON at all, wrap it in an empty object
+        if (!fixedContent.includes('{') && !fixedContent.includes('}')) {
+          fixedContent = '{}';
+        }
+        
+        // Use the fixed content
+        call.content = fixedContent;
+      }
 
-    actionCalls.push(
-      handleActionCall({
+      // Process the call with the validated/fixed content
+      const { action } = await prepareActionCall({
         call,
-        action,
-        agent,
+        actions,
         logger,
-        state: ctxState,
-        taskRunner,
-        workingMemory,
-        agentState: agentCtxState,
-      }).then((res) => {
-        pushLogStream(res, true);
-        return res;
-      })
-    );
+      });
+
+      pushLogStream(call, true);
+
+      actionCalls.push(
+        handleActionCall({
+          call,
+          action,
+          agent,
+          logger,
+          state: ctxState,
+          taskRunner,
+          workingMemory,
+          agentState: agentCtxState,
+        }).then((res) => {
+          pushLogStream(res, true);
+          return res;
+        })
+      );
+    } catch (error) {
+      logger.error("agent:action", "ACTION_CALL_FAILED", {
+        name: call.name,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      
+      // Create and push a failed action result
+      const failedResult: ActionResult = {
+        ref: "action_result",
+        id: randomUUIDv7(),
+        callId: call.id,
+        data: { error: error instanceof Error ? error.message : String(error) },
+        name: call.name,
+        timestamp: Date.now(),
+        processed: true,
+      };
+      
+      pushLogStream(failedResult, true);
+    }
   }
 
   async function handleOutputStream(outputRef: OutputRef, done: boolean) {

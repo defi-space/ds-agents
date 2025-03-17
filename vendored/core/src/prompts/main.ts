@@ -158,7 +158,27 @@ export const parse = createParser<
       let [data, error] = [undefined, undefined] as [any, any];
 
       try {
-        data = JSON.parse(element.content);
+        // Sanitize the content before parsing
+        let content = element.content;
+        
+        // Make sure content is properly trimmed
+        content = content.trim();
+        
+        // Ensure the content has proper JSON structure if it doesn't already
+        if (content && 
+           (!content.startsWith('{') || !content.endsWith('}'))) {
+          
+          // If it doesn't have braces at all, wrap it in an empty object
+          if (!content.includes('{') && !content.includes('}')) {
+            content = '{}';
+          } 
+          // If it has unclosed braces, try to detect and fix the common case
+          else if (content.includes('{') && !content.endsWith('}')) {
+            content = content + '}';
+          }
+        }
+        
+        data = JSON.parse(content);
       } catch (_error) {
         error = _error;
       }
