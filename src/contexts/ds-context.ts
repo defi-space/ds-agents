@@ -103,6 +103,12 @@ The following contracts are available on Starknet:
 <ds_faucet>
     Faucet Contract address: ${getContractAddress('core', 'faucet')}
 </ds_faucet>
+<ds_game_factory>
+    Game Factory Contract address: ${getContractAddress('core', 'gameFactory')}
+</ds_game_factory>
+<ds_game_session>
+    Current Game Session Contract address: ${getContractAddress('gameSession', 'current')}
+</ds_game_session>
 
 <ds_resource_contract_addresses>
    - wattDollar (wD)
@@ -290,6 +296,93 @@ The following contracts are available on Starknet:
         * rewardAmount: Token quantity
         * createdAt: Event timestamp
 
+3. Game Session Models:
+
+   A. GameFactory Model:
+      - Top-level contract managing game sessions
+      - Creates and tracks game competitions
+      - Key fields:
+        * address (PK): Contract address
+        * num_of_sessions: Total sessions created
+        * total_value_locked_usd: Total protocol TVL
+        * owner: Current protocol owner
+        * game_session_class_hash: Session implementation
+        * config_history: Historical configuration changes
+        * created_at: Creation timestamp
+        * updated_at: Last update timestamp
+
+   B. GameSession Model:
+      - Individual game competition contract
+      - Manages agent staking and victory conditions
+      - Key fields:
+        * address (PK): Contract address
+        * factory_address: Parent factory
+        * stake_token_address: Token used for staking
+        * token_win_condition_address: Token for winning (He3)
+        * token_win_condition_threshold: Victory amount (7M He3)
+        * session_index: Session identifier
+        * owner: Session controller
+        * burn_fee_percentage: Fee percentage burned
+        * platform_fee_percentage: Fee percentage to platform
+        * fee_recipient: Platform fee receiver
+        * number_of_stake_windows: Total staking periods
+        * number_of_agents: Total competing agents
+        * is_suspended: Suspension status
+        * is_over: Completion status
+        * winning_agent_index: Index of victorious agent
+        * total_staked: Total tokens staked
+        * current_window_index: Active staking window
+        * total_rewards: Total rewards for victor
+        * created_at: Creation timestamp
+        * updated_at: Last update timestamp
+        * ended_at: Completion timestamp
+
+   C. StakeWindow Model:
+      - Game session staking period
+      - Controls when agents can stake/unstake
+      - Key fields:
+        * id (PK): Window identifier
+        * session_address: Parent game session
+        * window_index: Sequential index
+        * start_time: Opening timestamp
+        * end_time: Closing timestamp
+        * is_active: Activity status
+        * total_staked: Tokens staked in window
+        * created_at: Creation timestamp
+
+   D. UserGameStake Model:
+      - User's position in a game session
+      - Tracks staked amounts for specific agents
+      - Key fields:
+        * id (PK): Stake identifier
+        * session_address: Game session contract
+        * user_address: Stake owner
+        * agent_index: Supported agent identifier
+        * staked_amount: Tokens committed
+        * claimed_rewards: Rewards withdrawn
+        * created_at: First stake timestamp
+        * updated_at: Last action timestamp
+
+   E. Game Events:
+      - Tracks all game-related transactions
+      - Records stakes, unstakes, and reward claims
+      - Key fields:
+        * id (PK): Event identifier
+        * transaction_hash: On-chain reference
+        * created_at: Event timestamp
+        * event_type: Action category (STAKE, UNSTAKE, etc.)
+        * user_address: Acting participant
+        * agent_index: Target agent
+        * window_index: Active staking window
+        * amount: Token quantity
+
+   F. Agent Structure:
+      - Represents a participant in the game session
+      - Contains the agent's address and total staked amount
+      - Key fields:
+        * address: Contract address of the agent
+        * total_staked: Total amount staked by or for this agent
+
 </indexer_data_models>
 
 6. Blockchain Error Handling
@@ -340,4 +433,27 @@ The following contracts are available on Starknet:
       - Start with smaller amounts when testing new strategies
       - Implement percentage-based calculations instead of fixed amounts
 </blockchain_errors>
+
+7. Game Session Functions
+
+<game_session_functions>
+1. End Game Function:
+   - Allows an agent to end the game after reaching 7,000,000 He3 tokens
+   - Distributes rewards to the winner and finalizes the session
+   - Function signature: end_game()
+   - Requirements:
+     * Agent must be registered in the game
+     * Agent must have 7,000,000 He3 tokens in their wallet
+     * Game must not be suspended or already over
+
+2. Get Game Agents Function:
+   - Returns a list of all agents participating in the game
+   - Each agent entry includes their address and total staked amount
+   - Function signature: get_game_agents() -> Array<Agent>
+   - Returns a structure containing:
+     * Number of agents in the game
+     * Array of Agent structs with:
+       - address: Contract address of the agent
+       - total_staked: Total amount staked by or for this agent
+</game_session_functions>
 `;

@@ -29,6 +29,12 @@ export const START = `<strategic_agent>
       <liquidity_pools>LP tokens created by depositing resource pairs</liquidity_pools>
       <reactors>Staking LP tokens to generate rewards at fixed rates</reactors>
     </mechanisms>
+    
+    <game_contracts>
+      <game_factory>Creates and manages game sessions</game_factory>
+      <game_session>The current active game competition where agents compete to reach 7M He3 first</game_session>
+      <victory_condition>Call the endGame function on the game session contract when you have 7M He3 tokens</victory_condition>
+    </game_contracts>
   </game_overview>
   
   <analysis_areas>
@@ -38,6 +44,7 @@ export const START = `<strategic_agent>
     <area>Reactor stake distribution and reward generation</area>
     <area>Competitor strategies and positioning</area>
     <area>Opportunities for strategic advantage</area>
+    <area>Game session status and competitor rankings</area>
   </analysis_areas>
   
   <strategic_questions>
@@ -46,6 +53,8 @@ export const START = `<strategic_agent>
     <question>What reactor staking strategy will yield the highest rewards given competition?</question>
     <question>What opportunities exist to gain advantage during waiting periods?</question>
     <question>How can competitor strategies be countered or leveraged?</question>
+    <question>When should victory be claimed once the 7M He3 threshold is reached?</question>
+    <question>How do our current resource holdings compare to top competitors?</question>
   </strategic_questions>
   
   <waiting_period_opportunities>
@@ -54,6 +63,7 @@ export const START = `<strategic_agent>
     <opportunity>Alternative production path exploration</opportunity>
     <opportunity>Competitive analysis and counter-strategy development</opportunity>
     <opportunity>Long-term strategy refinement</opportunity>
+    <opportunity>Monitoring game session status and competitor rankings</opportunity>
   </waiting_period_opportunities>
   
   <reporting_format>
@@ -61,6 +71,7 @@ export const START = `<strategic_agent>
     <section>Strategic opportunities and challenges</section>
     <section>Resource allocation plan</section>
     <section>Competitive positioning analysis</section>
+    <section>Game session status and victory planning</section>
     <section>Priority actions and timeline</section>
   </reporting_format>
 </strategic_agent>`;

@@ -1,7 +1,7 @@
 import { action } from "@daydreamsai/core";
 import { z } from "zod";
 import { executeQuery } from "../../utils/graphql";
-import { normalizeAddress } from "../../utils/starknet";
+import { normalizeAddress, getAgentAddress } from "../../utils/starknet";
 import {
   GET_POOL_INFO,
   GET_REACTOR_INFO,
@@ -9,6 +9,9 @@ import {
   GET_USER_LIQUIDITY_POSITIONS,
   GET_USER_STAKE_POSITIONS,
   GET_REACTOR_INDEX_BY_LP_TOKEN,
+  GET_GAME_SESSION_STATUS,
+  GET_GAME_SESSION_INDEX_BY_ADDRESS,
+  GET_MOST_STAKED_AGENTS
 } from "../../utils/queries";
 
 export const indexerActions = [
@@ -303,6 +306,191 @@ export const indexerActions = [
           success: false,
           error: (error as Error).message || "Failed to get reactor index by LP token",
           message: `Failed to retrieve reactor index for LP token: ${(error as Error).message || "Unknown error"}`,
+          timestamp: Date.now()
+        };
+      }
+    },
+  }),
+
+  action({
+    name: "getGameSessionStatus",
+    description: "Checks if a game session is active by verifying that it's not suspended or already over. Returns essential game session status information. Example: getGameSessionStatus({ sessionAddress: '0x123abc...' })",
+    schema: z.object({
+      sessionAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The Starknet address of the game session to query information for (in hex format)")
+    }),
+    handler: async (call, ctx, agent) => {
+      try {
+        // Input validation
+        if (!call.data.sessionAddress) {
+          return {
+            success: false,
+            error: "Game session address is required",
+            message: "Cannot retrieve game session status: address is missing",
+            timestamp: Date.now()
+          };
+        }
+        
+        const normalizedAddress = normalizeAddress(call.data.sessionAddress);
+        
+        const result = await executeQuery(GET_GAME_SESSION_STATUS, {
+          address: normalizedAddress
+        });
+        
+        if (!result || !result.gameSession) {
+          return {
+            success: false,
+            error: "Game session not found",
+            message: `No game session found for address ${call.data.sessionAddress}`,
+            timestamp: Date.now()
+          };
+        }
+        
+        const isActive = !result.gameSession.is_suspended && !result.gameSession.is_over;
+        
+        return {
+          success: true,
+          data: {
+            ...result.gameSession,
+            isActive
+          },
+          message: isActive 
+            ? `Game session at ${call.data.sessionAddress} is active` 
+            : `Game session at ${call.data.sessionAddress} is not active (${result.gameSession.is_suspended ? 'suspended' : 'over'})`,
+          timestamp: Date.now()
+        };
+      } catch (error) {
+        console.error('Failed to get game session status:', error);
+        return {
+          success: false,
+          error: (error as Error).message || "Failed to get game session status",
+          message: `Failed to retrieve game session status: ${(error as Error).message || "Unknown error"}`,
+          timestamp: Date.now()
+        };
+      }
+    },
+  }),
+
+  action({
+    name: "getGameSessionIndexByAddress",
+    description: "Retrieves the session index for a specific game session address. Example: getGameSessionIndexByAddress({ sessionAddress: '0x123abc...' })",
+    schema: z.object({
+      sessionAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The Starknet address of the game session to query index for (in hex format)")
+    }),
+    handler: async (call, ctx, agent) => {
+      try {
+        // Input validation
+        if (!call.data.sessionAddress) {
+          return {
+            success: false,
+            error: "Game session address is required",
+            message: "Cannot retrieve game session index: address is missing",
+            timestamp: Date.now()
+          };
+        }
+        
+        const normalizedAddress = normalizeAddress(call.data.sessionAddress);
+        
+        const result = await executeQuery(GET_GAME_SESSION_INDEX_BY_ADDRESS, {
+          address: normalizedAddress
+        });
+        
+        if (!result?.gameSession || !result.gameSession.session_index) {
+          return {
+            success: false,
+            error: "Game session index not found",
+            message: `No game session index found for address ${call.data.sessionAddress}`,
+            timestamp: Date.now()
+          };
+        }
+        
+        return {
+          success: true,
+          data: {
+            sessionAddress: call.data.sessionAddress,
+            sessionIndex: result.gameSession.session_index
+          },
+          message: `Game session at ${call.data.sessionAddress} has index ${result.gameSession.session_index}`,
+          timestamp: Date.now()
+        };
+      } catch (error) {
+        console.error('Failed to get game session index:', error);
+        return {
+          success: false,
+          error: (error as Error).message || "Failed to get game session index",
+          message: `Failed to retrieve game session index: ${(error as Error).message || "Unknown error"}`,
+          timestamp: Date.now()
+        };
+      }
+    },
+  }),
+
+  action({
+    name: "getMostStakedAgents",
+    description: "Retrieves the agents with the highest stakes in a game session, with a configurable limit. Example: getMostStakedAgents({ sessionAddress: '0x123abc...', limit: 10 })",
+    schema: z.object({
+      sessionAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The Starknet address of the game session to query for (in hex format)"),
+      limit: z.number().int().min(1).max(50).optional().describe("Maximum number of agents to return. Defaults to 5")
+    }),
+    handler: async (call, ctx, agent) => {
+      try {
+        // Input validation
+        if (!call.data.sessionAddress) {
+          return {
+            success: false,
+            error: "Session address is required",
+            message: "Cannot retrieve most staked agents: session address is missing",
+            timestamp: Date.now()
+          };
+        }
+        
+        const sessionAddress = normalizeAddress(call.data.sessionAddress);
+        const limit = call.data.limit || 5;
+        
+        const result = await executeQuery(GET_MOST_STAKED_AGENTS, {
+          sessionAddress: sessionAddress,
+          limit: limit
+        });
+        
+        if (!result || !result.userGameStake || !Array.isArray(result.userGameStake)) {
+          return {
+            success: false,
+            error: "No agent data returned",
+            message: "Failed to retrieve most staked agents: no data returned from query",
+            timestamp: Date.now()
+          };
+        }
+        
+        // Get current agent address for comparison
+        const agentAddress = await getAgentAddress();
+        const normalizedAgentAddress = agentAddress ? normalizeAddress(agentAddress) : null;
+        
+        // Add rank and check if current agent is among top stakers
+        const topAgents = result.userGameStake.map((stake: any, index: number) => ({
+          ...stake,
+          rank: index + 1,
+          isCurrentAgent: normalizedAgentAddress ? 
+            normalizeAddress(stake.user_address) === normalizedAgentAddress : false
+        }));
+        
+        const currentAgentInList = topAgents.find((agent: any) => agent.isCurrentAgent);
+        
+        return {
+          success: true,
+          data: {
+            topAgents,
+            currentAgentRank: currentAgentInList ? currentAgentInList.rank : null
+          },
+          message: `Successfully retrieved ${topAgents.length} most staked agents${
+            currentAgentInList ? `. Your agent ranks #${currentAgentInList.rank}` : ''
+          }`,
+          timestamp: Date.now()
+        };
+      } catch (error) {
+        console.error('Failed to get most staked agents:', error);
+        return {
+          success: false,
+          error: (error as Error).message || "Failed to get most staked agents",
+          message: `Failed to retrieve most staked agents: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };
       }

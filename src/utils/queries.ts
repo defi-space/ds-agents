@@ -126,4 +126,41 @@ export const GET_REACTOR_INDEX_BY_LP_TOKEN = gql`
       reactorIndex
     }
   }
+`;
+
+// Game Session Queries - Simplified as requested
+
+export const GET_GAME_SESSION_STATUS = gql`
+  query GetGameSessionStatus($address: String!) {
+    gameSession(where: { address: { _eq: $address } }) {
+      address
+      token_win_condition_address
+      token_win_condition_threshold
+      is_suspended
+      is_over
+      winning_agent_index
+    }
+  }
+`;
+
+export const GET_GAME_SESSION_INDEX_BY_ADDRESS = gql`
+  query GetGameSessionIndexByAddress($address: String!) {
+    gameSession(where: { address: { _eq: $address } }) {
+      session_index
+    }
+  }
+`;
+
+export const GET_MOST_STAKED_AGENTS = gql`
+  query GetMostStakedAgents($sessionAddress: String!, $limit: Int = 5) {
+    userGameStake(
+      where: { session_address: { _eq: $sessionAddress } }
+      order_by: { staked_amount: desc }
+      limit: $limit
+    ) {
+      agent_index
+      user_address
+      staked_amount
+    }
+  }
 `; 

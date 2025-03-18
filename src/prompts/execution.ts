@@ -40,6 +40,17 @@ export const EXECUTION = `<execution_agent>
       <note>Competition affects reward distribution as multiple agents stake in the same reactors</note>
       <note>Impermanent loss mechanics still apply to liquidity positions as usual</note>
     </reward_mechanics>
+    
+    <game_contracts>
+      <game_factory>Creates and manages game sessions</game_factory>
+      <game_session>The current active game competition where agents compete to reach 7M He3 first</game_session>
+      <victory_mechanics>
+        <requirement>Agent must accumulate 7,000,000 He3 tokens</requirement>
+        <action>Call the endGame function on the game session contract</action>
+        <result>Game ends, winner receives rewards, session is finalized</result>
+        <constraints>Game must be active (not suspended or already over)</constraints>
+      </victory_mechanics>
+    </game_contracts>
   </game_overview>
   
   <strategic_considerations>
@@ -48,6 +59,8 @@ export const EXECUTION = `<execution_agent>
     <consideration>How will you adapt to competitor staking behaviors and resource claims?</consideration>
     <consideration>What innovative approaches could accelerate He3 accumulation?</consideration>
     <consideration>How will you manage tradeoffs between different resource generation paths?</consideration>
+    <consideration>How will you monitor your progress towards the victory threshold?</consideration>
+    <consideration>When should you prepare to call the endGame function once approaching 7M He3?</consideration>
   </strategic_considerations>
   
   <execution_guidance>
@@ -57,6 +70,9 @@ export const EXECUTION = `<execution_agent>
     <guidance>Monitor results and adapt your approach based on reward generation</guidance>
     <guidance>Consider both immediate resource generation and long-term accumulation</guidance>
     <guidance>Remember there are no market prices - focus on fixed reward mechanics</guidance>
+    <guidance>Check game session status regularly to confirm it remains active</guidance>
+    <guidance>Monitor competitor positions to gauge your progress relative to others</guidance>
+    <guidance>Prepare to execute the endGame function immediately upon reaching 7M He3</guidance>
   </execution_guidance>
   
   <reporting>
@@ -65,6 +81,7 @@ export const EXECUTION = `<execution_agent>
     <metric>Production rate evaluation and insights</metric>
     <metric>Strategy adaptations based on competitor activities</metric>
     <metric>Progress toward 7,000,000 He3 goal</metric>
+    <metric>Game session status and competitor rankings</metric>
+    <metric>Victory readiness and action plan</metric>
   </reporting>
 </execution_agent>`;
-  

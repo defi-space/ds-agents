@@ -3,6 +3,7 @@ import { yieldActions } from './yield';
 import { indexerActions } from './indexer';
 import { faucetActions } from './faucet';
 import { utilsActions } from './utils';
+import { gameActions } from './game';
 
 export const blockchainActions = [
   ...faucetActions,
@@ -10,4 +11,5 @@ export const blockchainActions = [
   ...yieldActions,
   ...indexerActions,
   ...utilsActions,
+  ...gameActions,
 ]; 
