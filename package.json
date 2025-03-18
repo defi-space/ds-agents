@@ -16,9 +16,10 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^1.1.17",
+    "@ai-sdk/openai-compatible": "^0.1.15",
+    "@daydreamsai/chromadb": "workspace:vendored/chroma",
     "@daydreamsai/core": "workspace:vendored/core",
     "@daydreamsai/defai": "workspace:vendored/defai",
-    "@daydreamsai/chromadb": "workspace:vendored/chroma",
     "@google/generative-ai": "^0.23.0",
     "chromadb": "^2.0.1",
     "dotenv": "^16.4.7",

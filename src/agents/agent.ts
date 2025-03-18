@@ -1,4 +1,4 @@
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import {
   createDreams,
   createContainer,
@@ -61,10 +61,10 @@ export function createAgent(config: AgentConfig) {
   }
 
   // Initialize Google AI model
-  const google = createGoogleGenerativeAI({
-    apiKey: googleApiKey,
+  const lmstudio = createOpenAICompatible({
+    name: 'lmstudio',
+    baseURL: 'http://172.16.173.133:1234/v1/',
   });
-  const model = google("gemini-2.0-flash");
   
   // Create a unique collection name for this agent's vector store
   const collectionName = `agent-${config.id}-collection`;
@@ -74,7 +74,7 @@ export function createAgent(config: AgentConfig) {
     id: config.id,
     logger: LogLevel.DEBUG,
     container: createContainer(),
-    model,
+    model: lmstudio("gemma-3-4b-it"),
     extensions: [isManualMode() ? cli : autonomousCli],
     memory: {
       store: createMemoryStore(),
