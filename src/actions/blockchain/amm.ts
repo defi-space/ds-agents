@@ -97,19 +97,6 @@ export const ammActions = [
         
         const amountOut = convertU256ToDecimal(result[0], result[1]);
         
-        // Store in context for reference if needed later
-        if (ctx.agentMemory) {
-          ctx.agentMemory.lastAmountOutCalculation = {
-            tokenIn,
-            tokenOut,
-            amountIn,
-            amountOut,
-            reserveIn,
-            reserveOut,
-            timestamp: new Date().toISOString()
-          };
-        }
-        
         return {
           success: true,
           data: {

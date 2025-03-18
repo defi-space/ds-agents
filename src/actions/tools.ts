@@ -264,14 +264,6 @@ export const toolActions = [
       try {
         const rankedAgents = await rankAgentsByHe3();
         
-        // Store the ranking in context for reference
-        if (ctx.agentMemory) {
-          ctx.agentMemory.lastAgentRanking = {
-            timestamp: new Date().toISOString(),
-            ranking: rankedAgents
-          };
-        }
-        
         return {
           success: true,
           data: {

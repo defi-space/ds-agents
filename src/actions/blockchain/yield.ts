@@ -91,17 +91,6 @@ export const yieldActions = [
           };
         }
 
-        // Store in context for reference
-        if (ctx.agentMemory) {
-          ctx.agentMemory.lastYieldDeposit = {
-            reactorIndex: call.data.reactorIndex,
-            amount: call.data.amount,
-            lpToken,
-            transactionHash: result.transactionHash,
-            timestamp: Date.now()
-          };
-        }
-
         return {
           success: true,
           data: {
@@ -174,16 +163,6 @@ export const yieldActions = [
             transactionHash: result.transactionHash,
             receipt: result,
             timestamp: Date.now(),
-          };
-        }
-
-        // Store in context for reference
-        if (ctx.agentMemory) {
-          ctx.agentMemory.lastYieldWithdrawal = {
-            reactorIndex: call.data.reactorIndex,
-            amount: call.data.amount,
-            transactionHash: result.transactionHash,
-            timestamp: Date.now()
           };
         }
 
@@ -275,16 +254,6 @@ export const yieldActions = [
             transactionHash: result.transactionHash,
             receipt: result,
             timestamp: Date.now(),
-          };
-        }
-
-        // Store in context for reference
-        if (ctx.agentMemory) {
-          ctx.agentMemory.lastYieldExit = {
-            reactorIndex: call.data.reactorIndex,
-            exitedAmount: stakedAmount,
-            transactionHash: result.transactionHash,
-            timestamp: Date.now()
           };
         }
 
@@ -396,17 +365,6 @@ export const yieldActions = [
           };
         }
 
-        // Store in context for reference
-        if (ctx.agentMemory) {
-          ctx.agentMemory.lastRewardHarvest = {
-            reactorIndex: call.data.reactorIndex,
-            rewardTokens,
-            harvestedAmounts: pendingRewards,
-            transactionHash: result.transactionHash,
-            timestamp: Date.now()
-          };
-        }
-
         return {
           success: true,
           data: {
@@ -485,16 +443,6 @@ export const yieldActions = [
         
         const earnedAmount = convertU256ToDecimal(earned[0], earned[1]).toString();
         
-        // Store in context for reference
-        if (ctx.agentMemory) {
-          ctx.agentMemory.pendingRewards = ctx.agentMemory.pendingRewards || {};
-          ctx.agentMemory.pendingRewards[call.data.reactorIndex] = ctx.agentMemory.pendingRewards[call.data.reactorIndex] || {};
-          ctx.agentMemory.pendingRewards[call.data.reactorIndex][call.data.rewardToken] = {
-            amount: earnedAmount,
-            checkedAt: Date.now()
-          };
-        }
-        
         return {
           success: true,
           data: {
@@ -556,15 +504,6 @@ export const yieldActions = [
         }));
 
         const lpToken = Array.isArray(lpTokenResponse) ? lpTokenResponse[0] : lpTokenResponse;
-
-        // Store in context for reference
-        if (ctx.agentMemory) {
-          ctx.agentMemory.reactorLpTokens = ctx.agentMemory.reactorLpTokens || {};
-          ctx.agentMemory.reactorLpTokens[call.data.reactorIndex] = {
-            lpToken,
-            queriedAt: Date.now()
-          };
-        }
 
         return {
           success: true,
@@ -639,15 +578,6 @@ export const yieldActions = [
 
         const stakedAmount = convertU256ToDecimal(balance[0], balance[1]).toString();
         
-        // Store in context for reference
-        if (ctx.agentMemory) {
-          ctx.agentMemory.stakedAmounts = ctx.agentMemory.stakedAmounts || {};
-          ctx.agentMemory.stakedAmounts[call.data.reactorIndex] = {
-            amount: stakedAmount,
-            queriedAt: Date.now()
-          };
-        }
-
         return {
           success: true,
           data: {
@@ -709,15 +639,6 @@ export const yieldActions = [
 
         const totalDepositedAmount = convertU256ToDecimal(totalDeposited[0], totalDeposited[1]).toString();
         
-        // Store in context for reference
-        if (ctx.agentMemory) {
-          ctx.agentMemory.reactorTotalDeposits = ctx.agentMemory.reactorTotalDeposits || {};
-          ctx.agentMemory.reactorTotalDeposits[call.data.reactorIndex] = {
-            amount: totalDepositedAmount,
-            queriedAt: Date.now()
-          };
-        }
-
         return {
           success: true,
           data: {
@@ -779,15 +700,6 @@ export const yieldActions = [
 
         const formattedAddress = Array.isArray(reactorAddress) ? reactorAddress[0] : reactorAddress;
         
-        // Store in context for reference
-        if (ctx.agentMemory) {
-          ctx.agentMemory.reactorAddresses = ctx.agentMemory.reactorAddresses || {};
-          ctx.agentMemory.reactorAddresses[call.data.reactorIndex] = {
-            address: formattedAddress,
-            queriedAt: Date.now()
-          };
-        }
-
         return {
           success: true,
           data: {
@@ -849,15 +761,6 @@ export const yieldActions = [
 
         const formattedTokens = Array.isArray(rewardTokens) ? rewardTokens : [rewardTokens];
         
-        // Store in context for reference
-        if (ctx.agentMemory) {
-          ctx.agentMemory.reactorRewardTokens = ctx.agentMemory.reactorRewardTokens || {};
-          ctx.agentMemory.reactorRewardTokens[call.data.reactorIndex] = {
-            tokens: formattedTokens,
-            queriedAt: Date.now()
-          };
-        }
-
         return {
           success: true,
           data: {

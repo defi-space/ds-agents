@@ -45,15 +45,6 @@ export const indexerActions = [
           };
         }
         
-        // Store in context for reference
-        if (ctx.agentMemory) {
-          ctx.agentMemory.lastPoolQuery = {
-            poolAddress: normalizedAddress,
-            timestamp: Date.now(),
-            result
-          };
-        }
-        
         return {
           success: true,
           data: result,
@@ -105,15 +96,6 @@ export const indexerActions = [
           };
         }
         
-        // Store in context for reference
-        if (ctx.agentMemory) {
-          ctx.agentMemory.lastReactorQuery = {
-            reactorAddress: normalizedAddress,
-            timestamp: Date.now(),
-            result
-          };
-        }
-        
         return {
           success: true,
           data: result,
@@ -148,15 +130,6 @@ export const indexerActions = [
             error: "No reactors data returned",
             message: "Failed to retrieve reactors list: no reactors data returned from query",
             timestamp: Date.now()
-          };
-        }
-        
-        // Store in context for reference
-        if (ctx.agentMemory) {
-          ctx.agentMemory.lastReactorsQuery = {
-            timestamp: Date.now(),
-            reactorCount: result.reactors.length,
-            result
           };
         }
         
@@ -211,16 +184,6 @@ export const indexerActions = [
           };
         }
         
-        // Store in context for reference
-        if (ctx.agentMemory) {
-          ctx.agentMemory.lastUserLiquidityQuery = {
-            userAddress: normalizedAddress,
-            timestamp: Date.now(),
-            positionCount: result.liquidityPositions.length,
-            result
-          };
-        }
-        
         return {
           success: true,
           data: result,
@@ -269,16 +232,6 @@ export const indexerActions = [
             data: { stakePositions: [] },
             message: `No stake positions found for user ${call.data.userAddress}`,
             timestamp: Date.now()
-          };
-        }
-        
-        // Store in context for reference
-        if (ctx.agentMemory) {
-          ctx.agentMemory.lastUserStakeQuery = {
-            userAddress: normalizedAddress,
-            timestamp: Date.now(),
-            positionCount: result.stakePositions.length,
-            result
           };
         }
         
@@ -332,15 +285,6 @@ export const indexerActions = [
             error: "Reactor not found for LP token",
             message: `No reactor found for LP token address ${call.data.lpTokenAddress}`,
             timestamp: Date.now()
-          };
-        }
-        
-        // Store in context for reference
-        if (ctx.agentMemory) {
-          ctx.agentMemory.lpTokenReactorMappings = ctx.agentMemory.lpTokenReactorMappings || {};
-          ctx.agentMemory.lpTokenReactorMappings[normalizedAddress] = {
-            reactorIndex,
-            queriedAt: Date.now()
           };
         }
         

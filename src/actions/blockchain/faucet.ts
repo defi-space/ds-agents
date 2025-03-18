@@ -106,19 +106,6 @@ export const faucetActions = [
               timestamp: Date.now()
             };
           }
-  
-          // Store the claim in context for reference
-          if (ctx.agentMemory) {
-            ctx.agentMemory.lastFaucetClaim = {
-              timestamp: Date.now(),
-              transactionHash: result.transactionHash,
-              tokens: {
-                wattDollar: "7,000,000",
-                carbon: "100,000",
-                neodymium: "210,000"
-              }
-            };
-          }
           
           return {
             success: true,
@@ -176,17 +163,6 @@ export const faucetActions = [
           }
           
           const status = await checkFaucetStatus(faucetAddress, agentAddress);
-          
-          // Store the status in context
-          if (ctx.agentMemory) {
-            ctx.agentMemory.faucetStatus = {
-              ...status,
-              checkedAt: Date.now(),
-              nextClaimTime: status.canClaim 
-                ? "Available now" 
-                : new Date((status.lastClaim + status.interval) * 1000).toISOString()
-            };
-          }
           
           return {
             success: true,

@@ -107,16 +107,6 @@ export const utilsActions = [
         // Convert the decimal balance to proper token decimals
         const rawBalance = BigInt(balance.toString());
         const adjustedBalance = formatTokenBalance(rawBalance);
-        
-        // Store in context for reference
-        if (ctx.agentMemory) {
-          ctx.agentMemory.tokenBalances = ctx.agentMemory.tokenBalances || {};
-          ctx.agentMemory.tokenBalances[tokenAddress] = {
-            rawBalance: rawBalance.toString(),
-            formattedBalance: adjustedBalance.balance,
-            timestamp: Date.now()
-          };
-        }
 
         return {
           success: true,
@@ -193,17 +183,6 @@ export const utilsActions = [
         
         // Convert the amount to base units
         const baseUnits = convertToContractValue(call.data.amount, decimals);
-        
-        // Store in context for reference
-        if (ctx.agentMemory) {
-          ctx.agentMemory.tokenConversions = ctx.agentMemory.tokenConversions || {};
-          ctx.agentMemory.tokenConversions[`${call.data.amount}_${tokenAddress}`] = {
-            humanReadable: call.data.amount,
-            baseUnits: baseUnits.toString(),
-            decimals,
-            timestamp: Date.now()
-          };
-        }
 
         return {
           success: true,
@@ -536,32 +515,6 @@ export const utilsActions = [
               } : null
             }))
           : [];
-        
-        // Store in context for reference
-        if (ctx.agentMemory) {
-          // Helper function to safely parse formatted string values
-          const parseFormattedNumber = (value: string): number => {
-            // Remove commas and convert to number
-            return parseFloat(value.replace(/,/g, ''));
-          };
-          
-          // Get the He3 amount as a number
-          const helium3Value = formattedTokenBalances.helium3.balance;
-          const helium3Amount = parseFormattedNumber(helium3Value);
-            
-          ctx.agentMemory.gameResourceState = {
-            agentAddress,
-            timestamp: Date.now(),
-            tokenBalances: formattedTokenBalances,
-            liquidityPositionsCount: formattedLiquidityPositions.length,
-            stakingPositionsCount: stakingPositionsWithRewards.length,
-            he3Goal: {
-              current: formattedTokenBalances.helium3.balance,
-              target: "7,000,000",
-              progressPercentage: helium3Amount / 7000000 * 100
-            }
-          };
-        }
         
         // Calculate game progress stats using the helper function
         const parseFormattedNumber = (value: string): number => {
