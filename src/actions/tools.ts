@@ -70,7 +70,7 @@ export const toolActions = [
     name: "queryUserLiquidityPositions",
     description: "Queries the blockchain indexer to retrieve all liquidity positions for a specific user address. Returns detailed information about each position including pool addresses, token amounts, and LP token balances. Example: queryUserLiquidityPositions({ address: '0x123...' })",
     schema: z.object({
-      address: z.string().describe("The user's Starknet address (in hex format)")
+      address: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The user's Starknet address (in hex format)")
     }),
     async handler(call, ctx, agent) {
       try {
@@ -117,7 +117,7 @@ export const toolActions = [
     name: "queryUserStakePositions",
     description: "Queries the blockchain indexer to retrieve all staking positions for a specific user address. Returns detailed information about each position including reactor addresses, token amounts, and reward data. Example: queryUserStakePositions({ address: '0x123...' })",
     schema: z.object({
-      address: z.string().describe("The user's Starknet address (in hex format)")
+      address: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The user's Starknet address (in hex format)")
     }),
     async handler(call, ctx, agent) {
       try {
@@ -257,7 +257,9 @@ export const toolActions = [
   action({
     name: "rankAgentsByHe3",
     description: "Retrieves a ranked list of all agents based on their He3 token balance. Returns agents sorted from highest to lowest balance with detailed information about each agent. Example: rankAgentsByHe3()",
-    schema: z.object({}),
+    schema: z.object({
+      message: z.string().describe("Ignore this field, it is not needed").default("None"), 
+    }),
     async handler(call, ctx, agent) {
       try {
         const rankedAgents = await rankAgentsByHe3();

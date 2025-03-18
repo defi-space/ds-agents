@@ -137,8 +137,8 @@ export const ammActions = [
     name: "quote",
     description: "Provides a price quote for exchanging tokens based on the current reserves in the liquidity pool. Calculates the equivalent amount of token B you would receive for a given amount of token A, taking into account the current ratio of reserves. This is a pure calculation that doesn't account for fees or slippage, useful for price estimation purposes.",
     schema: z.object({
-      tokenIn: z.string().describe("The address of the token you want to swap from"),
-      tokenOut: z.string().describe("The address of the token you want to receive"),
+      tokenIn: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The address of the token you want to swap from (in hex format)"),
+      tokenOut: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The address of the token you want to receive (in hex format)"),
       amountIn: z.string().describe("Input amount (MUST be in token base units)"),
     }),
     handler: async (call, ctx, agent) => {
@@ -193,8 +193,8 @@ export const ammActions = [
     name: "swapExactTokensForTokens",
     description: "Execute a token swap with an exact input amount for a minimum output amount. Automatically finds the best route between the input and output tokens, handling multi-hop swaps if needed. Includes slippage protection through amountOutMin parameter and deadline for transaction validity. Automatically handles token approvals and executes the swap in a single transaction.",
     schema: z.object({
-      tokenIn: z.string().describe("The address of the token you want to swap from"),
-      tokenOut: z.string().describe("The address of the token you want to receive"),
+      tokenIn: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The address of the token you want to swap from (in hex format)"),
+      tokenOut: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The address of the token you want to receive (in hex format)"),
       amountIn: z.string().describe("Exact amount of input tokens to be swapped (in token base units)"),
     }),
     handler: async (call, ctx, agent) => {
@@ -259,8 +259,8 @@ export const ammActions = [
     name: "addLiquidity",
     description: "Add liquidity to an AMM pool by depositing a pair of tokens. Handles first-time pool creation and manages existing pools. Includes approval transactions for both tokens, executes all necessary transactions in a single multicall for gas efficiency.",
     schema: z.object({
-      tokenA: z.string().describe("Address of the first token in the pair"),
-      tokenB: z.string().describe("Address of the second token in the pair"),
+      tokenA: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Address of the first token in the pair (in hex format)"),
+      tokenB: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Address of the second token in the pair (in hex format)"),
       amountADesired: z.string().describe("Desired amount of first token to add (MUST be in token base units)"),
     }),
     handler: async (call, ctx, agent) => {
@@ -362,8 +362,8 @@ export const ammActions = [
     name: "removeLiquidity",
     description: "Remove liquidity from an AMM pool by burning LP tokens. Withdraws both tokens from the pool proportionally to the amount of LP tokens burned. Includes slippage protection through minimum amount parameters, handles token approvals, and executes the removal in a single transaction. Returns full transaction details including the amounts of tokens received.",
     schema: z.object({
-      tokenA: z.string().describe("Address of the first token to receive"),
-      tokenB: z.string().describe("Address of the second token to receive"),
+      tokenA: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Address of the first token to receive (in hex format)"),
+      tokenB: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Address of the second token to receive (in hex format) "),
       liquidity: z.string().describe("Amount of LP tokens to burn for withdrawing liquidity (in token base units)"),
     }),
     handler: async (call, ctx, agent) => {
