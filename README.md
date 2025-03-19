@@ -218,9 +218,12 @@ ds-agents/
 ├── package.json          # Project dependencies
 ├── contracts.json        # Contract addresses configuration
 ├── tsconfig.json         # TypeScript configuration
-├── Dockerfile            # Container definition for Phala TEE
-├── phala-config.json     # Phala TEE configuration
-├── deploy-to-phala.sh    # Phala deployment script
+├── phala-deploy/         # Phala TEE deployment files
+│   ├── Dockerfile        # Container definition for Phala TEE
+│   ├── phala-config.json # Phala TEE configuration
+│   ├── build-image.sh    # Script to build and push Docker images
+│   ├── deploy-to-phala.sh # Script to deploy to Phala Network
+│   └── README.md         # Phala deployment documentation
 └── README.md             # This file
 ```
 
@@ -292,34 +295,53 @@ TEEs provide an isolated and secure environment where code can be executed with 
 
 ### Deploying to Phala TEE
 
+The deployment process has been split into two separate steps for better organization:
+
 1. **Configure Environment Variables**:
    ```bash
    cp .env.example .env
    # Edit the .env file with your agent credentials
    ```
 
-2. **Run the Phala Deployment Script**:
-   ```bash
-   chmod +x deploy-to-phala.sh
-   ./deploy-to-phala.sh
-   ```
+2. **Set Up GitHub Container Registry Access**:
+   - Create a GitHub Personal Access Token (PAT) with `write:packages` permissions
+   - Log in to GitHub Container Registry:
+     ```bash
+     docker login ghcr.io -u YOUR_GITHUB_USERNAME -p YOUR_GITHUB_PAT
+     ```
 
-3. **Deploy Using Phala CLI**:
+3. **Build and Push Docker Image**:
    ```bash
-   phala deploy --config phala-config.json --env-file .env
+   chmod +x phala-deploy/build-image.sh
+   ./phala-deploy/build-image.sh
    ```
+   - When prompted, provide your GitHub username
+   - Choose whether to make your container image public or private
 
-4. **Monitor Your Deployment**:
+4. **Deploy to Phala Network**:
+   ```bash
+   chmod +x phala-deploy/deploy-to-phala.sh
+   ./phala-deploy/deploy-to-phala.sh
+   ```
+   - The script will guide you through the deployment process
+   - Provide your Phala Worker ID when prompted
+
+5. **Monitor Your Deployment**:
    - Use Phala's dashboard to monitor your agents' health and resource usage
    - Set up alerts for any issues or performance degradation
 
+For more detailed information, refer to the documentation in the `phala-deploy` directory.
+
 ### Phala Configuration
 
-The project includes pre-configured files for Phala deployment:
+The project includes pre-configured files for Phala deployment in the `phala-deploy` directory:
 
 - **Dockerfile**: Containerizes your agents for TEE deployment
 - **phala-config.json**: Defines TEE environment settings, resource requirements, and security policies
-- **deploy-to-phala.sh**: Automates the deployment preparation process
+- **build-image.sh**: Script to build and push Docker images to GitHub Container Registry
+- **deploy-to-phala.sh**: Script to deploy the built image to Phala Network
+
+This separation of concerns makes it easier to manage the Docker build process separately from the Phala deployment process.
 
 ### Security Considerations for TEE Deployment
 

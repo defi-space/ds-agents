@@ -28,6 +28,7 @@ USER agent
 ENV NODE_ENV=production
 ENV ENABLE_DASHBOARD=false
 ENV AGENT_COUNT=4
+ENV PHALA_TEE=true
 
 # Run all 4 agents for the TEE environment
 CMD ["bun", "run", "start-all"] 

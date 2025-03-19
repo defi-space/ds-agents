@@ -35,7 +35,9 @@
       ],
       "fixed": {
         "AGENT_COUNT": "4",
-        "PHALA_TEE": "true"
+        "PHALA_TEE": "true",
+        "NODE_ENV": "production",
+        "ENABLE_DASHBOARD": "false"
       }
     },
     "networking": {
@@ -47,7 +49,8 @@
       "minLevel": "secure"
     },
     "registry": {
-      "image": "yourregistry/defi-space-agents:latest"
+      "image": "ghcr.io/YOUR_GITHUB_USERNAME/defi-space-agents:latest",
+      "type": "github"
     }
   }
 } 

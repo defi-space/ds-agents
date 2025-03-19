@@ -22,7 +22,7 @@ services:
   agents:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: phala-deploy/Dockerfile
     container_name: ${COMPOSE_PROJECT_NAME:-daydreams}_agents
     restart: always
     depends_on:
