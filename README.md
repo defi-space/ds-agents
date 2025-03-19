@@ -354,7 +354,7 @@ When deploying agents that handle private keys and sensitive operations in a TEE
 ### Additional Phala Resources
 
 - [Phala Network Documentation](https://docs.phala.network/)
-- [Phala Cloud Dashboard](https://app.phala.cloud)
+- [Phala Cloud Dashboard](https://cloud.phala.network)
 - [TEE Security Best Practices](https://docs.phala.network/overview/phala-network)
 
 ## Troubleshooting

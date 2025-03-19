@@ -33,9 +33,9 @@ This script will:
 4. Update the `phala-config.json` file with your image reference
 5. Guide you through making the image public if needed
 
-### Step 2: Deploy to Phala Network
+### Step 2: Deploy to Phala Cloud
 
-After the image is built and pushed, deploy it to Phala Network:
+After the image is built and pushed, deploy it to Phala Cloud:
 
 ```bash
 # Make the script executable
@@ -49,16 +49,25 @@ This script will:
 1. Verify your environment configuration
 2. Update your `.env` file with Phala-specific variables
 3. Validate that the Docker image has been properly configured
-4. Deploy your application to Phala Network
-5. Provide instructions for monitoring the deployment
+4. Ask for your Phala Cloud API key
+5. Deploy your application to Phala Cloud using the latest CLI
+6. Provide a link to monitor your deployment
 
 ## Requirements
 
 - Docker installed and configured
 - GitHub account for Container Registry
 - GitHub Personal Access Token with appropriate permissions
-- Phala CLI installed (`npm install -g @phala/cli`)
-- Phala Network account and Worker ID
+- Node.js and NPX (to run the Phala CLI)
+- Phala Cloud account and API Key
+
+## Getting a Phala Cloud API Key
+
+1. Create an account at [Phala Cloud](https://cloud.phala.network)
+2. Click on your username in the top-left corner
+3. Select "API Tokens"
+4. Click "Create Token" to generate a new API key
+5. Copy this key for use in the deployment script
 
 ## Security Considerations
 
@@ -76,16 +85,16 @@ If you encounter issues during deployment:
    - Ensure you have permission to push to GitHub Container Registry
 
 2. **Phala deployment fails**:
-   - Verify your Phala CLI installation
+   - Verify you have a valid Phala Cloud API key
    - Check that your image is public or properly authenticated
    - Ensure all required environment variables are set
 
 3. **Runtime errors**:
-   - Check Phala dashboard for logs
+   - Check Phala Cloud dashboard for logs
    - Verify that your image configuration matches what's expected by the application
 
 ## Further Resources
 
-- [Phala Network Documentation](https://docs.phala.network/)
+- [Phala Cloud Documentation](https://docs.phala.network/phala-cloud/getting-started/start-from-cloud-cli)
 - [GitHub Container Registry Documentation](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry)
 - [Docker Documentation](https://docs.docker.com/) 

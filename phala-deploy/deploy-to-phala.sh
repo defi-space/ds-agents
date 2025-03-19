@@ -52,18 +52,6 @@ if ! grep -q "^PHALA_TEE=" .env; then
     echo "AGENT_COUNT=4" >> .env
 fi
 
-# Ask for Phala-specific information
-read -p "Enter your Phala Worker ID: " phala_worker_id
-if [ ! -z "$phala_worker_id" ]; then
-    # Only add if not already in .env
-    if ! grep -q "^PHALA_WORKER_ID=" .env; then
-        echo "PHALA_WORKER_ID=$phala_worker_id" >> .env
-    else
-        # Update existing value
-        sed -i "s/^PHALA_WORKER_ID=.*/PHALA_WORKER_ID=$phala_worker_id/" .env
-    fi
-fi
-
 # Check if image reference exists in phala-config.json
 if grep -q "YOUR_GITHUB_USERNAME" phala-deploy/phala-config.json; then
     echo -e "${YELLOW}Docker image not configured in phala-config.json.${NC}"
@@ -72,23 +60,103 @@ if grep -q "YOUR_GITHUB_USERNAME" phala-deploy/phala-config.json; then
 fi
 
 # Check if phala CLI is installed
-if ! command -v phala &> /dev/null; then
-    echo -e "${RED}Phala CLI not found. Please install the Phala CLI first.${NC}"
-    echo -e "${YELLOW}Visit https://docs.phala.network/ for installation instructions.${NC}"
+if ! command -v npx &> /dev/null; then
+    echo -e "${RED}Node.js and NPX are required but not found. Please install Node.js first.${NC}"
+    echo -e "${YELLOW}Visit https://nodejs.org/ for installation instructions.${NC}"
+    exit 1
+fi
+
+# Check for PHALA_API_KEY in .env file first
+phala_api_key=""
+if grep -q "^PHALA_API_KEY=" .env; then
+    # Extract the value properly, excluding any comments
+    phala_api_key=$(grep "^PHALA_API_KEY=" .env | sed -E 's/^PHALA_API_KEY="?([^"#]*).*$/\1/' | tr -d "'" | tr -d ' ')
+    
+    # Check if it's empty after parsing
+    if [ -z "$phala_api_key" ]; then
+        echo -e "${YELLOW}Found PHALA_API_KEY in .env but value appears to be empty${NC}"
+    fi
+fi
+
+# If not found in .env or empty, check environment variable
+if [ -z "$phala_api_key" ] && [ ! -z "$PHALA_API_KEY" ]; then
+    phala_api_key="$PHALA_API_KEY"
+fi
+
+# If still not found, prompt user
+if [ -z "$phala_api_key" ]; then
+    echo -e "${YELLOW}Phala Cloud API Key is required for deployment.${NC}"
+    echo -e "${YELLOW}You can generate one at https://cloud.phala.network by going to your profile > API Tokens.${NC}"
+    echo -e "${YELLOW}Then add it to your .env file as PHALA_API_KEY=\"your-key-here\"${NC}"
+    read -p "Enter your Phala Cloud API Key: " phala_api_key
+    
+    if [ -z "$phala_api_key" ]; then
+        echo -e "${RED}API Key is required to continue.${NC}"
+        exit 1
+    fi
+    
+    # Add to .env file for future use
+    echo "PHALA_API_KEY=\"$phala_api_key\"" >> .env
+    echo -e "${GREEN}Added PHALA_API_KEY to .env file${NC}"
+else
+    echo -e "${GREEN}Using Phala API Key found in configuration${NC}"
+fi
+
+# Check if the API key looks valid (basic format check)
+if [[ ! "$phala_api_key" =~ ^[A-Za-z0-9_.~+/-]{10,}$ ]]; then
+    echo -e "${RED}[WARNING] The API key format looks unusual. It should be a long string without spaces or special characters.${NC}"
+    echo -e "${YELLOW}Common issues:${NC}"
+    echo -e "  - API key may contain extra quotes from .env file"
+    echo -e "  - API key may contain whitespace or newlines"
+    echo -e "  - API key may have been truncated"
+    echo -e "${YELLOW}Please check your API key and try again.${NC}"
+    
+    read -p "Continue anyway? (y/n): " continue_anyway
+    if [ "$continue_anyway" != "y" ]; then
+        exit 1
+    fi
+fi
+
+# Set the API key for this session
+export PHALA_API_KEY="$phala_api_key"
+
+# Log in with the Phala CLI
+echo -e "${GREEN}Logging in to Phala Cloud...${NC}"
+
+# Run login with error handling
+if ! npx phala auth login "$phala_api_key"; then
+    echo -e "${RED}Authentication failed. Please check the following:${NC}"
+    echo -e "  1. Your API key is correct and not expired"
+    echo -e "  2. You are using the correct Phala Cloud environment"
+    echo -e "  3. Your network connection is stable"
+    echo -e "  4. The Phala Cloud service is available"
+    echo -e ""
+    echo -e "${YELLOW}Try these steps:${NC}"
+    echo -e "  1. Go to https://cloud.phala.network/dashboard and verify your login works"
+    echo -e "  2. Generate a new API key"
+    echo -e "  3. Delete the PHALA_API_KEY line from your .env file"
+    echo -e "  4. Run this script again"
     exit 1
 fi
 
 # Phala deployment
 echo -e "${GREEN}Deploying to Phala Network...${NC}"
-echo -e "${YELLOW}Running: phala deploy --config phala-deploy/phala-config.json --env-file .env${NC}"
+echo -e "${YELLOW}Running: npx phala cvms create --name defi-space-agents --compose phala-deploy/phala-config.json --env-file .env${NC}"
 
 read -p "Would you like to proceed with deployment? (y/n): " proceed_deploy
 if [ "$proceed_deploy" = "y" ]; then
-    phala deploy --config phala-deploy/phala-config.json --env-file .env
+    # Run deployment with error handling
+    if ! npx phala cvms create --name defi-space-agents --compose phala-deploy/phala-config.json --env-file .env; then
+        echo -e "${RED}Deployment failed. Please check the above logs for details.${NC}"
+        exit 1
+    fi
     echo -e "${GREEN}Deployment initiated. Please check Phala Dashboard for status.${NC}"
+    echo -e "${YELLOW}Note: It may take a few minutes for your CVM to be fully provisioned.${NC}"
+    echo -e "${YELLOW}You can check the status with: npx phala cvms status${NC}"
 else
-    echo -e "${YELLOW}Deployment skipped. You can run the command manually when ready.${NC}"
+    echo -e "${YELLOW}Deployment skipped. You can run the command manually when ready:${NC}"
+    echo -e "${YELLOW}npx phala cvms create --name defi-space-agents --compose phala-deploy/phala-config.json --env-file .env${NC}"
 fi
 
 echo -e "${GREEN}Phala deployment process complete!${NC}"
-echo -e "${YELLOW}Visit the Phala Dashboard to monitor your deployment.${NC}" 
+echo -e "${YELLOW}Visit the Phala Cloud Dashboard to monitor your deployment: https://cloud.phala.network/dashboard${NC}" 
