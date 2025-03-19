@@ -2,7 +2,7 @@
   "phala": {
     "deploymentId": "defi-space-agents",
     "version": "1.0.0",
-    "description": "DeFi Space Agents running in Phala TEE - Always running 4 agents",
+    "description": "defi-space-agents running in Phala TEE - Always running 4 agents",
     "resources": {
       "cpu": "2",
       "memory": "2G",
@@ -49,7 +49,7 @@
       "minLevel": "secure"
     },
     "registry": {
-      "image": "ghcr.io/YOUR_GITHUB_USERNAME/defi-space-agents:latest",
+      "image": "ghcr.io/wayzeek/defi-space-agents:latest",
       "type": "github"
     }
   }

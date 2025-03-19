@@ -9,7 +9,7 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "${YELLOW}DeFi Space Agents - Docker Image Builder${NC}"
+echo -e "${YELLOW}defi-space-agents - Docker Image Builder${NC}"
 echo "=================================================="
 
 # Check if Docker is installed

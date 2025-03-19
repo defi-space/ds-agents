@@ -10,7 +10,7 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "${YELLOW}DeFi Space Agents - Phala TEE Deployment${NC}"
+echo -e "${YELLOW}defi-space-agents - Phala TEE Deployment${NC}"
 echo "=================================================="
 echo -e "${GREEN}This script handles the Phala-specific deployment steps${NC}"
 
