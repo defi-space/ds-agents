@@ -3,13 +3,45 @@ name: daydreams
 services:
   chroma:
     image: chromadb/chroma:0.6.3
-    container_name: ${COMPOSE_PROJECT_NAME}_chroma
+    container_name: ${COMPOSE_PROJECT_NAME:-daydreams}_chroma
     restart: always
     ports:
       - "8000:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+
   mongo:
     image: mongo:8.0.4
-    container_name: ${COMPOSE_PROJECT_NAME}_mongo
+    container_name: ${COMPOSE_PROJECT_NAME:-daydreams}_mongo
     restart: always
     ports:
       - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  agents:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME:-daydreams}_agents
+    restart: always
+    depends_on:
+      - chroma
+      - mongo
+    env_file:
+      - .env
+    environment:
+      - AGENT_COUNT=4
+      - CHROMA_HOST=chroma
+      - CHROMA_PORT=8000
+      - MONGO_URI=mongodb://mongo:27017/daydreams
+    # Phala TEE integration settings
+    # These settings would be configured based on Phala's requirements
+    deploy:
+      resources:
+        reservations:
+          memory: 2G
+
+volumes:
+  chroma_data:
+  mongo_data:

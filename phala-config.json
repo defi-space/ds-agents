@@ -1,0 +1,53 @@
+{
+  "phala": {
+    "deploymentId": "defi-space-agents",
+    "version": "1.0.0",
+    "description": "DeFi Space Agents running in Phala TEE - Always running 4 agents",
+    "resources": {
+      "cpu": "2",
+      "memory": "2G",
+      "storage": "1G"
+    },
+    "confidentiality": {
+      "level": "high",
+      "allowedApiEndpoints": [
+        "api.starknet.io",
+        "gateway.api.gemini.com"
+      ]
+    },
+    "environment": {
+      "variables": [
+        "STARKNET_RPC_URL",
+        "GOOGLE_API_KEY",
+        "AGENT1_PRIVATE_KEY",
+        "AGENT1_ADDRESS",
+        "AGENT1_API_KEY",
+        "AGENT2_PRIVATE_KEY",
+        "AGENT2_ADDRESS",
+        "AGENT2_API_KEY",
+        "AGENT3_PRIVATE_KEY",
+        "AGENT3_ADDRESS",
+        "AGENT3_API_KEY",
+        "AGENT4_PRIVATE_KEY",
+        "AGENT4_ADDRESS",
+        "AGENT4_API_KEY",
+        "INDEXER_URL"
+      ],
+      "fixed": {
+        "AGENT_COUNT": "4",
+        "PHALA_TEE": "true"
+      }
+    },
+    "networking": {
+      "inbound": false,
+      "outbound": true
+    },
+    "attestation": {
+      "required": true,
+      "minLevel": "secure"
+    },
+    "registry": {
+      "image": "yourregistry/defi-space-agents:latest"
+    }
+  }
+} 

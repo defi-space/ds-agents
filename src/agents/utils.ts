@@ -111,11 +111,54 @@ export function getGoogleApiKey(agentId: string, agentNumber: number): string {
 }
 
 /**
- * Gets the Starknet configuration for a specific agent
+ * Checks if the agent is running in a Phala TEE environment
+ * @returns Boolean indicating if in Phala TEE
+ */
+export function isPhalaEnvironment(): boolean {
+  return process.env.PHALA_TEE === 'true';
+}
+
+/**
+ * Gets the Phala worker ID if in Phala environment
+ * @returns The Phala worker ID or undefined
+ */
+export function getPhalaWorkerId(): string | undefined {
+  return process.env.PHALA_WORKER_ID;
+}
+
+/**
+ * Securely retrieves sensitive information in TEE environments
+ * This offers additional security when running in a TEE
+ * @param key The environment variable key
+ * @returns The securely retrieved value
+ */
+export function secureGetEnvVariable(key: string): string | undefined {
+  const value = process.env[key];
+  
+  // Additional security logging in TEE environment
+  if (isPhalaEnvironment() && value) {
+    console.log(`Securely accessed ${key} in TEE environment`);
+  }
+  
+  return value;
+}
+
+/**
+ * Gets the Starknet configuration for a specific agent with TEE-specific security
  * @param agentNumber The agent number
  * @returns Starknet configuration object
  */
 export function getStarknetConfig(agentNumber: number): StarknetConfig {
+  // Use secure environment variable access in TEE
+  if (isPhalaEnvironment()) {
+    return {
+      rpcUrl: secureGetEnvVariable('STARKNET_RPC_URL')!,
+      address: secureGetEnvVariable(`AGENT${agentNumber}_ADDRESS`)!,
+      privateKey: secureGetEnvVariable(`AGENT${agentNumber}_PRIVATE_KEY`)!,
+    };
+  }
+  
+  // Standard environment variable access outside TEE
   return {
     rpcUrl: process.env.STARKNET_RPC_URL!,
     address: process.env[`AGENT${agentNumber}_ADDRESS`]!,

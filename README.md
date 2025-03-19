@@ -3,6 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue)](https://www.typescriptlang.org/)
 [![Bun](https://img.shields.io/badge/Bun-1.0+-orange)](https://bun.sh/)
+[![Phala Network](https://img.shields.io/badge/Phala_TEE-Ready-brightgreen)](https://phala.network/)
 
 A multi-agent system for Starknet blockchain interactions with isolated memory and configuration for each agent. This project enables autonomous agents to interact with Starknet contracts, manage resources, and execute complex strategies independently.
 
@@ -18,6 +19,7 @@ This project allows running multiple agents simultaneously, each with its own co
 - Color-coded console output for easy agent identification
 - Chromadb vector storage for agent memory persistence
 - MongoDB integration for dashboard data storage
+- Phala Network TEE integration for enhanced security and privacy
 
 ## Dashboard Demo
 
@@ -216,6 +218,9 @@ ds-agents/
 ├── package.json          # Project dependencies
 ├── contracts.json        # Contract addresses configuration
 ├── tsconfig.json         # TypeScript configuration
+├── Dockerfile            # Container definition for Phala TEE
+├── phala-config.json     # Phala TEE configuration
+├── deploy-to-phala.sh    # Phala deployment script
 └── README.md             # This file
 ```
 
@@ -260,6 +265,75 @@ For production deployment:
 4. Consider using a process manager like PM2 for Node.js applications
 5. Set up automatic restarts for failed processes
 6. Implement proper backup strategies for databases
+
+## Phala TEE Integration
+
+This project supports deployment in [Phala Network's](https://phala.network/) Trusted Execution Environment (TEE), providing enhanced security, confidentiality, and verifiability for the agents.
+
+### What is Phala Network?
+
+Phala Network is a decentralized cloud that offers secure and privacy-preserving computation using Trusted Execution Environment (TEE) technology. 
+TEEs provide an isolated and secure environment where code can be executed with confidentiality and integrity guarantees, even from the host system.
+
+### Benefits of Running Agents in Phala TEE
+
+- **Enhanced Security**: Your agents' private keys and sensitive state are protected within the TEE, inaccessible even to the host system
+- **Data Confidentiality**: All agent data, including API keys and private keys, remains encrypted and inaccessible to external observers
+- **Execution Integrity**: The computation logic cannot be tampered with by malicious hosts
+- **Protected State**: Agent state is protected and only accessible to authorized parties
+- **On-chain Attestation**: Provides auditable logs of off-chain computations, ensuring integrity and transparency
+
+### Phala TEE Setup Requirements
+
+- Docker and Docker Compose installed
+- A Phala Network account and access to the Phala Cloud
+- Docker container registry account (Docker Hub, GitHub Container Registry, etc.)
+- Your agent credentials (API keys, wallet addresses, private keys)
+
+### Deploying to Phala TEE
+
+1. **Configure Environment Variables**:
+   ```bash
+   cp .env.example .env
+   # Edit the .env file with your agent credentials
+   ```
+
+2. **Run the Phala Deployment Script**:
+   ```bash
+   chmod +x deploy-to-phala.sh
+   ./deploy-to-phala.sh
+   ```
+
+3. **Deploy Using Phala CLI**:
+   ```bash
+   phala deploy --config phala-config.json --env-file .env
+   ```
+
+4. **Monitor Your Deployment**:
+   - Use Phala's dashboard to monitor your agents' health and resource usage
+   - Set up alerts for any issues or performance degradation
+
+### Phala Configuration
+
+The project includes pre-configured files for Phala deployment:
+
+- **Dockerfile**: Containerizes your agents for TEE deployment
+- **phala-config.json**: Defines TEE environment settings, resource requirements, and security policies
+- **deploy-to-phala.sh**: Automates the deployment preparation process
+
+### Security Considerations for TEE Deployment
+
+When deploying agents that handle private keys and sensitive operations in a TEE:
+
+1. **Key Management**: Private keys should be securely provisioned to the TEE environment
+2. **Attestation**: Verify the authenticity of the TEE environment before sending sensitive data
+3. **Secure Communication**: Ensure that communication channels to and from the TEE are encrypted
+
+### Additional Phala Resources
+
+- [Phala Network Documentation](https://docs.phala.network/)
+- [Phala Cloud Dashboard](https://app.phala.cloud)
+- [TEE Security Best Practices](https://docs.phala.network/overview/phala-network)
 
 ## Troubleshooting
 
