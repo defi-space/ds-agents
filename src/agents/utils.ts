@@ -100,11 +100,22 @@ export function isManualMode(): boolean {
  * @throws Error if no API key is found
  */
 export function getGoogleApiKey(agentId: string, agentNumber: number): string {
-  const apiKey = process.env[`AGENT${agentNumber}_API_KEY`] || process.env.GOOGLE_API_KEY;
+  const apiKeyEnvVar = `AGENT${agentNumber}_API_KEY`;
+  
+  // Get API key and remove quotes if present
+  let apiKey = process.env[apiKeyEnvVar];
+  if (apiKey) {
+    apiKey = apiKey.replace(/^["'](.*)["']$/, '$1').trim();
+  } else {
+    // Fall back to default key
+    apiKey = process.env.GOOGLE_API_KEY;
+    if (apiKey) {
+      apiKey = apiKey.replace(/^["'](.*)["']$/, '$1').trim();
+    }
+  }
   
   if (!apiKey) {
-    console.error(`No Google API key found for agent ${agentId}. Check your .env file.`);
-    throw new Error(`No Google API key is set for agent ${agentId}. Please check your .env file for AGENT${agentNumber}_API_KEY or GOOGLE_API_KEY`);
+    throw new Error(`No Google API key found for agent ${agentId}`);
   }
   
   return apiKey;
@@ -127,38 +138,35 @@ export function getPhalaWorkerId(): string | undefined {
 }
 
 /**
- * Securely retrieves sensitive information in TEE environments
- * This offers additional security when running in a TEE
- * @param key The environment variable key
- * @returns The securely retrieved value
+ * Gets the ChromaDB URL from environment variables or falls back to the default container
+ * @returns The ChromaDB URL
  */
-export function secureGetEnvVariable(key: string): string | undefined {
-  const value = process.env[key];
+export function getChromaDbUrl(): string {
+  // Check if we're running locally (not in Docker)
+  const isLocalDev = !process.env.HOSTNAME?.includes('container') && !isPhalaEnvironment();
   
-  // Additional security logging in TEE environment
-  if (isPhalaEnvironment() && value) {
-    console.log(`Securely accessed ${key} in TEE environment`);
+  let chromaHost;
+  
+  if (isLocalDev) {
+    // When running locally outside Docker, we need to use localhost
+    chromaHost = process.env.CHROMA_HOST || "localhost";
+  } else {
+    // For Phala TEE or Docker environment
+    const defaultPrefix = isPhalaEnvironment() ? "defi-space-agents" : (process.env.COMPOSE_PROJECT_NAME || "daydreams");
+    chromaHost = process.env.CHROMA_HOST || `${defaultPrefix}_chroma`;
   }
   
-  return value;
+  const chromaPort = process.env.CHROMA_PORT || "8000";
+  
+  return `http://${chromaHost}:${chromaPort}`;
 }
 
 /**
- * Gets the Starknet configuration for a specific agent with TEE-specific security
+ * Gets the Starknet configuration for a specific agent
  * @param agentNumber The agent number
  * @returns Starknet configuration object
  */
 export function getStarknetConfig(agentNumber: number): StarknetConfig {
-  // Use secure environment variable access in TEE
-  if (isPhalaEnvironment()) {
-    return {
-      rpcUrl: secureGetEnvVariable('STARKNET_RPC_URL')!,
-      address: secureGetEnvVariable(`AGENT${agentNumber}_ADDRESS`)!,
-      privateKey: secureGetEnvVariable(`AGENT${agentNumber}_PRIVATE_KEY`)!,
-    };
-  }
-  
-  // Standard environment variable access outside TEE
   return {
     rpcUrl: process.env.STARKNET_RPC_URL!,
     address: process.env[`AGENT${agentNumber}_ADDRESS`]!,

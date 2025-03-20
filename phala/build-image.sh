@@ -18,7 +18,7 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-# Navigate to project root (assuming script is in phala-deploy directory)
+# Navigate to project root (assuming script is in phala directory)
 cd "$(dirname "$0")/.."
 
 # Ask for GitHub username
@@ -31,7 +31,7 @@ fi
 
 # Build Docker image
 echo -e "${GREEN}Building Docker image using Phala TEE Dockerfile...${NC}"
-docker build -t defi-space-agents -f phala-deploy/Dockerfile .
+docker build -t defi-space-agents -f phala/Dockerfile .
 
 # Check if user is logged in to GHCR
 if ! docker info | grep -q "ghcr.io"; then
@@ -54,8 +54,8 @@ echo -e "${GREEN}Pushing image to GitHub Container Registry...${NC}"
 docker push "${registry_image}"
 
 # Update phala-config.json with the registry image
-echo -e "${GREEN}Updating Phala configuration with GHCR image...${NC}"
-sed -i "s|\"image\": \"ghcr.io/YOUR_GITHUB_USERNAME/defi-space-agents:latest\"|\"image\": \"${registry_image}\"|g" phala-deploy/phala-config.json
+echo -e "${GREEN}Updating Docker Compose configuration with GHCR image...${NC}"
+sed -i "s|image: ghcr.io/YOUR_GITHUB_USERNAME/defi-space-agents:latest|image: ${registry_image}|g" phala/docker-compose.yml
     
 echo -e "${YELLOW}Using GitHub Container Registry image: ${registry_image}${NC}"
 

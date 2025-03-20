@@ -103,7 +103,7 @@ ENABLE_DASHBOARD="true"
 DASHBOARD_URL="http://localhost:5173"  # URL to the ds-agents-dashboard
 ```
 
-> **Important**: Each agent must have its own configuration. The system no longer supports using a single shared wallet address or private key.
+> **Important**: Each agent must have its own configuration. The system validates that proper credentials are provided for each agent at startup.
 
 ## Running Agents
 
@@ -218,9 +218,10 @@ ds-agents/
 ├── package.json          # Project dependencies
 ├── contracts.json        # Contract addresses configuration
 ├── tsconfig.json         # TypeScript configuration
-├── phala-deploy/         # Phala TEE deployment files
+├── phala/                # Phala TEE deployment files
 │   ├── Dockerfile        # Container definition for Phala TEE
-│   ├── phala-config.json # Phala TEE configuration
+│   ├── docker-compose.yml # Docker Compose for Phala deployment
+│   ├── scripts/          # Scripts for startup and monitoring
 │   ├── build-image.sh    # Script to build and push Docker images
 │   ├── deploy-to-phala.sh # Script to deploy to Phala Network
 │   └── README.md         # Phala deployment documentation
@@ -257,6 +258,16 @@ docker-compose ps
 # View logs
 docker-compose logs -f
 ```
+
+#### Improved Docker Configuration
+
+The Docker setup has been optimized with:
+
+- **Health checks** for service dependencies
+- **Resource allocation** with both limits and reservations
+- **Improved startup scripts** with better error handling
+- **Service profiles** to control which services start together
+- **Network configuration** for secure inter-service communication
 
 ### Production Deployment Considerations
 
@@ -312,16 +323,16 @@ The deployment process has been split into two separate steps for better organiz
 
 3. **Build and Push Docker Image**:
    ```bash
-   chmod +x phala-deploy/build-image.sh
-   ./phala-deploy/build-image.sh
+   chmod +x phala/build-image.sh
+   ./phala/build-image.sh
    ```
    - When prompted, provide your GitHub username
    - Choose whether to make your container image public or private
 
 4. **Deploy to Phala Network**:
    ```bash
-   chmod +x phala-deploy/deploy-to-phala.sh
-   ./phala-deploy/deploy-to-phala.sh
+   chmod +x phala/deploy-to-phala.sh
+   ./phala/deploy-to-phala.sh
    ```
    - The script will guide you through the deployment process
    - Provide your Phala Worker ID when prompted
@@ -330,18 +341,19 @@ The deployment process has been split into two separate steps for better organiz
    - Use Phala's dashboard to monitor your agents' health and resource usage
    - Set up alerts for any issues or performance degradation
 
-For more detailed information, refer to the documentation in the `phala-deploy` directory.
+For more detailed information, refer to the documentation in the `phala` directory.
 
 ### Phala Configuration
 
-The project includes pre-configured files for Phala deployment in the `phala-deploy` directory:
+The project includes pre-configured files for Phala deployment in the `phala` directory:
 
 - **Dockerfile**: Containerizes your agents for TEE deployment
-- **phala-config.json**: Defines TEE environment settings, resource requirements, and security policies
+- **docker-compose.yml**: Defines services, resource requirements, and environment settings
+- **scripts/**: Contains startup and monitoring scripts for the container
 - **build-image.sh**: Script to build and push Docker images to GitHub Container Registry
 - **deploy-to-phala.sh**: Script to deploy the built image to Phala Network
 
-This separation of concerns makes it easier to manage the Docker build process separately from the Phala deployment process.
+This separation of concerns makes it easier to manage the Docker build process separately from the Phala deployment process. The project uses Docker Compose for deployment, which allows for running multiple services together (agents, MongoDB, and ChromaDB) within the same Confidential Virtual Machine (CVM).
 
 ### Security Considerations for TEE Deployment
 
@@ -354,7 +366,7 @@ When deploying agents that handle private keys and sensitive operations in a TEE
 ### Additional Phala Resources
 
 - [Phala Network Documentation](https://docs.phala.network/)
-- [Phala Cloud Dashboard](https://cloud.phala.network)
+- [Phala Cloud Dashboard](https://cloud.phala.networkthg)
 - [TEE Security Best Practices](https://docs.phala.network/overview/phala-network)
 
 ## Troubleshooting
@@ -397,6 +409,7 @@ DEBUG=* bun run start-agent1
 - **Access Control**: Implement proper access control for APIs and services
 - **Input Validation**: Validate all inputs to prevent injection attacks
 - **Rate Limiting**: Implement rate limiting to prevent abuse
+- **Logging**: Ensure sensitive information is never logged in production environments
 
 ## License
 
