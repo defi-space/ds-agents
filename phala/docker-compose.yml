@@ -1,0 +1,95 @@
+version: '3.8'
+
+networks:
+  defi_space_network:
+    name: defi_space_network
+
+services:
+  chroma:
+    image: chromadb/chroma:0.6.3
+    container_name: defi-space-agents_chroma
+    restart: always
+    networks:
+      - defi_space_network
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    volumes:
+      - chroma_data:/chroma/chroma
+
+  mongo:
+    image: mongo:8.0.4
+    container_name: defi-space-agents_mongo
+    restart: always
+    networks:
+      - defi_space_network
+    expose:
+      - "27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    volumes:
+      - mongo_data:/data/db
+
+  agents:
+    image: ghcr.io/wayzeek/defi-space-agents:latest
+    container_name: defi-space-agents_agents
+    restart: always
+    networks:
+      - defi_space_network
+    depends_on:
+      chroma:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    environment:
+      # Basic configuration
+      - NODE_ENV=production
+      - AGENT_COUNT=${AGENT_COUNT:-4}
+      - PHALA_TEE=${PHALA_TEE:-true}
+      - ENABLE_DASHBOARD=${ENABLE_DASHBOARD:-false}
+      
+      # Database configuration
+      - CHROMA_HOST=defi-space-agents_chroma
+      - CHROMA_PORT=8000
+      - MONGO_URI=mongodb://defi-space-agents_mongo:27017/daydreams
+      
+      # API Keys (must be properly set in .env!)
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - AGENT1_API_KEY=${AGENT1_API_KEY}
+      - AGENT2_API_KEY=${AGENT2_API_KEY}
+      - AGENT3_API_KEY=${AGENT3_API_KEY}
+      - AGENT4_API_KEY=${AGENT4_API_KEY}
+      
+      # External service URLs
+      - STARKNET_RPC_URL=${STARKNET_RPC_URL}
+      - INDEXER_URL=${INDEXER_URL}
+      
+      # Agent private keys and addresses
+      - AGENT1_PRIVATE_KEY=${AGENT1_PRIVATE_KEY}
+      - AGENT1_ADDRESS=${AGENT1_ADDRESS}
+      - AGENT2_PRIVATE_KEY=${AGENT2_PRIVATE_KEY}
+      - AGENT2_ADDRESS=${AGENT2_ADDRESS}
+      - AGENT3_PRIVATE_KEY=${AGENT3_PRIVATE_KEY}
+      - AGENT3_ADDRESS=${AGENT3_ADDRESS}
+      - AGENT4_PRIVATE_KEY=${AGENT4_PRIVATE_KEY}
+      - AGENT4_ADDRESS=${AGENT4_ADDRESS}
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          memory: 1G
+
+volumes:
+  chroma_data:
+  mongo_data: 

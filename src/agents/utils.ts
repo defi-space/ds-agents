@@ -100,14 +100,65 @@ export function isManualMode(): boolean {
  * @throws Error if no API key is found
  */
 export function getGoogleApiKey(agentId: string, agentNumber: number): string {
-  const apiKey = process.env[`AGENT${agentNumber}_API_KEY`] || process.env.GOOGLE_API_KEY;
+  const apiKeyEnvVar = `AGENT${agentNumber}_API_KEY`;
+  
+  // Get API key and remove quotes if present
+  let apiKey = process.env[apiKeyEnvVar];
+  if (apiKey) {
+    apiKey = apiKey.replace(/^["'](.*)["']$/, '$1').trim();
+  } else {
+    // Fall back to default key
+    apiKey = process.env.GOOGLE_API_KEY;
+    if (apiKey) {
+      apiKey = apiKey.replace(/^["'](.*)["']$/, '$1').trim();
+    }
+  }
   
   if (!apiKey) {
-    console.error(`No Google API key found for agent ${agentId}. Check your .env file.`);
-    throw new Error(`No Google API key is set for agent ${agentId}. Please check your .env file for AGENT${agentNumber}_API_KEY or GOOGLE_API_KEY`);
+    throw new Error(`No Google API key found for agent ${agentId}`);
   }
   
   return apiKey;
+}
+
+/**
+ * Checks if the agent is running in a Phala TEE environment
+ * @returns Boolean indicating if in Phala TEE
+ */
+export function isPhalaEnvironment(): boolean {
+  return process.env.PHALA_TEE === 'true';
+}
+
+/**
+ * Gets the Phala worker ID if in Phala environment
+ * @returns The Phala worker ID or undefined
+ */
+export function getPhalaWorkerId(): string | undefined {
+  return process.env.PHALA_WORKER_ID;
+}
+
+/**
+ * Gets the ChromaDB URL from environment variables or falls back to the default container
+ * @returns The ChromaDB URL
+ */
+export function getChromaDbUrl(): string {
+  // Check if we're running locally (not in Docker)
+  const isLocalDev = !process.env.HOSTNAME?.includes('container') && !isPhalaEnvironment();
+  
+  let chromaHost;
+  
+  if (isLocalDev) {
+    // When running locally outside Docker, we need to use localhost
+    chromaHost = process.env.CHROMA_HOST || "localhost";
+  } else {
+    // For Phala TEE or Docker environment
+    const defaultPrefix = isPhalaEnvironment() ? "defi-space-agents" : (process.env.COMPOSE_PROJECT_NAME || "daydreams");
+    chromaHost = process.env.CHROMA_HOST || `${defaultPrefix}_chroma`;
+  }
+  
+  const chromaPort = process.env.CHROMA_PORT || "8000";
+  
+  return `http://${chromaHost}:${chromaPort}`;
 }
 
 /**

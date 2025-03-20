@@ -21,7 +21,8 @@ import {
   isDashboardEnabled,
   isManualMode,
   getGoogleApiKey,
-  getStarknetConfig
+  getStarknetConfig,
+  getChromaDbUrl
 } from './utils';
 
 // Load environment variables
@@ -54,52 +55,60 @@ export function createAgent(config: AgentConfig) {
   // Get Google API key - prioritize the agent-specific key
   const agentNumber = parseInt(config.id.split('-')[1], 10);
   const googleApiKey = config.googleApiKey || getGoogleApiKey(config.id, agentNumber);
-
+  
   // Store Starknet configuration if provided
   if (config.starknetConfig) {
     StarknetConfigStore.getInstance().setConfig(config.id, config.starknetConfig);
   }
 
   // Initialize Google AI model
-  const google = createGoogleGenerativeAI({
-    apiKey: googleApiKey,
-  });
-  const model = google("gemini-2.0-flash");
-  
-  // Create a unique collection name for this agent's vector store
-  const collectionName = `agent-${config.id}-collection`;
-  
-  // Configure agent settings
-  const agentConfig = {
-    id: config.id,
-    logger: LogLevel.DEBUG,
-    container: createContainer(),
-    model,
-    extensions: [isManualMode() ? cli : autonomousCli],
-    memory: {
-      store: createMemoryStore(),
-      vector: createChromaVectorStore(collectionName, "http://localhost:8000"),
-    },
-    exportTrainingData: true,
-    trainingDataPath: `./grpo/group-training-data-${config.id}.jsonl`,
-    context: goalContexts,
-    actions,
-    outputs,
-  };
+  try {
+    const google = createGoogleGenerativeAI({
+      apiKey: googleApiKey,
+    });
+    const model = google("gemini-2.0-flash");
+    
+    // Create a unique collection name for this agent's vector store
+    const collectionName = `agent-${config.id}-collection`;
+    
+    // Get the ChromaDB URL
+    const chromaDbUrl = getChromaDbUrl();
+    
+    // Configure agent settings
+    const agentConfig = {
+      id: config.id,
+      logger: LogLevel.DEBUG,
+      container: createContainer(),
+      model,
+      extensions: [isManualMode() ? cli : autonomousCli],
+      memory: {
+        store: createMemoryStore(),
+        vector: createChromaVectorStore(collectionName, chromaDbUrl),
+      },
+      exportTrainingData: true,
+      trainingDataPath: `./grpo/group-training-data-${config.id}.jsonl`,
+      context: goalContexts,
+      actions,
+      outputs,
+    };
 
-  // Create the agent
-  const agent = createDreams(agentConfig);
-  
-  // Set the current agent ID as an environment variable
-  process.env.CURRENT_AGENT_ID = config.id;
-  
-  // Enhance agent with dashboard integration if enabled
-  if (isDashboardEnabled()) {
-    return enhanceAgentWithDashboard(agent);
+    // Create the agent
+    const agent = createDreams(agentConfig);
+    
+    // Set the current agent ID as an environment variable
+    process.env.CURRENT_AGENT_ID = config.id;
+    
+    // Enhance agent with dashboard integration if enabled
+    if (isDashboardEnabled()) {
+      return enhanceAgentWithDashboard(agent);
+    }
+    
+    // Return the agent
+    return agent;
+  } catch (error) {
+    console.error(`Error initializing Google AI:`, error);
+    throw new Error(`Failed to initialize Google AI for agent ${config.id}: ${error}`);
   }
-  
-  // Return the agent
-  return agent;
 }
 
 /**

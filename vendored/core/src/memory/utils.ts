@@ -10,6 +10,14 @@ import type {
 import { z } from "zod";
 import { v7 as randomUUIDv7 } from "uuid";
 
+/**
+ * Checks if the agent is running in a Phala TEE environment
+ * @returns Boolean indicating if in Phala TEE
+ */
+function isPhalaEnvironment(): boolean {
+  return process.env.PHALA_TEE === 'true';
+}
+
 // Check if we're in a browser environment
 const isBrowser =
   typeof window !== "undefined" && typeof window.document !== "undefined";
@@ -42,12 +50,22 @@ function getAgentApiKey(): string {
   // e.g., AGENT1_API_KEY for agent-1
   const apiKeyEnvVar = agentNumber ? `AGENT${agentNumber}_API_KEY` : "GOOGLE_API_KEY";
   
-  // Use the agent-specific API key if available, otherwise fall back to the default GOOGLE_API_KEY
-  const apiKey = process.env[apiKeyEnvVar] || process.env.GOOGLE_API_KEY;
+  // Get the API key from environment variable
+  let apiKey = process.env[apiKeyEnvVar];
+  
+  // Parse out quotes if present
+  if (apiKey) {
+    apiKey = apiKey.replace(/^["'](.*)["']$/, '$1').trim();
+  } else {
+    // Fall back to default key
+    apiKey = process.env.GOOGLE_API_KEY;
+    if (apiKey) {
+      apiKey = apiKey.replace(/^["'](.*)["']$/, '$1').trim();
+    }
+  }
   
   if (!apiKey) {
-    console.warn(`[EpisodicMemory] No API key found for agent ${agentId}. Check your .env file for ${apiKeyEnvVar} or GOOGLE_API_KEY.`);
-    throw new Error(`No API key found for memory generation. Please check your .env file for ${apiKeyEnvVar} or GOOGLE_API_KEY.`);
+    throw new Error(`No Google API key found for agent ${agentId}`);
   }
   
   return apiKey;
@@ -63,97 +81,113 @@ export const generateEpisodicMemory = async (
   thoughts: string;
   result: string;
 }> => {
-  // Use the agent's vectorModel if provided, otherwise create a model with the agent-specific API key
-  const model = agent.memory.vectorModel || (() => {
-    const apiKey = getAgentApiKey();
-    const googleAI = createGoogleGenerativeAI({
-      apiKey: apiKey,
+  try {
+    // Use the agent's vectorModel if provided, otherwise create a model with the agent-specific API key
+    const model = agent.memory.vectorModel || (() => {
+      try {
+        const apiKey = getAgentApiKey();
+        const googleAI = createGoogleGenerativeAI({
+          apiKey: apiKey,
+        });
+        return googleAI("gemini-2.0-flash-lite");
+      } catch (error) {
+        console.error(`Failed to create Google Generative AI model: ${error}`);
+        throw new Error(`Failed to create model for episodic memory: ${error}`);
+      }
+    })();
+
+    const extractEpisode = await generateObject({
+      model: model,
+      schema: z.object({
+        observation: z.string().describe("The context and setup - what happened"),
+        thoughts: z
+          .string()
+          .describe(
+            "Internal reasoning process and observations of the agent in the episode that let it arrive at the correct action and result. 'I ...'"
+          ),
+        result: z
+          .string()
+          .describe(
+            "Outcome and retrospective. What did you do well? What could you do better next time? I ..."
+          ),
+      }),
+      prompt: `
+      You are creating an episodic memory for an AI agent to help it recall and learn from past experiences.
+      
+      Your task is to analyze the agent's thoughts, actions, and the results of those actions to create a structured memory that can be used for future reference and learning.
+
+      ## Context
+      <thoughts>
+      ${JSON.stringify(thoughts, (key, value) => {
+        // Convert BigInt to string with 'n' suffix
+        if (typeof value === 'bigint') {
+          return value.toString() + 'n';
+        }
+        return value;
+      })}
+      </thoughts>
+
+      ## Actions Taken
+      <actions>
+      ${JSON.stringify(actions, (key, value) => {
+        // Convert BigInt to string with 'n' suffix
+        if (typeof value === 'bigint') {
+          return value.toString() + 'n';
+        }
+        return value;
+      })}
+      </actions>
+
+      ## Results & Outcomes
+      <results>
+      ${JSON.stringify(results, (key, value) => {
+        // Convert BigInt to string with 'n' suffix
+        if (typeof value === 'bigint') {
+          return value.toString() + 'n';
+        }
+        return value;
+      })}
+      </results>
+      
+      ## Instructions
+      Create a comprehensive episodic memory with these components:
+      
+      1. OBSERVATION: Provide a clear, concise description of the situation, context, and key elements. Include:
+         - What was the environment or scenario?
+         - What was the agent trying to accomplish?
+         - What were the initial conditions or constraints?
+      
+      2. THOUGHTS: Capture the agent's internal reasoning process that led to its actions:
+         - What was the agent's understanding of the situation?
+         - What strategies or approaches did it consider?
+         - What key insights or realizations occurred during the process?
+         - Use first-person perspective ("I realized...", "I considered...")
+      
+      3. RESULT: Summarize the outcomes and provide a retrospective analysis:
+         - What was accomplished or not accomplished?
+         - What worked well and what didn't?
+         - What lessons can be learned for future similar situations?
+         - What would be done differently next time?
+         - Use first-person perspective ("I succeeded in...", "Next time I would...")
+      
+      Make the memory detailed enough to be useful for future recall, but concise enough to be quickly processed. Focus on capturing the essence of the experience, key decision points, and lessons learned.`,
     });
-    return googleAI("gemini-2.0-flash-lite");
-  })();
 
-  const extractEpisode = await generateObject({
-    model: model,
-    schema: z.object({
-      observation: z.string().describe("The context and setup - what happened"),
-      thoughts: z
-        .string()
-        .describe(
-          "Internal reasoning process and observations of the agent in the episode that let it arrive at the correct action and result. 'I ...'"
-        ),
-      result: z
-        .string()
-        .describe(
-          "Outcome and retrospective. What did you do well? What could you do better next time? I ..."
-        ),
-    }),
-    prompt: `
-    You are creating an episodic memory for an AI agent to help it recall and learn from past experiences.
+    return {
+      observation: extractEpisode.object.observation,
+      thoughts: extractEpisode.object.thoughts,
+      result: extractEpisode.object.result,
+    };
+  } catch (error) {
+    console.error(`Error generating episodic memory: ${error}`);
     
-    Your task is to analyze the agent's thoughts, actions, and the results of those actions to create a structured memory that can be used for future reference and learning.
-
-    ## Context
-    <thoughts>
-    ${JSON.stringify(thoughts, (key, value) => {
-      // Convert BigInt to string with 'n' suffix
-      if (typeof value === 'bigint') {
-        return value.toString() + 'n';
-      }
-      return value;
-    })}
-    </thoughts>
-
-    ## Actions Taken
-    <actions>
-    ${JSON.stringify(actions, (key, value) => {
-      // Convert BigInt to string with 'n' suffix
-      if (typeof value === 'bigint') {
-        return value.toString() + 'n';
-      }
-      return value;
-    })}
-    </actions>
-
-    ## Results & Outcomes
-    <results>
-    ${JSON.stringify(results, (key, value) => {
-      // Convert BigInt to string with 'n' suffix
-      if (typeof value === 'bigint') {
-        return value.toString() + 'n';
-      }
-      return value;
-    })}
-    </results>
-    
-    ## Instructions
-    Create a comprehensive episodic memory with these components:
-    
-    1. OBSERVATION: Provide a clear, concise description of the situation, context, and key elements. Include:
-       - What was the environment or scenario?
-       - What was the agent trying to accomplish?
-       - What were the initial conditions or constraints?
-    
-    2. THOUGHTS: Capture the agent's internal reasoning process that led to its actions:
-       - What was the agent's understanding of the situation?
-       - What strategies or approaches did it consider?
-       - What key insights or realizations occurred during the process?
-       - Use first-person perspective ("I realized...", "I considered...")
-    
-    3. RESULT: Summarize the outcomes and provide a retrospective analysis:
-       - What was accomplished or not accomplished?
-       - What worked well and what didn't?
-       - What lessons can be learned for future similar situations?
-       - What would be done differently next time?
-       - Use first-person perspective ("I succeeded in...", "Next time I would...")
-    
-    Make the memory detailed enough to be useful for future recall, but concise enough to be quickly processed. Focus on capturing the essence of the experience, key decision points, and lessons learned.`,
-  });
-
-  return {
-    observation: extractEpisode.object.observation,
-    thoughts: extractEpisode.object.thoughts,
-    result: extractEpisode.object.result,
-  };
+    // Return a simplified error-indicating memory
+    return {
+      observation: `Failed to generate memory due to an error: ${error}`,
+      thoughts: "I encountered an issue when trying to process my episodic memory.",
+      result: "I need to resolve API access issues to properly generate memories in the future.",
+    };
+  }
 };
 
 /**

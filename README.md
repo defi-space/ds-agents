@@ -3,6 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue)](https://www.typescriptlang.org/)
 [![Bun](https://img.shields.io/badge/Bun-1.0+-orange)](https://bun.sh/)
+[![Phala Network](https://img.shields.io/badge/Phala_TEE-Ready-brightgreen)](https://phala.network/)
 
 A multi-agent system for Starknet blockchain interactions with isolated memory and configuration for each agent. This project enables autonomous agents to interact with Starknet contracts, manage resources, and execute complex strategies independently.
 
@@ -18,6 +19,7 @@ This project allows running multiple agents simultaneously, each with its own co
 - Color-coded console output for easy agent identification
 - Chromadb vector storage for agent memory persistence
 - MongoDB integration for dashboard data storage
+- Phala Network TEE integration for enhanced security and privacy
 
 ## Dashboard Demo
 
@@ -101,7 +103,7 @@ ENABLE_DASHBOARD="true"
 DASHBOARD_URL="http://localhost:5173"  # URL to the ds-agents-dashboard
 ```
 
-> **Important**: Each agent must have its own configuration. The system no longer supports using a single shared wallet address or private key.
+> **Important**: Each agent must have its own configuration. The system validates that proper credentials are provided for each agent at startup.
 
 ## Running Agents
 
@@ -216,6 +218,13 @@ ds-agents/
 ├── package.json          # Project dependencies
 ├── contracts.json        # Contract addresses configuration
 ├── tsconfig.json         # TypeScript configuration
+├── phala/                # Phala TEE deployment files
+│   ├── Dockerfile        # Container definition for Phala TEE
+│   ├── docker-compose.yml # Docker Compose for Phala deployment
+│   ├── scripts/          # Scripts for startup and monitoring
+│   ├── build-image.sh    # Script to build and push Docker images
+│   ├── deploy-to-phala.sh # Script to deploy to Phala Network
+│   └── README.md         # Phala deployment documentation
 └── README.md             # This file
 ```
 
@@ -250,6 +259,16 @@ docker-compose ps
 docker-compose logs -f
 ```
 
+#### Improved Docker Configuration
+
+The Docker setup has been optimized with:
+
+- **Health checks** for service dependencies
+- **Resource allocation** with both limits and reservations
+- **Improved startup scripts** with better error handling
+- **Service profiles** to control which services start together
+- **Network configuration** for secure inter-service communication
+
 ### Production Deployment Considerations
 
 For production deployment:
@@ -260,6 +279,95 @@ For production deployment:
 4. Consider using a process manager like PM2 for Node.js applications
 5. Set up automatic restarts for failed processes
 6. Implement proper backup strategies for databases
+
+## Phala TEE Integration
+
+This project supports deployment in [Phala Network's](https://phala.network/) Trusted Execution Environment (TEE), providing enhanced security, confidentiality, and verifiability for the agents.
+
+### What is Phala Network?
+
+Phala Network is a decentralized cloud that offers secure and privacy-preserving computation using Trusted Execution Environment (TEE) technology. 
+TEEs provide an isolated and secure environment where code can be executed with confidentiality and integrity guarantees, even from the host system.
+
+### Benefits of Running Agents in Phala TEE
+
+- **Enhanced Security**: Your agents' private keys and sensitive state are protected within the TEE, inaccessible even to the host system
+- **Data Confidentiality**: All agent data, including API keys and private keys, remains encrypted and inaccessible to external observers
+- **Execution Integrity**: The computation logic cannot be tampered with by malicious hosts
+- **Protected State**: Agent state is protected and only accessible to authorized parties
+- **On-chain Attestation**: Provides auditable logs of off-chain computations, ensuring integrity and transparency
+
+### Phala TEE Setup Requirements
+
+- Docker and Docker Compose installed
+- A Phala Network account and access to the Phala Cloud
+- Docker container registry account (Docker Hub, GitHub Container Registry, etc.)
+- Your agent credentials (API keys, wallet addresses, private keys)
+
+### Deploying to Phala TEE
+
+The deployment process has been split into two separate steps for better organization:
+
+1. **Configure Environment Variables**:
+   ```bash
+   cp .env.example .env
+   # Edit the .env file with your agent credentials
+   ```
+
+2. **Set Up GitHub Container Registry Access**:
+   - Create a GitHub Personal Access Token (PAT) with `write:packages` permissions
+   - Log in to GitHub Container Registry:
+     ```bash
+     docker login ghcr.io -u YOUR_GITHUB_USERNAME -p YOUR_GITHUB_PAT
+     ```
+
+3. **Build and Push Docker Image**:
+   ```bash
+   chmod +x phala/build-image.sh
+   ./phala/build-image.sh
+   ```
+   - When prompted, provide your GitHub username
+   - Choose whether to make your container image public or private
+
+4. **Deploy to Phala Network**:
+   ```bash
+   chmod +x phala/deploy-to-phala.sh
+   ./phala/deploy-to-phala.sh
+   ```
+   - The script will guide you through the deployment process
+   - Provide your Phala Worker ID when prompted
+
+5. **Monitor Your Deployment**:
+   - Use Phala's dashboard to monitor your agents' health and resource usage
+   - Set up alerts for any issues or performance degradation
+
+For more detailed information, refer to the documentation in the `phala` directory.
+
+### Phala Configuration
+
+The project includes pre-configured files for Phala deployment in the `phala` directory:
+
+- **Dockerfile**: Containerizes your agents for TEE deployment
+- **docker-compose.yml**: Defines services, resource requirements, and environment settings
+- **scripts/**: Contains startup and monitoring scripts for the container
+- **build-image.sh**: Script to build and push Docker images to GitHub Container Registry
+- **deploy-to-phala.sh**: Script to deploy the built image to Phala Network
+
+This separation of concerns makes it easier to manage the Docker build process separately from the Phala deployment process. The project uses Docker Compose for deployment, which allows for running multiple services together (agents, MongoDB, and ChromaDB) within the same Confidential Virtual Machine (CVM).
+
+### Security Considerations for TEE Deployment
+
+When deploying agents that handle private keys and sensitive operations in a TEE:
+
+1. **Key Management**: Private keys should be securely provisioned to the TEE environment
+2. **Attestation**: Verify the authenticity of the TEE environment before sending sensitive data
+3. **Secure Communication**: Ensure that communication channels to and from the TEE are encrypted
+
+### Additional Phala Resources
+
+- [Phala Network Documentation](https://docs.phala.network/)
+- [Phala Cloud Dashboard](https://cloud.phala.networkthg)
+- [TEE Security Best Practices](https://docs.phala.network/overview/phala-network)
 
 ## Troubleshooting
 
@@ -301,6 +409,7 @@ DEBUG=* bun run start-agent1
 - **Access Control**: Implement proper access control for APIs and services
 - **Input Validation**: Validate all inputs to prevent injection attacks
 - **Rate Limiting**: Implement rate limiting to prevent abuse
+- **Logging**: Ensure sensitive information is never logged in production environments
 
 ## License
 

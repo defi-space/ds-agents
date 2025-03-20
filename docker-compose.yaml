@@ -3,13 +3,64 @@ name: daydreams
 services:
   chroma:
     image: chromadb/chroma:0.6.3
-    container_name: ${COMPOSE_PROJECT_NAME}_chroma
+    container_name: ${COMPOSE_PROJECT_NAME:-daydreams}_chroma
     restart: always
     ports:
       - "8000:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   mongo:
     image: mongo:8.0.4
-    container_name: ${COMPOSE_PROJECT_NAME}_mongo
+    container_name: ${COMPOSE_PROJECT_NAME:-daydreams}_mongo
     restart: always
     ports:
       - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # Agent service configuration
+  # Uncomment this service to run agents in a container
+  # # For local development, running agents directly on the host is recommended
+  # agents:
+  #   build:
+  #     context: .
+  #     dockerfile: phala/Dockerfile
+  #   container_name: ${COMPOSE_PROJECT_NAME:-daydreams}_agents
+  #   restart: always
+  #   profiles: ["all", "agents"]  # Only starts when explicitly selected with --profile
+  #   depends_on:
+  #     chroma:
+  #       condition: service_healthy
+  #     mongo:
+  #       condition: service_healthy
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - AGENT_COUNT=4
+  #     - CHROMA_HOST=${COMPOSE_PROJECT_NAME:-daydreams}_chroma
+  #     - CHROMA_PORT=8000
+  #     - MONGO_URI=mongodb://${COMPOSE_PROJECT_NAME:-daydreams}_mongo:27017/daydreams
+  #   # Resource allocation
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 3G
+  #       reservations:
+  #         memory: 2G
+
+volumes:
+  chroma_data:
+  mongo_data:

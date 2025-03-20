@@ -7,7 +7,16 @@ import {
   GoogleGenerativeAiEmbeddingFunction,
   type IEmbeddingFunction,
 } from "chromadb";  
-import type { InferContextMemory, VectorStore } from "@daydreamsai/core";
+// For the @daydreamsai/core import error, let's create a type alias locally
+// instead of importing from @daydreamsai/core to avoid the import error
+type InferContextMemory<T> = T;
+interface VectorStore {
+  connection?: string;
+  upsert(contextId: string, data: any): Promise<void>;
+  query(contextId: string, query: string): Promise<any[]>;
+  createIndex(indexName: string): Promise<void>;
+  deleteIndex(indexName: string): Promise<void>;
+}
 
 /**
  * Implementation of VectorStore using ChromaDB as the backend
@@ -42,30 +51,45 @@ export class ChromaVectorStore implements VectorStore {
       // e.g., AGENT1_API_KEY for agent-1
       const apiKeyEnvVar = agentNumber ? `AGENT${agentNumber}_API_KEY` : "GOOGLE_API_KEY";
       
-      // Use the agent-specific API key if available, otherwise fall back to the default GOOGLE_API_KEY
-      const apiKey = process.env[apiKeyEnvVar] || process.env.GOOGLE_API_KEY;
+      // Get the API key from environment variable
+      let apiKey = process.env[apiKeyEnvVar];
       
-      if (!apiKey) {
-        console.warn(`[ChromaVectorStore] No API key found for agent ${agentId}. Check your .env file for ${apiKeyEnvVar} or GOOGLE_API_KEY.`);
-        throw new Error(`No API key found for embeddings. Please check your .env file for ${apiKeyEnvVar} or GOOGLE_API_KEY.`);
+      // Parse out quotes if present
+      if (apiKey) {
+        apiKey = apiKey.replace(/^["'](.*)["']$/, '$1').trim();
       } else {
-        console.log(`[ChromaVectorStore] Using API key for agent ${agentId} (${apiKeyEnvVar})`);
+        // Fall back to default key
+        apiKey = process.env.GOOGLE_API_KEY;
+        if (apiKey) {
+          apiKey = apiKey.replace(/^["'](.*)["']$/, '$1').trim();
+        }
       }
       
-      this.embedder = new GoogleGenerativeAiEmbeddingFunction({
-        googleApiKey: apiKey!,
-        model: "text-embedding-004",
-      });
+      if (!apiKey) {
+        throw new Error(`No Google API key found for agent ${agentId}`);
+      }
+      
+      try {
+        this.embedder = new GoogleGenerativeAiEmbeddingFunction({
+          googleApiKey: apiKey,
+          model: "text-embedding-004",
+        });
+      } catch (error) {
+        console.error(`Error creating embedding function: ${error}`);
+        throw new Error(`Failed to initialize GoogleGenerativeAiEmbeddingFunction: ${error}`);
+      }
     } else {
       this.embedder = embedder;
     }
 
+    const connectionUrl = connection || "http://localhost:8000";
+    
     this.client = new ChromaClient({
-      path: connection || "http://localhost:8000",
+      path: connectionUrl,
     });
 
     this.initCollection(collectionName).catch(error => {
-      console.error("[ChromaVectorStore] Failed to initialize in constructor:", error);
+      console.error("Failed to initialize in constructor:", error);
       throw error;
     });
   }
@@ -75,22 +99,30 @@ export class ChromaVectorStore implements VectorStore {
    * @param collectionName - Name of the collection to initialize
    */
   private async initCollection(collectionName: string) {
-    try {      
-      // Get or create the collection
-      this.collection = await this.client.getOrCreateCollection({
-        name: collectionName,
-        embeddingFunction: this.embedder,
-        metadata: {
-          description: "Memory storage for AI consciousness",
-        },
-      });
+    try {
+      let existingCollection = false;
+      
+      try {
+        // Try to get the collection if it exists
+        this.collection = await this.client.getCollection({
+          name: collectionName,
+          embeddingFunction: this.embedder,
+        });
+        existingCollection = true;
+      } catch (error) {
+        // Collection doesn't exist, create it
+        this.collection = await this.client.createCollection({
+          name: collectionName,
+          embeddingFunction: this.embedder,
+          metadata: {
+            description: "Memory storage for AI consciousness",
+          },
+        });
+      }
 
-      // Verify collection was created
-      const collectionInfo = await this.collection.get();
-     
       this.isInitialized = true;
     } catch (error) {
-      console.error("[ChromaVectorStore] Failed to initialize collection:", error);
+      console.error("Failed to initialize collection:", error);
       this.isInitialized = false;
       throw error;
     }
@@ -135,7 +167,7 @@ export class ChromaVectorStore implements VectorStore {
       });
 
     } catch (error) {
-      console.error("[ChromaVectorStore] Error in upsert operation:", error);
+      console.error("Error in upsert operation:", error);
       throw error;
     }
   }
@@ -149,26 +181,19 @@ export class ChromaVectorStore implements VectorStore {
   async query(contextId: string, query: string): Promise<any[]> {
     try {
       await this.ensureInitialized();
-
-      // Parse the query if it's a JSON string
-      let queryText = query;
-
-      // Get collection info before query
+      
+      // Perform the query
       const results = await this.collection.query({
-        queryTexts: [queryText],
+        queryTexts: [query],
         nResults: 5,
         where: {
           contextId: contextId,
         },
       });
+      
       return results.documents[0] || [];
     } catch (error) {
-      console.error("[ChromaVectorStore] Error in query operation:", {
-        error,
-        contextId,
-        query,
-        stack: error instanceof Error ? error.stack : undefined,
-      });
+      console.error("Error in query operation:", error);
       throw error;
     }
   }
@@ -178,10 +203,18 @@ export class ChromaVectorStore implements VectorStore {
    * @param indexName - Name of the index to create
    */
   async createIndex(indexName: string): Promise<void> {
-    await this.client.getOrCreateCollection({
-      name: indexName,
-      embeddingFunction: this.embedder,
-    });
+    try {
+      await this.client.createCollection({
+        name: indexName,
+        embeddingFunction: this.embedder,
+        metadata: {
+          description: "Index collection",
+        },
+      });
+    } catch (error) {
+      console.error(`Error creating index "${indexName}":`, error);
+      throw error;
+    }
   }
 
   /**
@@ -189,11 +222,17 @@ export class ChromaVectorStore implements VectorStore {
    * @param indexName - Name of the index to delete
    */
   async deleteIndex(indexName: string): Promise<void> {
-    await this.collection.delete({
-      where: {
-        indexName: indexName,
-      },
-    });
+    try {
+      const collection = await this.client.getCollection({
+        name: indexName,
+        embeddingFunction: this.embedder,
+      });
+      
+      await collection.delete();
+    } catch (error) {
+      console.error(`Error deleting index "${indexName}":`, error);
+      throw error;
+    }
   }
 }
 
