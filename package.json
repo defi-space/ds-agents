@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "start-all": "bun run src/run-agents.ts",
+    "start-one": "bun run src/run-agents.ts 1",
     "start-agents-2": "bun run src/run-agents.ts 2",
     "start-agents-3": "bun run src/run-agents.ts 3",
     "start-agents-4": "bun run src/run-agents.ts 4"

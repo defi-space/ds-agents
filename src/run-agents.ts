@@ -9,15 +9,15 @@ let numAgentsToRun = 4; // Default to 4 agents
 // Check if number of agents is specified
 if (args.length > 0) {
   const parsedNum = parseInt(args[0], 10);
-  if (!isNaN(parsedNum) && parsedNum >= 2 && parsedNum <= 4) {
+  if (!isNaN(parsedNum) && parsedNum >= 1 && parsedNum <= 4) {
     numAgentsToRun = parsedNum;
   } else {
     console.log(chalk.yellow(`Invalid number of agents specified. Using default (${numAgentsToRun}).`));
-    console.log(chalk.yellow('Usage: bun run src/run-agents.ts [number of agents (2-4)]'));
+    console.log(chalk.yellow('Usage: bun run src/run-agents.ts [number of agents (1-4)]'));
   }
 }
 
-console.log(`Running ${chalk.bold(numAgentsToRun.toString())} agents`);
+console.log(`Running ${chalk.bold(numAgentsToRun.toString())} agent${numAgentsToRun > 1 ? 's' : ''}`);
 
 // More aesthetic color combinations using chalk
 const colorStyles = [
