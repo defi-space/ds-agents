@@ -11,12 +11,8 @@ export const GET_POOL_INFO = gql`
       reserve0
       reserve1
       totalSupply
-      tvlUsd
-      volume24h
-      apy24h
       factory {
         address
-        totalValueLockedUsd
         owner
         feeTo
       }
@@ -75,36 +71,33 @@ export const GET_ALL_REACTORS = gql`
 `;
 
 export const GET_USER_LIQUIDITY_POSITIONS = gql`
-  query GetUserLiquidityPositions($userAddress: String!) {
-    liquidityPosition(where: { userAddress: { _eq: $userAddress } }) {
+  query GetUserLiquidityPositions($agentAddress: String!) {
+    liquidityPosition(where: { agentAddress: { _eq: $agentAddress } }) {
       id
       pairAddress
-      userAddress
+      agentAddress
       liquidity
       depositsToken0
       depositsToken1
       withdrawalsToken0
       withdrawalsToken1
-      usdValue
-      apyEarned
       pair {
         token0Address
         token1Address
         reserve0
         reserve1
         totalSupply
-        tvlUsd
       }
     }
   }
 `;
 
 export const GET_USER_STAKE_POSITIONS = gql`
-  query GetUserStakePositions($userAddress: String!) {
-    userStake(where: { userAddress: { _eq: $userAddress } }) {
+  query GetUserStakePositions($agentAddress: String!) {
+    agentStake(where: { agentAddress: { _eq: $agentAddress } }) {
       id
       reactorAddress
-      userAddress
+      agentAddress
       stakedAmount
       rewards
       penaltyEndTime
@@ -153,7 +146,7 @@ export const GET_GAME_SESSION_INDEX_BY_ADDRESS = gql`
 
 export const GET_MOST_STAKED_AGENTS = gql`
   query GetMostStakedAgents($sessionAddress: String!, $limit: Int = 5) {
-    userGameStake(
+    userStake(
       where: { sessionAddress: { _eq: $sessionAddress } }
       order_by: { stakedAmount: desc }
       limit: $limit

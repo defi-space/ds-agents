@@ -204,8 +204,7 @@ The following contracts are available on Starknet:
       - Tracks pairs, TVL, and protocol configuration
       - Key fields:
         * address (PK): Contract address
-        * numPairs: Total trading pairs created
-        * totalValueLockedUsd: Total protocol TVL
+        * numOfPairs: Total trading pairs created
         * owner: Current protocol owner
         * feeTo: Fee receiver address
         * configHistory: Historical configuration changes
@@ -221,9 +220,6 @@ The following contracts are available on Starknet:
         * reserve0: First token reserve
         * reserve1: Second token reserve
         * totalSupply: Total LP tokens
-        * tvlUsd: Pair's total value locked
-        * volume24h: 24-hour trading volume
-        * apy24h: Current APY estimate
 
    C. LiquidityPosition Model:
       - User's position in a trading pair
@@ -231,14 +227,12 @@ The following contracts are available on Starknet:
       - Key fields:
         * id (PK): Position identifier
         * pairAddress: Trading pair contract
-        * userAddress: Position owner
+        * agentAddress: Position owner
         * liquidity: Current LP token balance
         * depositsToken0: Historical token0 deposits
         * depositsToken1: Historical token1 deposits
         * withdrawalsToken0: Historical token0 withdrawals
         * withdrawalsToken1: Historical token1 withdrawals
-        * usdValue: Current position value
-        * apyEarned: Historical returns
 
    D. Trading Events:
       - LiquidityEvent: Records mint/burn actions
@@ -259,7 +253,6 @@ The following contracts are available on Starknet:
       - Key fields:
         * address (PK): Contract address
         * reactorCount: Total reactors created
-        * totalValueLockedUsd: Protocol TVL
         * owner: Protocol controller
         * configHistory: Setting changes
 
@@ -275,20 +268,20 @@ The following contracts are available on Starknet:
         * penaltyDuration: Lock period length
         * withdrawPenalty: Early exit fee
 
-   C. UserStake Model:
+   C. AgentStake Model:
       - User's position in a reactor
       - Tracks staked amounts and rewards
       - Key fields:
         * id (PK): Stake identifier
         * reactorAddress: Farming pool
-        * userAddress: Position owner
+        * agentAddress: Position owner
         * stakedAmount: Locked tokens
         * rewards: Earned but unclaimed
         * penaltyEndTime: Lock period end
         * rewardPerTokenPaid: Reward tracking
 
    D. Farming Events:
-      - StakeEvent: Records deposits/withdrawals
+      - AgentStakeEvent: Records deposits/withdrawals
       - RewardEvent: Tracks reward claims/additions
       - Key fields include:
         * transactionHash: On-chain reference
@@ -303,77 +296,77 @@ The following contracts are available on Starknet:
       - Creates and tracks game competitions
       - Key fields:
         * address (PK): Contract address
-        * num_of_sessions: Total sessions created
-        * total_value_locked_usd: Total protocol TVL
+        * numOfSessions: Total sessions created
+        * totalValueLockedUsd: Total protocol TVL
         * owner: Current protocol owner
-        * game_session_class_hash: Session implementation
-        * config_history: Historical configuration changes
-        * created_at: Creation timestamp
-        * updated_at: Last update timestamp
+        * gameSessionClassHash: Session implementation
+        * configHistory: Historical configuration changes
+        * createdAt: Creation timestamp
+        * updatedAt: Last update timestamp
 
    B. GameSession Model:
       - Individual game competition contract
       - Manages agent staking and victory conditions
       - Key fields:
         * address (PK): Contract address
-        * factory_address: Parent factory
-        * stake_token_address: Token used for staking
-        * token_win_condition_address: Token for winning (He3)
-        * token_win_condition_threshold: Victory amount (7M He3)
-        * session_index: Session identifier
+        * factoryAddress: Parent factory
+        * stakeTokenAddress: Token used for staking
+        * tokenWinConditionAddress: Token for winning (He3)
+        * tokenWinConditionThreshold: Victory amount (7M He3)
+        * sessionIndex: Session identifier
         * owner: Session controller
-        * burn_fee_percentage: Fee percentage burned
-        * platform_fee_percentage: Fee percentage to platform
-        * fee_recipient: Platform fee receiver
-        * number_of_stake_windows: Total staking periods
-        * number_of_agents: Total competing agents
-        * is_suspended: Suspension status
-        * is_over: Completion status
-        * winning_agent_index: Index of victorious agent
-        * total_staked: Total tokens staked
-        * current_window_index: Active staking window
-        * total_rewards: Total rewards for victor
-        * created_at: Creation timestamp
-        * updated_at: Last update timestamp
-        * ended_at: Completion timestamp
+        * burnFeePercentage: Fee percentage burned
+        * platformFeePercentage: Fee percentage to platform
+        * feeRecipient: Platform fee receiver
+        * numberOfStakeWindows: Total staking periods
+        * numberOfAgents: Total competing agents
+        * isSuspended: Suspension status
+        * isOver: Completion status
+        * winningAgentIndex: Index of victorious agent
+        * totalStaked: Total tokens staked
+        * currentWindowIndex: Active staking window
+        * totalRewards: Total rewards for victor
+        * createdAt: Creation timestamp
+        * updatedAt: Last update timestamp
+        * endedAt: Completion timestamp
 
    C. StakeWindow Model:
       - Game session staking period
       - Controls when agents can stake/unstake
       - Key fields:
         * id (PK): Window identifier
-        * session_address: Parent game session
-        * window_index: Sequential index
-        * start_time: Opening timestamp
-        * end_time: Closing timestamp
-        * is_active: Activity status
-        * total_staked: Tokens staked in window
-        * created_at: Creation timestamp
+        * sessionAddress: Parent game session
+        * windowIndex: Sequential index
+        * startTime: Opening timestamp
+        * endTime: Closing timestamp
+        * isActive: Activity status
+        * totalStaked: Tokens staked in window
+        * createdAt: Creation timestamp
 
-   D. UserGameStake Model:
+   D. UserStake Model:
       - User's position in a game session
       - Tracks staked amounts for specific agents
       - Key fields:
         * id (PK): Stake identifier
-        * session_address: Game session contract
-        * user_address: Stake owner
-        * agent_index: Supported agent identifier
-        * staked_amount: Tokens committed
-        * claimed_rewards: Rewards withdrawn
-        * created_at: First stake timestamp
-        * updated_at: Last action timestamp
+        * sessionAddress: Game session contract
+        * userAddress: Stake owner
+        * agentIndex: Supported agent identifier
+        * stakedAmount: Tokens committed
+        * claimedRewards: Rewards withdrawn
+        * createdAt: First stake timestamp
+        * updatedAt: Last action timestamp
 
    E. Game Events:
       - Tracks all game-related transactions
       - Records stakes, unstakes, and reward claims
       - Key fields:
         * id (PK): Event identifier
-        * transaction_hash: On-chain reference
-        * created_at: Event timestamp
-        * event_type: Action category (STAKE, UNSTAKE, etc.)
-        * user_address: Acting participant
-        * agent_index: Target agent
-        * window_index: Active staking window
+        * transactionHash: On-chain reference
+        * createdAt: Event timestamp
+        * eventType: Action category (STAKE, UNSTAKE, etc.)
+        * userAddress: Acting participant
+        * agentIndex: Target agent
+        * windowIndex: Active staking window
         * amount: Token quantity
 
    F. Agent Structure:
@@ -381,7 +374,7 @@ The following contracts are available on Starknet:
       - Contains the agent's address and total staked amount
       - Key fields:
         * address: Contract address of the agent
-        * total_staked: Total amount staked by or for this agent
+        * totalStaked: Total amount staked by or for this agent
 
 </indexer_data_models>
 
