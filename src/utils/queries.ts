@@ -70,8 +70,8 @@ export const GET_ALL_REACTORS = gql`
   }
 `;
 
-export const GET_USER_LIQUIDITY_POSITIONS = gql`
-  query GetUserLiquidityPositions($agentAddress: String!) {
+export const GET_AGENT_LIQUIDITY_POSITIONS = gql`
+  query GetAgentLiquidityPositions($agentAddress: String!) {
     liquidityPosition(where: { agentAddress: { _eq: $agentAddress } }) {
       id
       pairAddress
@@ -92,8 +92,8 @@ export const GET_USER_LIQUIDITY_POSITIONS = gql`
   }
 `;
 
-export const GET_USER_STAKE_POSITIONS = gql`
-  query GetUserStakePositions($agentAddress: String!) {
+export const GET_AGENT_STAKE_POSITIONS = gql`
+  query GetAgentStakePositions($agentAddress: String!) {
     agentStake(where: { agentAddress: { _eq: $agentAddress } }) {
       id
       reactorAddress

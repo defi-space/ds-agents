@@ -2,10 +2,9 @@ import { action } from "@daydreamsai/core";
 import { z } from "zod";
 import { uint256 } from "starknet";
 import { DS_CONTEXT } from '../contexts/ds-context';
-import { getCategoryAddresses } from "../utils/contracts";
 import { executeQuery } from "../utils/graphql";
 import { normalizeAddress, getCurrentAgentId } from "../utils/starknet";
-import { GET_USER_LIQUIDITY_POSITIONS, GET_USER_STAKE_POSITIONS } from "../utils/queries";
+import { GET_AGENT_LIQUIDITY_POSITIONS, GET_AGENT_STAKE_POSITIONS } from "../utils/queries";
 import { 
   getAgentResourceBalances, 
   compareAgentPositions, 
@@ -67,8 +66,8 @@ export const toolActions = [
   }),
   
   action({
-    name: "queryUserLiquidityPositions",
-    description: "Queries the blockchain indexer to retrieve all liquidity positions for a specific user address. Returns detailed information about each position including pool addresses, token amounts, and LP token balances. Example: queryUserLiquidityPositions({ address: '0x123...' })",
+    name: "queryAgentLiquidityPositions",
+    description: "Queries the blockchain indexer to retrieve all liquidity positions for a specific user address. Returns detailed information about each position including pool addresses, token amounts, and LP token balances. Example: queryAgentLiquidityPositions({ address: '0x123...' })",
     schema: z.object({
       address: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The user's Starknet address (in hex format)")
     }),
@@ -77,8 +76,8 @@ export const toolActions = [
         // Normalize the address to ensure it's in the correct format
         const normalizedAddress = normalizeAddress(call.data.address);
         
-        const result = await executeQuery(GET_USER_LIQUIDITY_POSITIONS, {
-          user: normalizedAddress
+        const result = await executeQuery(GET_AGENT_LIQUIDITY_POSITIONS, {
+          agentAddress: normalizedAddress
         });
         
         if (!result || !result.liquidityPositions) {
@@ -114,8 +113,8 @@ export const toolActions = [
   }),
   
   action({
-    name: "queryUserStakePositions",
-    description: "Queries the blockchain indexer to retrieve all staking positions for a specific user address. Returns detailed information about each position including reactor addresses, token amounts, and reward data. Example: queryUserStakePositions({ address: '0x123...' })",
+    name: "queryAgentStakePositions",
+    description: "Queries the blockchain indexer to retrieve all staking positions for a specific Agent address. Returns detailed information about each position including reactor addresses, token amounts, and reward data. Example: queryAgentStakePositions({ address: '0x123...' })",
     schema: z.object({
       address: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The user's Starknet address (in hex format)")
     }),
@@ -124,8 +123,8 @@ export const toolActions = [
         // Normalize the address to ensure it's in the correct format
         const normalizedAddress = normalizeAddress(call.data.address);
         
-        const result = await executeQuery(GET_USER_STAKE_POSITIONS, {
-          user: normalizedAddress
+        const result = await executeQuery(GET_AGENT_STAKE_POSITIONS, {
+          agentAddress: normalizedAddress
         });
         
         if (!result || !result.stakePositions) {

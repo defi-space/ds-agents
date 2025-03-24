@@ -1,7 +1,7 @@
 import { getCategoryAddresses, isAddressOfType } from "./contracts";
 import { executeQuery } from "./graphql";
 import { getCurrentAgentId, getTokenBalance, normalizeAddress } from "./starknet";
-import { GET_USER_LIQUIDITY_POSITIONS, GET_USER_STAKE_POSITIONS } from "./queries";
+import { GET_AGENT_LIQUIDITY_POSITIONS, GET_AGENT_STAKE_POSITIONS } from "./queries";
 
 // Define types for competitive intelligence
 export interface LiquidityPosition {
@@ -542,13 +542,13 @@ export async function getCompetitiveIntelligence(): Promise<Record<string, Agent
         }
         
         // Get agent's liquidity positions
-        const liquidityPositionsResult = await executeQuery<LiquidityPositionsResponse>(GET_USER_LIQUIDITY_POSITIONS, {
-          userAddress: normalizeAddress(agentAddress)
+        const liquidityPositionsResult = await executeQuery<LiquidityPositionsResponse>(GET_AGENT_LIQUIDITY_POSITIONS, {
+          agentAddress: normalizeAddress(agentAddress)
         });
         
         // Get agent's stake positions
-        const stakePositionsResult = await executeQuery<StakePositionsResponse>(GET_USER_STAKE_POSITIONS, {
-          userAddress: normalizeAddress(agentAddress)
+        const stakePositionsResult = await executeQuery<StakePositionsResponse>(GET_AGENT_STAKE_POSITIONS, {
+          agentAddress: normalizeAddress(agentAddress)
         });
         
         // Store all intelligence for this agent
@@ -753,21 +753,21 @@ export async function compareAgentPositions(currentAgentAddress: string, targetA
   try {
     // Get both agents' liquidity positions
     const [currentAgentLiquidityPositions, targetAgentLiquidityPositions] = await Promise.all([
-      executeQuery(GET_USER_LIQUIDITY_POSITIONS, {
-        userAddress: normalizeAddress(currentAgentAddress)
+      executeQuery(GET_AGENT_LIQUIDITY_POSITIONS, {
+        agentAddress: normalizeAddress(currentAgentAddress)
       }),
-      executeQuery(GET_USER_LIQUIDITY_POSITIONS, {
-        userAddress: normalizeAddress(targetAgentAddress)
+      executeQuery(GET_AGENT_LIQUIDITY_POSITIONS, {
+        agentAddress: normalizeAddress(targetAgentAddress)
       })
     ]);
 
     // Get both agents' stake positions
     const [currentAgentStakePositions, targetAgentStakePositions] = await Promise.all([
-      executeQuery(GET_USER_STAKE_POSITIONS, {
-        userAddress: normalizeAddress(currentAgentAddress)
+      executeQuery(GET_AGENT_STAKE_POSITIONS, {
+        agentAddress: normalizeAddress(currentAgentAddress)
       }),
-      executeQuery(GET_USER_STAKE_POSITIONS, {
-        userAddress: normalizeAddress(targetAgentAddress)
+      executeQuery(GET_AGENT_STAKE_POSITIONS, {
+        agentAddress: normalizeAddress(targetAgentAddress)
       })
     ]);
 

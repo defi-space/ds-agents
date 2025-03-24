@@ -222,7 +222,7 @@ The following contracts are available on Starknet:
         * totalSupply: Total LP tokens
 
    C. LiquidityPosition Model:
-      - User's position in a trading pair
+      - Agent's position in a trading pair
       - Tracks LP tokens and historical actions
       - Key fields:
         * id (PK): Position identifier
@@ -269,7 +269,7 @@ The following contracts are available on Starknet:
         * withdrawPenalty: Early exit fee
 
    C. AgentStake Model:
-      - User's position in a reactor
+      - Agent's position in a reactor
       - Tracks staked amounts and rewards
       - Key fields:
         * id (PK): Stake identifier

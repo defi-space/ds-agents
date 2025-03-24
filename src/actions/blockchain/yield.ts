@@ -527,8 +527,8 @@ export const yieldActions = [
   }),
 
   action({
-    name: "getUserStakedAmount",
-    description: "Retrieves the current amount of LP tokens a user has staked in a specific reactor. Essential for monitoring staking positions and calculating rewards. Example: getUserStakedAmount({ reactorIndex: '1' })",
+    name: "getAgentStakedAmount",
+    description: "Retrieves the current amount of LP tokens an Agent has staked in a specific reactor. Essential for monitoring staking positions and calculating rewards. Example: getAgentStakedAmount({ reactorIndex: '1' })",
     schema: z.object({
       reactorIndex: z.string().describe("Unique identifier index of the reactor to check balance in (retrieved from getReactorIndexByLpToken action)")
     }),

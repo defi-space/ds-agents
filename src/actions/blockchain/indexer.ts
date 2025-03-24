@@ -6,8 +6,8 @@ import {
   GET_POOL_INFO,
   GET_REACTOR_INFO,
   GET_ALL_REACTORS,
-  GET_USER_LIQUIDITY_POSITIONS,
-  GET_USER_STAKE_POSITIONS,
+  GET_AGENT_LIQUIDITY_POSITIONS,
+  GET_AGENT_STAKE_POSITIONS,
   GET_REACTOR_INDEX_BY_LP_TOKEN,
   GET_GAME_SESSION_STATUS,
   GET_GAME_SESSION_INDEX_BY_ADDRESS,
@@ -155,8 +155,8 @@ export const indexerActions = [
   }),
 
   action({
-    name: "getUserLiquidityPositions",
-    description: "Fetches all active liquidity positions for a specific user across all pools from the blockchain indexer. Returns detailed information including pool shares, token amounts, and current value. Example: getUserLiquidityPositions({ userAddress: '0x789ghi...' })",
+    name: "getAgentLiquidityPositions",
+    description: "Fetches all active liquidity positions for a specific user across all pools from the blockchain indexer. Returns detailed information including pool shares, token amounts, and current value. Example: getAgentLiquidityPositions({ agentAddress: '0x789ghi...' })",
     schema: z.object({
       userAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The Starknet address of the user whose liquidity positions are being queried (in hex format)")
     }),
@@ -166,16 +166,16 @@ export const indexerActions = [
         if (!call.data.userAddress) {
           return {
             success: false,
-            error: "User address is required",
-            message: "Cannot retrieve liquidity positions: user address is missing",
+            error: "Agent address is required",
+            message: "Cannot retrieve liquidity positions: agent address is missing",
             timestamp: Date.now()
           };
         }
         
         const normalizedAddress = normalizeAddress(call.data.userAddress);
         
-        const result = await executeQuery(GET_USER_LIQUIDITY_POSITIONS, {
-          userAddress: normalizedAddress
+        const result = await executeQuery(GET_AGENT_LIQUIDITY_POSITIONS, {
+          agentAddress: normalizedAddress
         });
         
         if (!result || !result.liquidityPositions || !Array.isArray(result.liquidityPositions)) {
@@ -206,8 +206,8 @@ export const indexerActions = [
   }),
 
   action({
-    name: "getUserStakePositions",
-    description: "Retrieves all active staking positions for a specific user from the blockchain indexer. Returns comprehensive data including staked amounts, earned rewards, and lock periods. Example: getUserStakePositions({ userAddress: '0xabc123...' })",
+    name: "getAgentStakePositions",
+    description: "Retrieves all active staking positions for a specific user from the blockchain indexer. Returns comprehensive data including staked amounts, earned rewards, and lock periods. Example: getAgentStakePositions({ agentAddress: '0xabc123...' })",
     schema: z.object({
       userAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The Starknet address of the user whose staking positions are being queried (in hex format)")
     }),
@@ -217,16 +217,16 @@ export const indexerActions = [
         if (!call.data.userAddress) {
           return {
             success: false,
-            error: "User address is required",
-            message: "Cannot retrieve stake positions: user address is missing",
+            error: "Agent address is required",
+            message: "Cannot retrieve stake positions: agent address is missing",
             timestamp: Date.now()
           };
         }
         
         const normalizedAddress = normalizeAddress(call.data.userAddress);
         
-        const result = await executeQuery(GET_USER_STAKE_POSITIONS, {
-          userAddress: normalizedAddress
+        const result = await executeQuery(GET_AGENT_STAKE_POSITIONS, {
+          agentAddress: normalizedAddress
         });
         
         if (!result || !result.stakePositions || !Array.isArray(result.stakePositions)) {

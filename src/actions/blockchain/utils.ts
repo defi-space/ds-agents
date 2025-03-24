@@ -2,7 +2,7 @@ import { action } from "@daydreamsai/core";
 import { z } from "zod";
 import { convertToContractValue, starknetChain, formatTokenBalance, normalizeAddress, getAgentAddress, getTokenBalance } from "../../utils/starknet";
 import { executeQuery } from "../../utils/graphql";
-import { GET_USER_LIQUIDITY_POSITIONS, GET_USER_STAKE_POSITIONS } from "../../utils/queries";
+import { GET_AGENT_LIQUIDITY_POSITIONS, GET_AGENT_STAKE_POSITIONS } from "../../utils/queries";
 import { getContractAddress } from "../../utils/contracts";
 
 // Define token address interface to fix type issues
@@ -379,13 +379,13 @@ export const utilsActions = [
         };
         
         // Get all liquidity positions
-        const liquidityPositions = await executeQuery(GET_USER_LIQUIDITY_POSITIONS, {
-          userAddress: normalizeAddress(agentAddress)
+        const liquidityPositions = await executeQuery(GET_AGENT_LIQUIDITY_POSITIONS, {
+          agentAddress: normalizeAddress(agentAddress)
         });
         
         // Get all staking positions
-        const stakePositions = await executeQuery(GET_USER_STAKE_POSITIONS, {
-          userAddress: normalizeAddress(agentAddress)
+        const stakePositions = await executeQuery(GET_AGENT_STAKE_POSITIONS, {
+          agentAddress: normalizeAddress(agentAddress)
         });
         
         // Get pending rewards for each staking position
