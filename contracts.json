@@ -9,10 +9,10 @@
     "router": "0x16c8518bf4e910300d7fc47c41ed2072f83bd5127ee8b6cda85b1cb48bf652a",
     "conduit": "0x6406ccf4bd6fbccd37b0c68d087310690aab80e6a27c1db4281126edec70c40",
     "faucet": "0x264f4711534fad4e9d187163e0ce8225a86f43b08c67b63ffd2ba7dbdd5fabe",
-    "gameFactory": "0x1906b6347c4c5c2fce8ab9f63798edcebeacd5544f693433ded651e6d7e17a"
+    "gameFactory": "0x2d8931c0204835a2acf4d5737c80a7f4d94e9a70aa5e0dab9798c19272bfef5"
   },
   "gameSession": {
-    "current": "0x156dbe8fb8c845452ae68bafdbb05232712e6943269a01556fafaf20d3334eb"
+    "current": "0x699c162e7c722d07e04294350352576c92624d68228abf2be6098719ab9883a"
   },
   "resources": {
     "wattDollar": "0x6faafe722f4305a2998d62e919225802fdad4c1f78df9912b630cbeb9b492a9",
