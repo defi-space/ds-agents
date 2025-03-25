@@ -138,11 +138,16 @@ jobs:
             sed -i "s|image: ghcr.io/YOUR_GITHUB_USERNAME/defi-space-agents:latest|image: ghcr.io/${{ github.actor }}/defi-space-agents:latest|g" phala/docker-compose.yml
           fi
           
-          # Modify deploy-to-phala.sh to skip interactive prompts and use correct phala commands
+          # Modify deploy-to-phala.sh to use direct command-line parameters
+          # 1. Skip the interactive confirmation prompt
           sed -i 's/read -p "Would you like to proceed with deployment? (y\/n): " proceed_deploy/proceed_deploy="y"/' phala/deploy-to-phala.sh
+          
+          # 2. Update Phala commands to use the correct syntax and include resource parameters
           sed -i 's/npx phala auth login "$phala_api_key"/phala auth login "$phala_api_key"/' phala/deploy-to-phala.sh
-          sed -i 's/npx phala cvms create/phala cvms create/' phala/deploy-to-phala.sh
           sed -i 's/npx phala cvms status/phala cvms list/' phala/deploy-to-phala.sh
+          
+          # 3. Modify the create command to include all resource parameters
+          sed -i 's/npx phala cvms create --name defi-space-agents --compose phala\/docker-compose.yml --env-file .env/phala cvms create --name defi-space-agents --compose phala\/docker-compose.yml --env-file .env --vcpu 2 --memory 4096 --disk-size 40/' phala/deploy-to-phala.sh
           
           # Run deploy-to-phala.sh script
           echo "Deploying to Phala..."
