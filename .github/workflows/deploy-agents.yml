@@ -39,16 +39,8 @@ jobs:
           curl -fsSL https://bun.sh/install | bash
           echo "$HOME/.bun/bin" >> $GITHUB_PATH
           
-          # Verify Docker is installed (already available in GitHub Actions)
-          docker --version
-          
-          # Set up Node.js (required for npm)
-          node --version
-          npm --version
-          
           # Install Phala TEE Cloud CLI globally
           npm install -g phala
-          phala --version
 
       - name: Extract agent addresses
         id: extract_agents
