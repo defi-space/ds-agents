@@ -1,0 +1,82 @@
+name: Build and Publish Agent Image on GHCR
+
+# Required GitHub secrets:
+# - GH_PAT: GitHub Personal Access Token with repo scope to clone the agents repository and write packages to GHCR
+
+on:
+  workflow_dispatch:
+    inputs:
+      auto_trigger_deploy:
+        description: 'Automatically trigger deploy workflow after building image'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+  repository_dispatch:
+    types: [build-agents-image]
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout agents repository
+        uses: actions/checkout@v3
+        with:
+          repository: 'defi-space/ds-agents'
+          token: ${{ secrets.GH_PAT }}
+          path: agents
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GH_PAT }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Bun
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          echo "$HOME/.bun/bin" >> $GITHUB_PATH
+
+      - name: Build and Push Docker Image
+        run: |
+          cd agents
+          
+          # Install dependencies
+          echo "Installing dependencies..."
+          bun install
+          
+          # Build the agent code
+          echo "Building agent code..."
+          bun run build
+          
+          # Build Docker image
+          echo "Building Docker image..."
+          chmod +x phala/build-image.sh
+          echo "${{ github.actor }}" | phala/build-image.sh
+          
+          # Verify docker-compose.yml has the right image
+          if grep -q "YOUR_GITHUB_USERNAME" phala/docker-compose.yml; then
+            echo "Updating docker-compose.yml with correct image name..."
+            sed -i "s|image: ghcr.io/YOUR_GITHUB_USERNAME/defi-space-agents:latest|image: ghcr.io/${{ github.actor }}/defi-space-agents:latest|g" phala/docker-compose.yml
+          fi
+          
+          # List images to verify
+          echo "Listing Docker images:"
+          docker images
+
+      - name: Trigger deploy workflow
+        if: github.event.inputs.auto_trigger_deploy == 'true'
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.GH_PAT }}
+          repository: ${{ github.repository }}
+          event-type: deploy-agents-to-phala
+          client-payload: '{"ref": "${{ github.ref }}"}' 

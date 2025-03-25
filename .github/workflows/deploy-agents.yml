@@ -1,0 +1,192 @@
+name: Deploy Agents to Phala
+
+# Required GitHub secrets:
+# - GH_PAT: GitHub Personal Access Token with repo scope
+# - PHALA_API_KEY: API Key for Phala Cloud authentication
+# - STARKNET_RPC_URL: URL for Starknet RPC
+# - AGENT1_PRIVATE_KEY, AGENT1_API_KEY: Required for each agent
+# - AGENT2_PRIVATE_KEY, AGENT2_API_KEY: Required for each agent
+# - AGENT3_PRIVATE_KEY, AGENT3_API_KEY: Required for each agent
+# - AGENT4_PRIVATE_KEY, AGENT4_API_KEY: Required for each agent
+# - GOOGLE_API_KEY: For API access
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [deploy-agents-to-phala]
+
+jobs:
+  deploy-to-phala:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout agents repository
+        uses: actions/checkout@v3
+        with:
+          repository: 'defi-space/ds-agents'
+          token: ${{ secrets.GH_PAT }}
+          path: agents
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GH_PAT }}
+
+      - name: Extract agent addresses
+        id: extract_agents
+        run: |
+          cd agents
+          AGENT1=$(node -e "const data = require('./contracts.json'); console.log(data.agents['agent-1'] || '')")
+          AGENT2=$(node -e "const data = require('./contracts.json'); console.log(data.agents['agent-2'] || '')")
+          AGENT3=$(node -e "const data = require('./contracts.json'); console.log(data.agents['agent-3'] || '')")
+          AGENT4=$(node -e "const data = require('./contracts.json'); console.log(data.agents['agent-4'] || '')")
+          
+          echo "AGENT1=$AGENT1" >> $GITHUB_OUTPUT
+          echo "AGENT2=$AGENT2" >> $GITHUB_OUTPUT
+          echo "AGENT3=$AGENT3" >> $GITHUB_OUTPUT
+          echo "AGENT4=$AGENT4" >> $GITHUB_OUTPUT
+
+      - name: Install Phala CLI
+        run: npm install -g phala
+
+      - name: Authenticate with Phala
+        run: echo "${{ secrets.PHALA_API_KEY }}" | phala auth login --token-stdin
+
+      - name: Check existing CVM and delete if needed
+        run: |
+          # Save the CVM list to a file and parse with grep
+          phala cvms ls > cvm_list.txt
+          
+          if grep -q "defi-space-agents" cvm_list.txt; then
+            echo "Found existing defi-space-agents CVM"
+            
+            # Extract the app ID using grep and awk - use column 3
+            CVM_APP_ID=$(grep -A 3 "Name.*defi-space-agents" cvm_list.txt | grep "App ID" | awk -F'│' '{print $3}' | xargs)
+            
+            if [ -n "$CVM_APP_ID" ]; then
+              echo "Deleting CVM with App ID: $CVM_APP_ID"
+              phala cvms delete $CVM_APP_ID --force
+              echo "Waiting 30 seconds for deletion to complete..."
+              sleep 30
+            else
+              echo "Could not extract App ID for the existing CVM. Please check manually."
+              cat cvm_list.txt
+              exit 1
+            fi
+          else
+            echo "No existing CVM found with name 'defi-space-agents'"
+          fi
+
+      - name: Create .env file for deployment
+        run: |
+          cd agents
+          cat > .env << EOF
+          # Starknet Settings
+          STARKNET_RPC_URL=${{ secrets.STARKNET_RPC_URL }}
+          
+          # Agent 1
+          AGENT1_PRIVATE_KEY=${{ secrets.AGENT1_PRIVATE_KEY }}
+          AGENT1_ADDRESS=${{ steps.extract_agents.outputs.AGENT1 }}
+          AGENT1_API_KEY=${{ secrets.AGENT1_API_KEY }}
+          
+          # Agent 2
+          AGENT2_PRIVATE_KEY=${{ secrets.AGENT2_PRIVATE_KEY }}
+          AGENT2_ADDRESS=${{ steps.extract_agents.outputs.AGENT2 }}
+          AGENT2_API_KEY=${{ secrets.AGENT2_API_KEY }}
+          
+          # Agent 3
+          AGENT3_PRIVATE_KEY=${{ secrets.AGENT3_PRIVATE_KEY }}
+          AGENT3_ADDRESS=${{ steps.extract_agents.outputs.AGENT3 }}
+          AGENT3_API_KEY=${{ secrets.AGENT3_API_KEY }}
+          
+          # Agent 4
+          AGENT4_PRIVATE_KEY=${{ secrets.AGENT4_PRIVATE_KEY }}
+          AGENT4_ADDRESS=${{ steps.extract_agents.outputs.AGENT4 }}
+          AGENT4_API_KEY=${{ secrets.AGENT4_API_KEY }}
+          
+          # Google API
+          GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}
+          
+          # Dashboard
+          ENABLE_DASHBOARD=false
+          
+          # Phala settings
+          PHALA_TEE=true
+          AGENT_COUNT=4
+          PHALA_API_KEY=${{ secrets.PHALA_API_KEY }}
+          PHALA_ENVIRONMENT=production
+          EOF
+
+      - name: Deploy to Phala
+        run: |
+          cd agents
+          
+          # Verify docker-compose.yml has the right image
+          if grep -q "YOUR_GITHUB_USERNAME" phala/docker-compose.yml; then
+            echo "Updating docker-compose.yml with correct image name..."
+            sed -i "s|image: ghcr.io/YOUR_GITHUB_USERNAME/defi-space-agents:latest|image: ghcr.io/${{ github.actor }}/defi-space-agents:latest|g" phala/docker-compose.yml
+          fi
+          
+          # Run deploy-to-phala.sh script
+          echo "Deploying to Phala..."
+          chmod +x phala/deploy-to-phala.sh
+          echo "y" | phala/deploy-to-phala.sh
+          
+          # Verify deployment
+          echo "Checking deployment status..."
+          echo "Waiting for CVM to initialize (this may take a few minutes)..."
+          
+          # Wait up to 5 minutes for the CVM to appear
+          MAX_RETRIES=30
+          RETRY_COUNT=0
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            # Get current CVM list
+            phala cvms ls > cvm_list.txt
+            
+            if grep -q "defi-space-agents.*running" cvm_list.txt; then
+              # Extract the app ID
+              CVM_APP_ID=$(grep -A 3 "Name.*defi-space-agents" cvm_list.txt | grep "App ID" | awk -F'│' '{print $3}' | xargs)
+              echo "✅ CVM is running successfully! App ID: $CVM_APP_ID"
+              cat cvm_list.txt
+              break
+            elif grep -q "defi-space-agents.*pending" cvm_list.txt; then
+              CVM_APP_ID=$(grep -A 3 "Name.*defi-space-agents" cvm_list.txt | grep "App ID" | awk -F'│' '{print $3}' | xargs)
+              echo "⏳ CVM is still initializing (attempt $RETRY_COUNT/$MAX_RETRIES)... App ID: $CVM_APP_ID"
+              RETRY_COUNT=$((RETRY_COUNT+1))
+              sleep 10
+            elif grep -q "defi-space-agents" cvm_list.txt; then
+              CVM_APP_ID=$(grep -A 3 "Name.*defi-space-agents" cvm_list.txt | grep "App ID" | awk -F'│' '{print $3}' | xargs)
+              CVM_STATUS=$(grep -A 3 "Name.*defi-space-agents" cvm_list.txt | grep "Status" | awk -F'│' '{print $3}' | xargs)
+              echo "ℹ️ CVM exists but status is '$CVM_STATUS' (attempt $RETRY_COUNT/$MAX_RETRIES)... App ID: $CVM_APP_ID"
+              RETRY_COUNT=$((RETRY_COUNT+1))
+              sleep 10
+            else
+              echo "⚠️ CVM not found (attempt $RETRY_COUNT/$MAX_RETRIES)..."
+              RETRY_COUNT=$((RETRY_COUNT+1))
+              sleep 10
+            fi
+          done
+          
+          # Final status check
+          phala cvms ls > cvm_list.txt
+          
+          if grep -q "defi-space-agents.*running" cvm_list.txt; then
+            CVM_APP_ID=$(grep -A 3 "Name.*defi-space-agents" cvm_list.txt | grep "App ID" | awk -F'│' '{print $3}' | xargs)
+            echo "✅ Deployment completed successfully! App ID: $CVM_APP_ID"
+            cat cvm_list.txt
+            exit 0
+          else
+            echo "⚠️ Deployment may not have completed successfully. Check the Phala dashboard for details."
+            cat cvm_list.txt
+            
+            if grep -q "defi-space-agents" cvm_list.txt; then
+              CVM_APP_ID=$(grep -A 3 "Name.*defi-space-agents" cvm_list.txt | grep "App ID" | awk -F'│' '{print $3}' | xargs)
+              if [ -n "$CVM_APP_ID" ]; then
+                echo "App URL: https://cloud.phala.network/dashboard/cvms/$CVM_APP_ID"
+              fi
+            fi
+            
+            exit 1
+          fi 
