@@ -2,7 +2,6 @@ import * as readline from "readline/promises";
 import { z } from "zod";
 import { context, extension, formatMsg, input, output, service } from "@daydreamsai/core";
 import chalk from "chalk";
-import { isDashboardEnabled } from '../agents/utils';
 
 const cliContext = context({
   type: "cli",
@@ -54,86 +53,11 @@ const getTimestamp = () => {
   return styles.timestamp(`[${new Date().toLocaleTimeString()}]`);
 };
 
-/**
- * Intercept blockchain actions to send to dashboard
- * @param {any} agent - The agent instance
- * @param {string} actionName - The name of the action
- * @param {Function} originalHandler - The original action handler
- * @returns {Function} The intercepted action handler
- */
-const interceptBlockchainAction = (agent: any, actionName: string, originalHandler: Function) => {
-  return async (call: any, ...args: any[]) => {
-    // Only intercept if dashboard is enabled
-    if (!isDashboardEnabled() || !agent || !agent.outputs || !agent.outputs["dashboard:action"]) {
-      return originalHandler(call, ...args);
-    }
-    
-    const ctx = args[0] || {};
-    const actionType = actionName.split(':')[1]?.toUpperCase() || actionName;
-    
-    try {
-      // Send pending action to dashboard
-      await agent.outputs["dashboard:action"].handler({
-        type: actionType,
-        status: "pending",
-        details: call
-      }, ctx, agent);
-      
-      // Call original handler
-      const result = await originalHandler(call, ...args);
-      
-      // Send successful action to dashboard
-      await agent.outputs["dashboard:action"].handler({
-        type: actionType,
-        status: "success",
-        details: {
-          ...call,
-          result
-        }
-      }, ctx, agent);
-      
-      return result;
-    } catch (error: any) {
-      // Send failed action to dashboard
-      await agent.outputs["dashboard:action"].handler({
-        type: actionType,
-        status: "failed",
-        details: {
-          ...call,
-          error: error.message
-        }
-      }, ctx, agent);
-      
-      throw error;
-    }
-  };
-};
-
 export const cli = extension({
   name: "cli",
   services: [readlineService],
   contexts: {
     cli: cliContext,
-  },
-  // Add install method to intercept blockchain actions
-  install: async (agent: any) => {
-    if (!isDashboardEnabled() || !agent || !agent.actions) return;
-    
-    // Intercept blockchain actions
-    const blockchainActionPrefixes = ['blockchain:'];
-    
-    // Loop through all actions
-    Object.keys(agent.actions).forEach(actionName => {
-      // Check if it's a blockchain action
-      if (blockchainActionPrefixes.some(prefix => actionName.startsWith(prefix))) {
-        const action = agent.actions[actionName as keyof typeof agent.actions];
-        if (action && action.handler && typeof action.handler === 'function') {
-          const originalHandler = action.handler;
-          // Replace handler with interceptor
-          action.handler = interceptBlockchainAction(agent, actionName, originalHandler);
-        }
-      }
-    });
   },
   inputs: {
     "cli:message": input({
@@ -198,18 +122,6 @@ export const cli = extension({
       handler(content, ctx, agent) {
         console.log(`${getTimestamp()} ${styles.agentLabel}: ${content.message}\n`);
         console.log(styles.separator + '\n');
-        
-        // Also send to dashboard if available and enabled
-        if (isDashboardEnabled() && agent && agent.outputs && agent.outputs["dashboard:thought"]) {
-          agent.outputs["dashboard:thought"].handler({
-            content: content.message
-          }, ctx, agent);
-        }
-        
-        // Add a small delay to ensure prompt appears after all logs
-        setTimeout(() => {
-          process.stdout.write(styles.prompt);
-        }, 100);
         
         return {
           data: content,

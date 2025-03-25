@@ -8,7 +8,6 @@ import {
   type GoalMemory,
   type GoalTerm 
 } from "../contexts/goal-context";
-import { dashboardThought, dashboardAction, dashboardStatus } from "./dashboard";
 
 export const outputs = {
   "goal-manager:state": output({
@@ -128,9 +127,4 @@ export const outputs = {
       };
     },
   }),
-  
-  // Add dashboard outputs
-  "dashboard:thought": dashboardThought,
-  "dashboard:action": dashboardAction,
-  "dashboard:status": dashboardStatus
 };

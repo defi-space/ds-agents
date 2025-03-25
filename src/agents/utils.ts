@@ -58,25 +58,6 @@ export function getAgentId(agentNumber: number): string {
 }
 
 /**
- * Checks if dashboard integration is enabled
- * @returns Boolean indicating if dashboard is enabled
- */
-export function isDashboardEnabled(): boolean {
-  // Dashboard is disabled if explicitly set to 'false' or if DASHBOARD_URL is not set
-  if (process.env.ENABLE_DASHBOARD === 'false') {
-    return false;
-  }
-  
-  // Check if DASHBOARD_URL is set
-  const dashboardUrl = process.env.DASHBOARD_URL;
-  if (!dashboardUrl || dashboardUrl.trim() === '') {
-    return false;
-  }
-  
-  return true;
-}
-
-/**
  * Gets the command line arguments
  * @returns Array of command line arguments
  */

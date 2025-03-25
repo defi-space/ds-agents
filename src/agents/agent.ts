@@ -10,7 +10,6 @@ import { goalContexts } from "../contexts/goal-context";
 import { autonomousCli, cli } from "../extensions";
 import { actions } from "../actions";
 import { outputs } from "../outputs";
-import { enhanceAgentWithDashboard, setupDashboardIntegration } from '../utils/dashboardIntegration';
 import { setCurrentAgentId } from "../utils/starknet";
 import dotenv from 'dotenv';
 
@@ -18,7 +17,6 @@ import {
   StarknetConfigStore, 
   validateAgentNumber, 
   getAgentId, 
-  isDashboardEnabled,
   isManualMode,
   getGoogleApiKey,
   getStarknetConfig,
@@ -27,11 +25,6 @@ import {
 
 // Load environment variables
 dotenv.config();
-
-// Set up dashboard integration if enabled
-if (isDashboardEnabled()) {
-  setupDashboardIntegration();
-}
 
 /**
  * Agent configuration interface
@@ -97,11 +90,6 @@ export function createAgent(config: AgentConfig) {
     
     // Set the current agent ID as an environment variable
     process.env.CURRENT_AGENT_ID = config.id;
-    
-    // Enhance agent with dashboard integration if enabled
-    if (isDashboardEnabled()) {
-      return enhanceAgentWithDashboard(agent);
-    }
     
     // Return the agent
     return agent;

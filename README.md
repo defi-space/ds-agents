@@ -14,27 +14,10 @@ This project allows running multiple agents simultaneously, each with its own co
 - Run up to 4 agents simultaneously in autonomous mode
 - Each agent has isolated memory and vector storage
 - Individual Starknet wallet configuration for each agent
-- Dashboard integration for monitoring agent activities
 - Support for both autonomous and manual (interactive) modes
 - Color-coded console output for easy agent identification
 - Chromadb vector storage for agent memory persistence
-- MongoDB integration for dashboard data storage
 - Phala Network TEE integration for enhanced security and privacy
-
-## Dashboard Demo
-
-For a visual interface to monitor your agents in real-time, check out the demo dashboard project:
-
-👉 **[ds-agents-dashboard](https://github.com/defi-space/ds-agents-dashboard)**
-
-The dashboard provides:
-- Real-time monitoring of agent thoughts and actions
-- Agent status tracking
-- Transaction history
-- Detailed agent profiles
-- Responsive design for desktop and mobile
-
-To enable dashboard integration, set `ENABLE_DASHBOARD="true"` in your `.env` file.
 
 ## Prerequisites
 
@@ -97,10 +80,6 @@ INDEXER_URL="http://your-indexer-url:8080/v1/graphql"
 
 # Google API Key used for embedding in single agent mode
 GOOGLE_API_KEY="your-google-api-key"
-
-# Optional: Enable dashboard integration
-ENABLE_DASHBOARD="true"
-DASHBOARD_URL="http://localhost:5173"  # URL to the ds-agents-dashboard
 ```
 
 > **Important**: Each agent must have its own configuration. The system validates that proper credentials are provided for each agent at startup.
@@ -187,15 +166,6 @@ This memory isolation ensures that:
 ### Starknet Integration
 
 The `StarknetConfigStore` singleton maintains the configuration for each agent and ensures that blockchain operations use the correct wallet for each agent.
-
-### Dashboard Integration
-
-When enabled, the dashboard integration provides:
-- Real-time monitoring of agent thoughts and actions
-- Status updates for each agent
-- Visual representation of agent activities
-
-For more details, see the [ds-agents-dashboard](https://github.com/defi-space/ds-agents-dashboard) repository.
 
 ## Development
 
@@ -387,11 +357,6 @@ When deploying agents that handle private keys and sensitive operations in a TEE
    - Verify that the wallet addresses and private keys are correctly formatted
    - Check that the wallets have sufficient funds
    - Ensure the Starknet RPC URL is valid and accessible
-
-4. **Dashboard connection issues**:
-   - Verify that the dashboard is running at the URL specified in `DASHBOARD_URL`
-   - Check that `ENABLE_DASHBOARD="true"` is set in your `.env` file
-   - Ensure your agents have a valid agent ID that can be recognized by the dashboard
 
 ### Logs
 

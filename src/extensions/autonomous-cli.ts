@@ -3,7 +3,6 @@ import { context, extension, formatMsg, input, output, service } from "@daydream
 import { z } from "zod";
 import chalk from "chalk";
 import { PROMPTS } from "../prompts";
-import { isDashboardEnabled } from '../agents/utils';
 
 /**
  * CLI context configuration
@@ -73,74 +72,6 @@ const getTimestamp = () => {
 };
 
 /**
- * Intercepts blockchain actions to send them to the dashboard
- * @param agent - The agent instance
- * @param actionType - The type of action being intercepted
- * @param originalHandler - The original handler function
- * @returns A wrapped handler function that sends action data to the dashboard
- */
-const interceptBlockchainAction = (agent: any, actionType: string, originalHandler: Function) => {
-  return async (call: any, ...args: any[]) => {
-    // Skip dashboard integration if disabled
-    if (!isDashboardEnabled()) {
-      return originalHandler(call, ...args);
-    }
-    
-    // Get the context from args (typically the first argument after call)
-    const ctx = args.length > 0 ? args[0] : {};
-    
-    // Get agent ID from environment variable if available
-    let agentId = process.env.CURRENT_AGENT_ID || 'unknown-agent';
-    
-    // Try to get ID from agent config if available
-    if (agent && typeof agent === 'object') {
-      if ('config' in agent && agent.config && typeof agent.config === 'object' && 'id' in agent.config) {
-        agentId = String(agent.config.id);
-      }
-    }
-    
-    // Create a context with the agent ID if not already present
-    const contextWithId = ctx.id ? ctx : { ...ctx, id: agentId };
-    
-    // Send pending action to dashboard
-    await agent.outputs["dashboard:action"].handler({
-      type: actionType,
-      status: "pending",
-      details: call
-    }, contextWithId, agent);
-    
-    try {
-      // Call original handler
-      const result = await originalHandler(call, ...args);
-      
-      // Send successful action to dashboard
-      await agent.outputs["dashboard:action"].handler({
-        type: actionType,
-        status: "success",
-        details: {
-          ...call,
-          result
-        }
-      }, contextWithId, agent);
-      
-      return result;
-    } catch (error: any) {
-      // Send failed action to dashboard
-      await agent.outputs["dashboard:action"].handler({
-        type: actionType,
-        status: "failed",
-        details: {
-          ...call,
-          error: error.message
-        }
-      }, contextWithId, agent);
-      
-      throw error;
-    }
-  };
-};
-
-/**
  * CLI extension configuration object that sets up the command line interface
  * Handles message input/output, system prompts, and periodic task execution
  */
@@ -149,52 +80,6 @@ export const autonomousCli = extension({
   services: [readlineService],
   contexts: {
     cli: cliContext,
-  },
-  // Add install method to intercept blockchain actions
-  install: async (agent: any) => {
-    // Log the agent ID and dashboard status
-    const agentId = process.env.CURRENT_AGENT_ID || 
-                   (agent && agent.config && agent.config.id) || 
-                   (agent && agent.id) || 
-                   'unknown-agent';
-    
-    console.log(`Installing autonomous-cli extension for agent: ${agentId}`);
-    console.log(`Dashboard enabled: ${isDashboardEnabled()}`);
-    
-    if (!isDashboardEnabled()) {
-      console.log('Dashboard is disabled, skipping action interception');
-      return;
-    }
-    
-    if (!agent || !agent.actions) {
-      console.log('Agent or agent actions not available, skipping action interception');
-      return;
-    }
-    
-    if (!agent.outputs || !agent.outputs["dashboard:action"]) {
-      console.log('Dashboard outputs not available, skipping action interception');
-      return;
-    }
-    
-    // Intercept blockchain actions
-    const blockchainActionPrefixes = ['blockchain:'];
-    let interceptedCount = 0;
-    
-    // Loop through all actions
-    Object.keys(agent.actions).forEach(actionName => {
-      // Check if it's a blockchain action
-      if (blockchainActionPrefixes.some(prefix => actionName.startsWith(prefix))) {
-        const action = agent.actions[actionName as keyof typeof agent.actions];
-        if (action && action.handler && typeof action.handler === 'function') {
-          const originalHandler = action.handler;
-          // Replace handler with interceptor
-          action.handler = interceptBlockchainAction(agent, actionName, originalHandler);
-          interceptedCount++;
-        }
-      }
-    });
-    
-    console.log(`Intercepted ${interceptedCount} blockchain actions for agent: ${agentId}`);
   },
   inputs: {
     "cli:message": input({
@@ -306,26 +191,6 @@ export const autonomousCli = extension({
       handler(content, ctx, agent) {
         console.log(`${getTimestamp()} ${styles.agentLabel}: ${content.message}\n`);
         console.log(styles.separator + '\n');
-        
-        // Also send to dashboard if available and enabled
-        if (isDashboardEnabled() && agent && agent.outputs && agent.outputs["dashboard:thought"]) {
-          // Get agent ID from environment variable if available
-          let agentId = process.env.CURRENT_AGENT_ID || 'unknown-agent';
-          
-          // Try to get ID from agent config if available
-          if (agent && typeof agent === 'object') {
-            if ('config' in agent && agent.config && typeof agent.config === 'object' && 'id' in agent.config) {
-              agentId = String(agent.config.id);
-            }
-          }
-          
-          // Create a context with the agent ID if not already present
-          const contextWithId = ctx.id ? ctx : { ...ctx, id: agentId };
-          
-          agent.outputs["dashboard:thought"].handler({
-            content: content.message
-          }, contextWithId, agent);
-        }
         
         return {
           data: content,

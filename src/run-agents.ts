@@ -53,7 +53,6 @@ function runAgent(agentNumber: number): ChildProcess {
       AGENT_NAME: agentName,
       AGENT_NUMBER: agentNumber.toString(),
       CURRENT_AGENT_ID: `agent-${agentNumber}`, // Set the agent ID explicitly
-      ENABLE_DASHBOARD: 'true', // Enable dashboard integration
       FORCE_COLOR: '1', // Force colored output
       NODE_OPTIONS: '--no-warnings' // Suppress Node.js warnings
     }
