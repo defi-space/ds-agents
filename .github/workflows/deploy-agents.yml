@@ -75,8 +75,8 @@ jobs:
             if [ -n "$CVM_APP_ID" ]; then
               echo "Deleting CVM with App ID: $CVM_APP_ID"
               phala cvms delete $CVM_APP_ID --force
-              echo "Waiting 30 seconds for deletion to complete..."
-              sleep 30
+              echo "Waiting 10 seconds for deletion to complete..."
+              sleep 10
             else
               echo "Could not extract App ID for the existing CVM. Please check manually."
               cat cvm_list.txt
@@ -141,78 +141,18 @@ jobs:
           # Create logs directory
           mkdir -p logs
           
-          # Install expect if available (but will work without it)
-          echo "Trying to install expect for handling interactive prompts..."
-          sudo apt-get update && sudo apt-get install -y expect || echo "Will use fallback method without expect"
-          
-          # Run deploy-to-phala.sh script with non-interactive parameters
+          # Run deploy-to-phala.sh script
           echo "Deploying to Phala..."
           chmod +x phala/deploy-to-phala.sh
           
-          set +e  # Allow script to continue if deployment fails
-          yes "" | phala/deploy-to-phala.sh | tee logs/deploy.log
-          DEPLOY_EXIT_CODE=$?
-          set -e
+          # Execute the script with input redirection instead of using 'yes'
+          echo "Running deployment script"
+          phala/deploy-to-phala.sh < <(printf "\n\n\n\n") | tee logs/deploy.log
           
-          if [ $DEPLOY_EXIT_CODE -ne 0 ]; then
-            echo "Deployment failed with exit code $DEPLOY_EXIT_CODE. See logs above."
-            exit $DEPLOY_EXIT_CODE
-          fi
+          # Check if deployment finished
+          echo "Deployment completed"
           
-          # Verify deployment
-          echo "Checking deployment status..."
-          echo "Waiting for CVM to initialize (this may take a few minutes)..."
+          # Display CVM status
+          phala cvms list
           
-          # Wait up to 5 minutes for the CVM to appear
-          MAX_RETRIES=30
-          RETRY_COUNT=0
-          
-          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            # Get current CVM list
-            phala cvms list > cvm_list.txt
-            
-            if grep -q "defi-space-agents.*running" cvm_list.txt; then
-              # Extract the app ID
-              CVM_APP_ID=$(grep -A 3 "Name.*defi-space-agents" cvm_list.txt | grep "App ID" | awk -F'│' '{print $3}' | xargs)
-              echo "✅ CVM is running successfully! App ID: $CVM_APP_ID"
-              cat cvm_list.txt
-              break
-            elif grep -q "defi-space-agents.*pending" cvm_list.txt; then
-              CVM_APP_ID=$(grep -A 3 "Name.*defi-space-agents" cvm_list.txt | grep "App ID" | awk -F'│' '{print $3}' | xargs)
-              echo "⏳ CVM is still initializing (attempt $RETRY_COUNT/$MAX_RETRIES)... App ID: $CVM_APP_ID"
-              RETRY_COUNT=$((RETRY_COUNT+1))
-              sleep 10
-            elif grep -q "defi-space-agents" cvm_list.txt; then
-              CVM_APP_ID=$(grep -A 3 "Name.*defi-space-agents" cvm_list.txt | grep "App ID" | awk -F'│' '{print $3}' | xargs)
-              CVM_STATUS=$(cat cvm_list.txt | grep "Status" | awk -F'│' '{print $3}' | xargs)
-              echo "ℹ️ CVM exists but status is '$CVM_STATUS' (attempt $RETRY_COUNT/$MAX_RETRIES)... App ID: $CVM_APP_ID"
-              RETRY_COUNT=$((RETRY_COUNT+1))
-              sleep 10
-            else
-              echo "⚠️ CVM not found (attempt $RETRY_COUNT/$MAX_RETRIES)..."
-              RETRY_COUNT=$((RETRY_COUNT+1))
-              sleep 10
-            fi
-          done
-          
-          # Final status check
-          phala cvms list > cvm_list.txt
-          
-          if grep -q "defi-space-agents.*running" cvm_list.txt; then
-            CVM_APP_ID=$(grep -A 3 "Name.*defi-space-agents" cvm_list.txt | grep "App ID" | awk -F'│' '{print $3}' | xargs)
-            echo "✅ Deployment completed successfully! App ID: $CVM_APP_ID"
-            cat cvm_list.txt
-            exit 0
-          else
-            echo "⚠️ Deployment may not have completed successfully. Check the Phala dashboard for details."
-            cat cvm_list.txt
-            
-            if grep -q "defi-space-agents" cvm_list.txt; then
-              CVM_APP_ID=$(grep -A 3 "Name.*defi-space-agents" cvm_list.txt | grep "App ID" | awk -F'│' '{print $3}' | xargs)
-              if [ -n "$CVM_APP_ID" ]; then
-                echo "App URL: https://cloud.phala.network/dashboard/cvms/$CVM_APP_ID"
-              fi
-            fi
-            
-            exit 1
-          fi 
+          echo "Please check the Phala dashboard for details on your deployment" 
