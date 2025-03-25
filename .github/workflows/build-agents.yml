@@ -53,10 +53,15 @@ jobs:
           echo "Installing dependencies..."
           bun install
           
+          # Modify build-image.sh to skip interactive prompts
+          sed -i 's/read -p "Enter your GitHub username: " github_username/github_username="$1"/' phala/build-image.sh
+          sed -i 's/read -p "Have you logged in to GHCR? (y\/n): " is_logged_in/is_logged_in="y"/' phala/build-image.sh
+          sed -i 's/read -p "Do you want to make your container image public? (y\/n): " make_public/make_public="n"/' phala/build-image.sh
+          
           # Build Docker image
           echo "Building Docker image..."
           chmod +x phala/build-image.sh
-          echo "${{ github.actor }}" | phala/build-image.sh
+          phala/build-image.sh "${{ github.actor }}"
           
           # Verify docker-compose.yml has the right image
           if grep -q "YOUR_GITHUB_USERNAME" phala/docker-compose.yml; then
