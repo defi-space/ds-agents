@@ -184,7 +184,7 @@ jobs:
               sleep 10
             elif grep -q "defi-space-agents" cvm_list.txt; then
               CVM_APP_ID=$(grep -A 3 "Name.*defi-space-agents" cvm_list.txt | grep "App ID" | awk -F'│' '{print $3}' | xargs)
-              CVM_STATUS=$(grep -A 3 "Name.*defi-space-agents" cvm_list.txt | grep "Status" | awk -F'│' '{print $3}' | xargs)
+              CVM_STATUS=$(cat cvm_list.txt | grep "Status" | awk -F'│' '{print $3}' | xargs)
               echo "ℹ️ CVM exists but status is '$CVM_STATUS' (attempt $RETRY_COUNT/$MAX_RETRIES)... App ID: $CVM_APP_ID"
               RETRY_COUNT=$((RETRY_COUNT+1))
               sleep 10
