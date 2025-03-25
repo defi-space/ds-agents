@@ -138,10 +138,26 @@ jobs:
             sed -i "s|image: ghcr.io/YOUR_GITHUB_USERNAME/defi-space-agents:latest|image: ghcr.io/${{ github.actor }}/defi-space-agents:latest|g" phala/docker-compose.yml
           fi
           
+          # Create logs directory
+          mkdir -p logs
+          
+          # Install expect if available (but will work without it)
+          echo "Trying to install expect for handling interactive prompts..."
+          sudo apt-get update && sudo apt-get install -y expect || echo "Will use fallback method without expect"
+          
           # Run deploy-to-phala.sh script with non-interactive parameters
           echo "Deploying to Phala..."
           chmod +x phala/deploy-to-phala.sh
-          phala/deploy-to-phala.sh --vcpu 2 --memory 4096 --disk-size 40 --proceed y
+          
+          set +e  # Allow script to continue if deployment fails
+          yes "" | phala/deploy-to-phala.sh | tee logs/deploy.log
+          DEPLOY_EXIT_CODE=$?
+          set -e
+          
+          if [ $DEPLOY_EXIT_CODE -ne 0 ]; then
+            echo "Deployment failed with exit code $DEPLOY_EXIT_CODE. See logs above."
+            exit $DEPLOY_EXIT_CODE
+          fi
           
           # Verify deployment
           echo "Checking deployment status..."
