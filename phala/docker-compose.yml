@@ -50,12 +50,21 @@ services:
         condition: service_healthy
       mongo:
         condition: service_healthy
+    # Expose WebSocket port for frontend connections
+    ports:
+      - "8765:8765"
+    # Phala service port configuration
+    labels:
+      - pruntime.phala.network.port.ws=8765
     environment:
       # Basic configuration
       - NODE_ENV=production
       - AGENT_COUNT=${AGENT_COUNT:-4}
       - PHALA_TEE=${PHALA_TEE:-true}
       - ENABLE_DASHBOARD=${ENABLE_DASHBOARD:-false}
+      
+      # WebSocket broadcasting configuration
+      - FRONTEND_BROADCAST=true
       
       # Database configuration
       - CHROMA_HOST=defi-space-agents_chroma

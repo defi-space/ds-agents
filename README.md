@@ -84,7 +84,6 @@ GOOGLE_API_KEY="your-google-api-key"
 
 # Frontend Broadcasting
 FRONTEND_BROADCAST=true # Set to true to enable WebSocket broadcasting
-FRONTEND_WS_PORT=8765 # Port for the WebSocket server
 ```
 
 > **Important**: Each agent must have its own configuration. The system validates that proper credentials are provided for each agent at startup.
@@ -94,9 +93,8 @@ FRONTEND_WS_PORT=8765 # Port for the WebSocket server
 The system supports WebSocket broadcasting of agent working memory to frontend interfaces:
 
 - `FRONTEND_BROADCAST`: Set to `true` to enable WebSocket broadcasting
-- `FRONTEND_WS_PORT`: The port for the WebSocket server (default: 8765)
 
-When enabled, the system will broadcast agent working memory updates to all connected WebSocket clients. This allows you to build real-time monitoring interfaces to track agent states and activities.
+When enabled, the system will broadcast agent working memory updates to all connected WebSocket clients on port 8765. This allows you to build real-time monitoring interfaces to track agent states and activities.
 
 ## Running Agents
 

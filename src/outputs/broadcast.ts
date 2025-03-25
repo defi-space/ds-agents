@@ -10,7 +10,7 @@ dotenv.config();
 
 // Configuration
 const shouldBroadcast = process.env.FRONTEND_BROADCAST === 'true';
-const broadcastPort = Number(process.env.FRONTEND_WS_PORT || '8765');
+const broadcastPort = 8765; // Hardcoded WebSocket port
 const agentName = process.env.AGENT_NAME || 'unknown';
 const DEBUG = 'false';
 
