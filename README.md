@@ -17,6 +17,7 @@ This project allows running multiple agents simultaneously, each with its own co
 - Support for both autonomous and manual (interactive) modes
 - Color-coded console output for easy agent identification
 - Chromadb vector storage for agent memory persistence
+- WebSocket broadcasting of agent working memory to frontend interfaces
 - Phala Network TEE integration for enhanced security and privacy
 
 ## Prerequisites
@@ -80,9 +81,22 @@ INDEXER_URL="http://your-indexer-url:8080/v1/graphql"
 
 # Google API Key used for embedding in single agent mode
 GOOGLE_API_KEY="your-google-api-key"
+
+# Frontend Broadcasting
+FRONTEND_BROADCAST=true # Set to true to enable WebSocket broadcasting
+FRONTEND_WS_PORT=8765 # Port for the WebSocket server
 ```
 
 > **Important**: Each agent must have its own configuration. The system validates that proper credentials are provided for each agent at startup.
+
+### Broadcasting Configuration
+
+The system supports WebSocket broadcasting of agent working memory to frontend interfaces:
+
+- `FRONTEND_BROADCAST`: Set to `true` to enable WebSocket broadcasting
+- `FRONTEND_WS_PORT`: The port for the WebSocket server (default: 8765)
+
+When enabled, the system will broadcast agent working memory updates to all connected WebSocket clients. This allows you to build real-time monitoring interfaces to track agent states and activities.
 
 ## Running Agents
 
@@ -162,6 +176,17 @@ This memory isolation ensures that:
 - Agents don't interfere with each other's memory
 - Each agent maintains its own state and context
 - Agents can develop independent strategies and knowledge
+
+### WebSocket Broadcasting
+
+The system includes a WebSocket broadcasting mechanism that:
+
+- Captures agent working memory from console logs
+- Parses and validates the JSON structure
+- Broadcasts the structured data to all connected WebSocket clients
+- Handles server initialization and client connections automatically
+
+This enables real-time monitoring of agent states through any connected frontend interface.
 
 ### Starknet Integration
 
