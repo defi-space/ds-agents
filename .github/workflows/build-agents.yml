@@ -53,10 +53,6 @@ jobs:
           echo "Installing dependencies..."
           bun install
           
-          # Build the agent code
-          echo "Building agent code..."
-          bun run build
-          
           # Build Docker image
           echo "Building Docker image..."
           chmod +x phala/build-image.sh
