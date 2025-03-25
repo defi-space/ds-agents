@@ -57,12 +57,14 @@ jobs:
           echo "AGENT4=$AGENT4" >> $GITHUB_OUTPUT
 
       - name: Authenticate with Phala
-        run: echo "${{ secrets.PHALA_API_KEY }}" | phala auth login --token-stdin
+        run: |
+          # Use the correct login syntax based on help output
+          phala auth login "${{ secrets.PHALA_API_KEY }}"
 
       - name: Check existing CVM and delete if needed
         run: |
           # Save the CVM list to a file and parse with grep
-          phala cvms ls > cvm_list.txt
+          phala cvms list > cvm_list.txt
           
           if grep -q "defi-space-agents" cvm_list.txt; then
             echo "Found existing defi-space-agents CVM"
@@ -136,8 +138,11 @@ jobs:
             sed -i "s|image: ghcr.io/YOUR_GITHUB_USERNAME/defi-space-agents:latest|image: ghcr.io/${{ github.actor }}/defi-space-agents:latest|g" phala/docker-compose.yml
           fi
           
-          # Modify deploy-to-phala.sh to skip interactive prompts
+          # Modify deploy-to-phala.sh to skip interactive prompts and use correct phala commands
           sed -i 's/read -p "Would you like to proceed with deployment? (y\/n): " proceed_deploy/proceed_deploy="y"/' phala/deploy-to-phala.sh
+          sed -i 's/npx phala auth login "$phala_api_key"/phala auth login "$phala_api_key"/' phala/deploy-to-phala.sh
+          sed -i 's/npx phala cvms create/phala cvms create/' phala/deploy-to-phala.sh
+          sed -i 's/npx phala cvms status/phala cvms list/' phala/deploy-to-phala.sh
           
           # Run deploy-to-phala.sh script
           echo "Deploying to Phala..."
@@ -154,7 +159,7 @@ jobs:
           
           while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
             # Get current CVM list
-            phala cvms ls > cvm_list.txt
+            phala cvms list > cvm_list.txt
             
             if grep -q "defi-space-agents.*running" cvm_list.txt; then
               # Extract the app ID
@@ -181,7 +186,7 @@ jobs:
           done
           
           # Final status check
-          phala cvms ls > cvm_list.txt
+          phala cvms list > cvm_list.txt
           
           if grep -q "defi-space-agents.*running" cvm_list.txt; then
             CVM_APP_ID=$(grep -A 3 "Name.*defi-space-agents" cvm_list.txt | grep "App ID" | awk -F'│' '{print $3}' | xargs)
