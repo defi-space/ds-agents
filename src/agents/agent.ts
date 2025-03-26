@@ -3,8 +3,8 @@ import {
   createDreams,
   createContainer,
   LogLevel,
-  createMemoryStore,
 } from "@daydreamsai/core";
+import { createMongoMemoryStore } from "@daydreamsai/mongodb";
 import { createChromaVectorStore } from "@daydreamsai/chromadb";
 import { goalContexts } from "../contexts/goal-context";
 import { autonomousCli, cli } from "../extensions";
@@ -20,7 +20,8 @@ import {
   isManualMode,
   getGoogleApiKey,
   getStarknetConfig,
-  getChromaDbUrl
+  getChromaDbUrl,
+  getMongoDbUrl
 } from './utils';
 
 // Load environment variables
@@ -44,7 +45,7 @@ export interface AgentConfig {
  * @param config The agent configuration
  * @returns The created agent instance
  */
-export function createAgent(config: AgentConfig) {
+export async function createAgent(config: AgentConfig) {
   // Get Google API key - prioritize the agent-specific key
   const agentNumber = parseInt(config.id.split('-')[1], 10);
   const googleApiKey = config.googleApiKey || getGoogleApiKey(config.id, agentNumber);
@@ -63,10 +64,18 @@ export function createAgent(config: AgentConfig) {
     
     // Create a unique collection name for this agent's vector store
     const collectionName = `agent-${config.id}-collection`;
-    
+    const mongoDbName = `agent-${config.id}-db`;
     // Get the ChromaDB URL
     const chromaDbUrl = getChromaDbUrl();
+    const mongoDbUrl = getMongoDbUrl();
     
+    // Create the MongoDB store
+    const mongoStore = await createMongoMemoryStore({
+      uri: mongoDbUrl,
+      dbName: mongoDbName,
+      collectionName: collectionName,
+    });
+
     // Configure agent settings
     const agentConfig = {
       id: config.id,
@@ -75,7 +84,7 @@ export function createAgent(config: AgentConfig) {
       model,
       extensions: [isManualMode() ? cli : autonomousCli],
       memory: {
-        store: createMemoryStore(),
+        store: mongoStore,
         vector: createChromaVectorStore(collectionName, chromaDbUrl),
       },
       exportTrainingData: true,
@@ -104,7 +113,7 @@ export function createAgent(config: AgentConfig) {
  * @param agentNumber The agent number (1-7)
  * @returns The created agent instance
  */
-export function createAndStartAgent(agentNumber: number) {
+export async function createAndStartAgent(agentNumber: number) {
   // Validate agent number
   validateAgentNumber(agentNumber);
 
@@ -120,7 +129,7 @@ export function createAndStartAgent(agentNumber: number) {
   };
 
   // Create agent with specific configuration
-  const agent = createAgent(config);
+  const agent = await createAgent(config);
 
   // Start the agent
   agent.start({
@@ -133,5 +142,5 @@ export function createAndStartAgent(agentNumber: number) {
 // If this file is run directly, start the agent based on the provided agent number
 if (require.main === module) {
   const agentNumber = parseInt(process.env.AGENT_NUMBER || "1", 10);
-  createAndStartAgent(agentNumber);
+  await createAndStartAgent(agentNumber);
 } 

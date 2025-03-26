@@ -20,6 +20,7 @@
     "@daydreamsai/chromadb": "workspace:vendored/chroma",
     "@daydreamsai/core": "workspace:vendored/core",
     "@daydreamsai/defai": "workspace:vendored/defai",
+    "@daydreamsai/mongodb": "workspace:vendored/mongo",
     "@google/generative-ai": "^0.23.0",
     "chromadb": "^2.0.1",
     "dotenv": "^16.4.7",

@@ -143,6 +143,30 @@ export function getChromaDbUrl(): string {
 }
 
 /**
+ * Gets the ChromaDB URL from environment variables or falls back to the default container
+ * @returns The ChromaDB URL
+ */
+export function getMongoDbUrl(): string {
+  // Check if we're running locally (not in Docker)
+  const isLocalDev = !process.env.HOSTNAME?.includes('container') && !isPhalaEnvironment();
+  
+  let mongoHost;
+  
+  if (isLocalDev) {
+    // When running locally outside Docker, we need to use localhost
+    mongoHost = process.env.MONGO_HOST || "localhost";
+  } else {
+    // For Phala TEE or Docker environment
+    const defaultPrefix = isPhalaEnvironment() ? "defi-space-agents" : (process.env.COMPOSE_PROJECT_NAME || "daydreams");
+    mongoHost = process.env.MONGO_HOST || `${defaultPrefix}_mongo`;
+  }
+  
+  const mongoPort = process.env.MONGO_PORT || "27017";
+  
+  return `mongodb://${mongoHost}:${mongoPort}`;
+}
+
+/**
  * Gets the Starknet configuration for a specific agent
  * @param agentNumber The agent number
  * @returns Starknet configuration object

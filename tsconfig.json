@@ -33,6 +33,7 @@
       "@daydreamsai/core": ["vendored/core/src/index"],
       "@daydreamsai/defai": ["vendored/defai/src/index"],
       "@daydreamsai/chromadb": ["vendored/chroma/src/index"],
+      "@daydreamsai/mongodb": ["vendored/mongo/src/index"]
     }
   }
 }

@@ -1,5 +1,6 @@
-import { Collection, MongoClient, ObjectId } from "mongodb";
+import { Collection, MongoClient, ObjectId, type Filter, type Document } from "mongodb";
 import type { MemoryStore } from "@daydreamsai/core";
+import crypto from "crypto";
 
 export interface MongoMemoryOptions {
   uri: string;
@@ -29,6 +30,25 @@ export class MongoMemoryStore implements MemoryStore {
   }
 
   /**
+   * Converts a string key to a valid MongoDB query filter
+   * @param key - The key to convert
+   * @returns MongoDB filter for querying by ID
+   */
+  private getKeyFilter(key: string): Filter<Document> {
+    // Check if the key is already a valid ObjectId
+    if (ObjectId.isValid(key)) {
+      try {
+        return { _id: new ObjectId(key) };
+      } catch (e) {
+        // Fall through to use string
+      }
+    }
+    
+    // Use the key as a string directly
+    return { _id: key as any };
+  }
+
+  /**
    * Retrieves a value from the store
    * @param key - Key to look up
    * @returns The stored value or null if not found
@@ -36,7 +56,8 @@ export class MongoMemoryStore implements MemoryStore {
   async get<T>(key: string): Promise<T | null> {
     if (!this.collection) throw new Error("MongoDB not initialized");
 
-    const doc = await this.collection.findOne({ _id: new ObjectId(key) });
+    const filter = this.getKeyFilter(key);
+    const doc = await this.collection.findOne(filter);
     if (!doc) return null;
 
     return doc.value as T;
@@ -50,8 +71,9 @@ export class MongoMemoryStore implements MemoryStore {
   async set(key: string, value: any): Promise<void> {
     if (!this.collection) throw new Error("MongoDB not initialized");
 
+    const filter = this.getKeyFilter(key);
     await this.collection.updateOne(
-      { _id: new ObjectId(key) },
+      filter,
       { $set: { value } },
       { upsert: true }
     );
@@ -64,7 +86,8 @@ export class MongoMemoryStore implements MemoryStore {
   async delete(key: string): Promise<void> {
     if (!this.collection) throw new Error("MongoDB not initialized");
 
-    await this.collection.deleteOne({ _id: new ObjectId(key) });
+    const filter = this.getKeyFilter(key);
+    await this.collection.deleteOne(filter);
   }
 
   /**

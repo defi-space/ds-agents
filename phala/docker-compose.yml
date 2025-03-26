@@ -69,7 +69,8 @@ services:
       # Database configuration
       - CHROMA_HOST=defi-space-agents_chroma
       - CHROMA_PORT=8000
-      - MONGO_URI=mongodb://defi-space-agents_mongo:27017/daydreams
+      - MONGO_HOST=defi-space-agents_mongo
+      - MONGO_PORT=27017
       
       # API Keys (must be properly set in .env!)
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
