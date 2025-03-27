@@ -127,55 +127,44 @@ export const autonomousCli = extension({
           }
         );
 
-        // Track the last time UPDATE was sent
-        let lastUpdateTime = 0;
+        // Define the cycle interval in milliseconds (12 minutes)
+        const cycleInterval = 12 * 60 * 1000;
         
-        // Initial update after 60 seconds (1 minute)
+        // Initialize cycle counter to track which prompt to send
+        let cycleCounter = 0;
+        
+        // Set up the main interval that cycles through prompts every 12 minutes
         setTimeout(() => {
-          send(
-            cliContext,
-            { user: agentId },
-            {
-              user: agentId,
-              text: PROMPTS.UPDATE,
+          const runCycle = () => {
+            cycleCounter++;
+            
+            // Determine which prompt to send based on cycle counter
+            let promptType;
+            if (cycleCounter % 2 === 1) {
+              // Odd cycles (1, 3, 5...) send EXECUTION
+              promptType = PROMPTS.EXECUTION;
+            } else {
+              // Even cycles (2, 4, 6...) send UPDATE
+              promptType = PROMPTS.UPDATE;
             }
-          );
-          
-          lastUpdateTime = Date.now();
-          
-          // Start execution interval 60s (1 minute) after first UPDATE
-          setTimeout(() => {
-            // Set up the main interval that handles both EXECUTION and UPDATE
-            setInterval(() => {
-              const currentTime = Date.now();
-              const timeSinceLastUpdate = currentTime - lastUpdateTime;
-              
-              // If it's been 5 minutes since the last UPDATE, send UPDATE
-              if (timeSinceLastUpdate >= 300000) {
-                send(
-                  cliContext,
-                  { user: agentId },
-                  {
-                    user: agentId,
-                    text: PROMPTS.UPDATE,
-                  }
-                );
-                lastUpdateTime = currentTime;
-              } 
-              // Otherwise send EXECUTION (but not if UPDATE was just sent)
-              else {
-                send(
-                  cliContext,
-                  { user: agentId },
-                  {
-                    user: agentId,
-                    text: PROMPTS.EXECUTION,
-                  }
-                );
+            
+            // Send the appropriate prompt
+            send(
+              cliContext,
+              { user: agentId },
+              {
+                user: agentId,
+                text: promptType,
               }
-            }, 60000); // Run every 1 minute
-          }, 60000);
-        }, 60000);
+            );
+            
+            // Schedule the next cycle
+            setTimeout(runCycle, cycleInterval);
+          };
+          
+          // Start the first cycle
+          runCycle();
+        }, cycleInterval);
 
         // Keep the process running
         return () => {};
