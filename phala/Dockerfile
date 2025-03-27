@@ -36,7 +36,7 @@ USER agent
 
 # Set environment variables for the Phala TEE
 ENV NODE_ENV=production \
-    ENABLE_DASHBOARD=false \
+    FRONTEND_BROADCAST=true \
     AGENT_COUNT=4 \
     PHALA_TEE=true
 

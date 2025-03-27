@@ -61,10 +61,7 @@ services:
       - NODE_ENV=production
       - AGENT_COUNT=${AGENT_COUNT:-4}
       - PHALA_TEE=${PHALA_TEE:-true}
-      - ENABLE_DASHBOARD=${ENABLE_DASHBOARD:-false}
-      
-      # WebSocket broadcasting configuration
-      - FRONTEND_BROADCAST=true
+      - FRONTEND_BROADCAST=${FRONTEND_BROADCAST:-true}
       
       # Database configuration
       - CHROMA_HOST=defi-space-agents_chroma

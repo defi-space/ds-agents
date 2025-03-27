@@ -116,8 +116,8 @@ jobs:
           # Google API
           GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}
           
-          # Dashboard
-          ENABLE_DASHBOARD=false
+          # WSS
+          FRONTEND_BROADCAST=true
           
           # Phala settings
           PHALA_TEE=true
