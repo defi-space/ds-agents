@@ -74,13 +74,13 @@ export function isManualMode(): boolean {
 }
 
 /**
- * Gets the Google API key for a specific agent
+ * Gets the API key for a specific agent
  * @param agentId The agent ID
  * @param agentNumber The agent number
- * @returns The Google API key
+ * @returns The API key
  * @throws Error if no API key is found
  */
-export function getGoogleApiKey(agentId: string, agentNumber: number): string {
+export function getApiKey(agentId: string, agentNumber: number): string {
   const apiKeyEnvVar = `AGENT${agentNumber}_API_KEY`;
   
   // Get API key and remove quotes if present
@@ -88,7 +88,7 @@ export function getGoogleApiKey(agentId: string, agentNumber: number): string {
   if (apiKey) {
     apiKey = apiKey.replace(/^["'](.*)["']$/, '$1').trim();
   } else {
-    // Fall back to default key
+    // Fall back to Google API key
     apiKey = process.env.GOOGLE_API_KEY;
     if (apiKey) {
       apiKey = apiKey.replace(/^["'](.*)["']$/, '$1').trim();
@@ -96,7 +96,7 @@ export function getGoogleApiKey(agentId: string, agentNumber: number): string {
   }
   
   if (!apiKey) {
-    throw new Error(`No Google API key found for agent ${agentId}`);
+    throw new Error(`No API key found for agent ${agentId}`);
   }
   
   return apiKey;

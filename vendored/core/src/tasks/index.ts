@@ -54,6 +54,9 @@ function prepareStreamResponse({
         const result = await stream.text;
         const text = "<think>" + result + "</response>";
 
+        logger.info("agent:model:raw_output", result);
+        console.log("[MODEL OUTPUT]:", result);
+
         debug(contextId, [step, callId], text);
 
         logger.debug("agent:response", text, {

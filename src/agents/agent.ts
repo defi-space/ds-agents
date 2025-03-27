@@ -1,4 +1,4 @@
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import {
   createDreams,
   createContainer,
@@ -18,7 +18,7 @@ import {
   validateAgentNumber, 
   getAgentId, 
   isManualMode,
-  getGoogleApiKey,
+  getApiKey,
   getStarknetConfig,
   getChromaDbUrl,
   getMongoDbUrl
@@ -32,7 +32,7 @@ dotenv.config();
  */
 export interface AgentConfig {
   id: string;
-  googleApiKey?: string;
+  apiKey?: string;
   starknetConfig?: {
     rpcUrl: string;
     address: string;
@@ -48,19 +48,21 @@ export interface AgentConfig {
 export async function createAgent(config: AgentConfig) {
   // Get Google API key - prioritize the agent-specific key
   const agentNumber = parseInt(config.id.split('-')[1], 10);
-  const googleApiKey = config.googleApiKey || getGoogleApiKey(config.id, agentNumber);
+  const apiKey = config.apiKey || getApiKey(config.id, agentNumber);
   
   // Store Starknet configuration if provided
   if (config.starknetConfig) {
     StarknetConfigStore.getInstance().setConfig(config.id, config.starknetConfig);
   }
-
   // Initialize Google AI model
   try {
-    const google = createGoogleGenerativeAI({
-      apiKey: googleApiKey,
+    // Initialize Google AI model
+    const ollama = createOpenAICompatible({
+      name: 'qwq',
+      baseURL: 'http://65.109.137.0:60578/v1',
+      apiKey: apiKey,
     });
-    const model = google("gemini-2.0-flash");
+    const model = ollama("qwq");
     
     // Create a unique collection name for this agent's vector store
     const collectionName = `agent-${config.id}-collection`;

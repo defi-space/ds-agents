@@ -416,8 +416,8 @@ export function createDreams<
               debug: agent.debugger,
             }
           );
-
           logger.debug("agent:run", "Processing stream", { step });
+          console.log("[STREAM] :", stream);
           await handleStream(stream, state.index, handler);
 
           logger.debug("agent:run", "Waiting for action calls to complete", {

@@ -1,5 +1,5 @@
 import { generateObject } from "ai";
-import { google, createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import type {
   AnyAgent,
   Episode,
@@ -86,10 +86,12 @@ export const generateEpisodicMemory = async (
     const model = agent.memory.vectorModel || (() => {
       try {
         const apiKey = getAgentApiKey();
-        const googleAI = createGoogleGenerativeAI({
+        const ollama = createOpenAICompatible({
+          name: 'qwq',
+          baseURL: 'http://65.109.137.0:60578/v1',
           apiKey: apiKey,
         });
-        return googleAI("gemini-2.0-flash-lite");
+        return ollama("qwq");
       } catch (error) {
         console.error(`Failed to create Google Generative AI model: ${error}`);
         throw new Error(`Failed to create model for episodic memory: ${error}`);

@@ -40,38 +40,9 @@ export class ChromaVectorStore implements VectorStore {
   ) {
     // If no custom embedder is provided, create one using the agent-specific API key
     if (!embedder) {
-      // Get the current agent ID (e.g., "agent-1", "agent-2", etc.)
-      const agentId = process.env.CURRENT_AGENT_ID || "default-agent";
-      
-      // Extract the agent number from the agent ID
-      // Handle different formats: "agent-1", "agent1", or just "1"
-      const agentNumber = agentId.match(/\d+/)?.[0] || "";
-      
-      // Construct the environment variable name for the agent's API key
-      // e.g., AGENT1_API_KEY for agent-1
-      const apiKeyEnvVar = agentNumber ? `AGENT${agentNumber}_API_KEY` : "GOOGLE_API_KEY";
-      
-      // Get the API key from environment variable
-      let apiKey = process.env[apiKeyEnvVar];
-      
-      // Parse out quotes if present
-      if (apiKey) {
-        apiKey = apiKey.replace(/^["'](.*)["']$/, '$1').trim();
-      } else {
-        // Fall back to default key
-        apiKey = process.env.GOOGLE_API_KEY;
-        if (apiKey) {
-          apiKey = apiKey.replace(/^["'](.*)["']$/, '$1').trim();
-        }
-      }
-      
-      if (!apiKey) {
-        throw new Error(`No Google API key found for agent ${agentId}`);
-      }
-      
       try {
         this.embedder = new GoogleGenerativeAiEmbeddingFunction({
-          googleApiKey: apiKey,
+          googleApiKey: process.env.GOOGLE_API_KEY || "",
           model: "text-embedding-004",
         });
       } catch (error) {
