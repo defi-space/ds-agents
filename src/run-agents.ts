@@ -10,6 +10,9 @@ const MAX_AGENTS = 4;
 const broadcastPort = 8765; // Hardcoded WebSocket port
 const shouldBroadcast = process.env.FRONTEND_BROADCAST === 'true';
 
+// For handling potentially fragmented JSON messages
+const pendingJsonMessages: Map<string, string> = new Map();
+
 // Faction colors for agent output
 const colorStyles = [
   // Faction colors - one for each agent
@@ -149,7 +152,9 @@ function runAgent(agentNumber: number): ChildProcess {
   
   // Process agent output
   agentProcess.stdout.on('data', (data: Buffer) => {
-    const lines = data.toString().trim().split('\n');
+    const text = data.toString();
+    const lines = text.trim().split('\n');
+    
     lines.forEach((line: string) => {
       if (!line.trim()) return;
       
@@ -158,12 +163,50 @@ function runAgent(agentNumber: number): ChildProcess {
       if (broadcastMatch && wss) {
         try {
           const messageType = broadcastMatch[1];
-          const jsonData = JSON.parse(broadcastMatch[2]);
+          const rawMessage = broadcastMatch[2];
           
-          // Forward the message to all connected clients
-          broadcastMessage(jsonData);
+          try {
+            // Try to parse the JSON directly
+            const jsonData = JSON.parse(rawMessage);
+            
+            // Successfully parsed, forward the message
+            broadcastMessage(jsonData);
+            
+            // Clear any pending messages for this agent if we successfully parsed a complete message
+            pendingJsonMessages.delete(agentName);
+          } catch (jsonError: any) {
+            // If the error is about an unexpected end, it might be a fragmented message
+            if (jsonError.message.includes('Unexpected end') || 
+                jsonError.message.includes('Unterminated string')) {
+              
+              // Store or append to pending message
+              const pendingMessage = pendingJsonMessages.get(agentName) || '';
+              pendingJsonMessages.set(agentName, pendingMessage + rawMessage);
+              
+              // Try parsing the accumulated message
+              try {
+                const accumulatedMessage = pendingJsonMessages.get(agentName) || '';
+                const jsonData = JSON.parse(accumulatedMessage);
+                
+                // If successful, forward and clear the buffer
+                broadcastMessage(jsonData);
+                pendingJsonMessages.delete(agentName);
+                console.log(colorize(`[${agentName}] INFO:`), `Successfully reconstructed fragmented JSON message`);
+              } catch (e) {
+                // Still not complete, wait for more data
+                console.log(colorize(`[${agentName}] INFO:`), `Collecting fragmented JSON message (${(pendingJsonMessages.get(agentName) || '').length} bytes so far)`);
+              }
+            } else {
+              // It's a genuine JSON syntax error
+              console.error(colorize(`[${agentName}] JSON error:`), jsonError.message);
+              console.error(colorize(`[${agentName}] Message excerpt:`), `${rawMessage.substring(0, 300)}...`);
+              
+              // Clear any pending fragments since this is a new error
+              pendingJsonMessages.delete(agentName);
+            }
+          }
         } catch (error) {
-          console.error(colorize(`[${agentName}] ERROR:`), 'Failed to forward WebSocket message:', error);
+          console.error(colorize(`[${agentName}] ERROR:`), 'Failed to process WebSocket message:', error);
         }
       } else {
         // Regular log output
