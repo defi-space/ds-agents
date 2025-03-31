@@ -28,10 +28,10 @@ services:
     restart: always
     networks:
       - defi_space_network
-    ports:
-      - "27018:27017"
+    expose:
+      - "27017"
     labels:
-      - pruntime.phala.network.port.mongo=27018
+      - pruntime.phala.network.port.mongo=27017
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 30s
@@ -40,6 +40,24 @@ services:
       start_period: 15s
     volumes:
       - mongo_data:/data/db
+
+  mongo-express:
+    image: mongo-express
+    container_name: defi-space-agents_mongo-express
+    restart: always
+    networks:
+      - defi_space_network
+    ports:
+      - "8081:8081"
+    labels:
+      - pruntime.phala.network.port.mongoexpress=8081
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=defi-space-agents_mongo
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_SITE_READONLY=true
+    depends_on:
+      mongo:
+        condition: service_healthy
 
   agents:
     image: ghcr.io/wayzeek/defi-space-agents:latest
