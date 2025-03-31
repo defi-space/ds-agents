@@ -1,6 +1,6 @@
-import { Collection, MongoClient, ObjectId, type Filter, type Document } from "mongodb";
+import { Collection, MongoClient, ObjectId, ServerApiVersion } from "mongodb";
+import type { Filter, Document } from "mongodb";
 import type { MemoryStore } from "@daydreamsai/core";
-import crypto from "crypto";
 
 export interface MongoMemoryOptions {
   uri: string;
@@ -15,7 +15,15 @@ export class MongoMemoryStore implements MemoryStore {
   private readonly collectionName: string;
 
   constructor(options: MongoMemoryOptions) {
-    this.client = new MongoClient(options.uri);
+    // MongoDB Atlas client options
+    const clientOptions = {
+      serverApi: {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true,
+      }
+    };
+    this.client = new MongoClient(options.uri, clientOptions);
     this.dbName = options.dbName || "dreams_memory";
     this.collectionName = options.collectionName || "conversations";
   }
@@ -24,9 +32,16 @@ export class MongoMemoryStore implements MemoryStore {
    * Initialize the MongoDB connection
    */
   async initialize(): Promise<void> {
-    await this.client.connect();
-    const db = this.client.db(this.dbName);
-    this.collection = db.collection(this.collectionName);
+    try {
+      await this.client.connect();
+      
+      const db = this.client.db(this.dbName);
+      this.collection = db.collection(this.collectionName);
+    } catch (error) {
+      // More detailed error logging
+      console.error(`MongoDB Atlas connection error: ${error}`);
+      throw error;
+    }
   }
 
   /**

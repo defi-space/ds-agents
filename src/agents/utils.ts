@@ -143,27 +143,25 @@ export function getChromaDbUrl(): string {
 }
 
 /**
- * Gets the ChromaDB URL from environment variables or falls back to the default container
- * @returns The ChromaDB URL
+ * Gets the MongoDB connection URL from Atlas credentials
+ * @returns The MongoDB Atlas connection URL
  */
 export function getMongoDbUrl(): string {
-  // Check if we're running locally (not in Docker)
-  const isLocalDev = !process.env.HOSTNAME?.includes('container') && !isPhalaEnvironment();
-  
-  let mongoHost;
-  
-  if (isLocalDev) {
-    // When running locally outside Docker, we need to use localhost
-    mongoHost = process.env.MONGO_HOST || "localhost";
-  } else {
-    // For Phala TEE or Docker environment
-    const defaultPrefix = isPhalaEnvironment() ? "defi-space-agents" : (process.env.COMPOSE_PROJECT_NAME || "daydreams");
-    mongoHost = process.env.MONGO_HOST || `${defaultPrefix}_mongo`;
+  // Build MongoDB Atlas URI from credentials
+  if (process.env.MONGODB_ATLAS_USER && process.env.MONGODB_ATLAS_PASSWORD) {
+    // Ensure we properly URL encode the username and password
+    const user = encodeURIComponent(process.env.MONGODB_ATLAS_USER);
+    const password = encodeURIComponent(process.env.MONGODB_ATLAS_PASSWORD);
+    
+    // Get cluster address
+    const cluster = process.env.MONGODB_ATLAS_CLUSTER;
+
+    // Build the Atlas connection string
+    return `mongodb+srv://${user}:${password}@${cluster}/?retryWrites=true&w=majority`;
   }
   
-  const mongoPort = process.env.MONGO_PORT || "27017";
-  
-  return `mongodb://${mongoHost}:${mongoPort}`;
+  // If Atlas credentials not provided, throw an error
+  throw new Error('MongoDB Atlas credentials not found in environment variables. Set MONGODB_ATLAS_USER, MONGODB_ATLAS_PASSWORD, and MONGODB_ATLAS_CLUSTER.');
 }
 
 /**

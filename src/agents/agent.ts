@@ -65,15 +65,16 @@ export async function createAgent(config: AgentConfig) {
     // Create a unique collection name for this agent's vector store
     const collectionName = `agent-${config.id}-collection`;
     const mongoDbName = `agent-${config.id}-db`;
-    // Get the ChromaDB URL
-    const chromaDbUrl = getChromaDbUrl();
-    const mongoDbUrl = getMongoDbUrl();
     
-    // Create the MongoDB store
+    // Get the service URLs
+    const chromaDbUrl = getChromaDbUrl();
+    const mongoAtlasUrl = getMongoDbUrl();
+    
+    // Create the MongoDB Atlas store
     const mongoStore = await createMongoMemoryStore({
-      uri: mongoDbUrl,
+      uri: mongoAtlasUrl,
       dbName: mongoDbName,
-      collectionName: collectionName,
+      collectionName: collectionName
     });
 
     // Configure agent settings

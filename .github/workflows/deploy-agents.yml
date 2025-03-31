@@ -9,6 +9,7 @@ name: Deploy Agents to Phala
 # - AGENT3_PRIVATE_KEY, AGENT3_API_KEY: Required for each agent
 # - AGENT4_PRIVATE_KEY, AGENT4_API_KEY: Required for each agent
 # - GOOGLE_API_KEY: For API access
+# - MONGO_API_KEY: For MongoDB API authentication
 
 on:
   workflow_dispatch:

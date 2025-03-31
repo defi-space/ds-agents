@@ -17,13 +17,15 @@ This project allows running multiple agents simultaneously, each with its own co
 - Support for both autonomous and manual (interactive) modes
 - Color-coded console output for easy agent identification
 - Chromadb vector storage for agent memory persistence
+- MongoDB Atlas for persistent agent memory storage
 - WebSocket broadcasting of agent working memory to frontend interfaces
 - Phala Network TEE integration for enhanced security and privacy
 
 ## Prerequisites
 
 - [Bun](https://bun.sh/) (v1.0.0 or higher)
-- [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/) for running ChromaDB and MongoDB
+- [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/) for running ChromaDB
+- MongoDB Atlas account for database storage
 - Starknet RPC access
 - Google API keys for each agent
 
@@ -45,7 +47,7 @@ This project allows running multiple agents simultaneously, each with its own co
    cp .env.example .env
    ```
 
-4. Edit the `.env` file with your API keys, wallet addresses, and private keys.
+4. Edit the `.env` file with your API keys, wallet addresses, private keys, and MongoDB Atlas credentials.
 
 5. Start the required services:
    ```bash
@@ -58,6 +60,14 @@ The `.env` file contains configuration for all agents. Each agent must have its 
 - Google API key
 - Starknet wallet address
 - Starknet private key
+
+You must also configure MongoDB Atlas:
+```
+# MongoDB Atlas credentials
+MONGODB_ATLAS_USER="your_username"
+MONGODB_ATLAS_PASSWORD="your_password"
+MONGODB_ATLAS_CLUSTER="your-cluster.mongodb.net"
+```
 
 Example:
 ```
@@ -167,7 +177,7 @@ Each agent:
 
 Each agent has its own isolated memory that is not shared with other agents:
 
-- **Memory Store**: Each agent has its own in-memory store for conversation data
+- **Memory Store**: Each agent has its own MongoDB Atlas collection for conversation data
 - **Vector Store**: Each agent has its own ChromaDB collection with a unique name based on the agent ID
 
 This memory isolation ensures that:
@@ -346,7 +356,7 @@ The project includes pre-configured files for Phala deployment in the `phala` di
 - **build-image.sh**: Script to build and push Docker images to GitHub Container Registry
 - **deploy-to-phala.sh**: Script to deploy the built image to Phala Network
 
-This separation of concerns makes it easier to manage the Docker build process separately from the Phala deployment process. The project uses Docker Compose for deployment, which allows for running multiple services together (agents, MongoDB, and ChromaDB) within the same Confidential Virtual Machine (CVM).
+This separation of concerns makes it easier to manage the Docker build process separately from the Phala deployment process. The project uses Docker Compose for deployment, which allows for running multiple services together (agents and ChromaDB) within the same Confidential Virtual Machine (CVM).
 
 ### Security Considerations for TEE Deployment
 
@@ -412,3 +422,19 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 3. Commit your changes (`git commit -m 'Add some amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
+
+# MongoDB Atlas Configuration
+
+To use MongoDB Atlas instead of local MongoDB:
+
+1. Create an Atlas account and cluster at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+2. Add your credentials to your `.env` file:
+
+```
+# MongoDB Atlas credentials
+MONGODB_ATLAS_USER="your_username"
+MONGODB_ATLAS_PASSWORD="your_password"
+MONGODB_ATLAS_CLUSTER="your-cluster.mongodb.net"
+```
+
+The connection string is built automatically in the code without storing the full URI in environment variables. This approach keeps only the necessary credentials in your environment configuration and constructs the connection string when needed.

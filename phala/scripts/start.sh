@@ -22,17 +22,13 @@ check_service() {
 # Set up database hostnames with defaults
 CHROMA_HOST=${CHROMA_HOST:-defi-space-agents_chroma}
 CHROMA_PORT=${CHROMA_PORT:-8000}
-MONGO_URI=${MONGO_URI:-mongodb://defi-space-agents_mongo:27017/daydreams}
-MONGO_HOST=$(echo $MONGO_URI | sed -E "s|^mongodb://([^:/]+).*$|\\1|")
-MONGO_PORT=$(echo $MONGO_URI | sed -E "s|^mongodb://[^:]+:([0-9]+).*$|\\1|")
 
 echo "Configuration:"
 echo "- Environment: ${NODE_ENV:-development}"
 echo "- ChromaDB: $CHROMA_HOST:$CHROMA_PORT"
-echo "- MongoDB: $MONGO_HOST:$MONGO_PORT"
+echo "- Database: MongoDB Atlas"
 
-# Check services are reachable
-check_service $MONGO_HOST $MONGO_PORT "MongoDB" || echo "Warning: MongoDB check failed, will retry during startup"
+# Check ChromaDB is reachable
 check_service $CHROMA_HOST $CHROMA_PORT "ChromaDB" || echo "Warning: ChromaDB check failed, will retry during startup"
 
 echo "Starting agents..."
