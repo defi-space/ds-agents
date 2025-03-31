@@ -53,8 +53,9 @@ services:
       - pruntime.phala.network.port.mongoexpress=8081
     environment:
       - ME_CONFIG_MONGODB_SERVER=defi-space-agents_mongo
-      - ME_CONFIG_MONGODB_PORT=27017
-      - ME_CONFIG_MONGODB_ENABLE_ADMIN=false
+      - ME_CONFIG_MONGODB_ENABLE_ADMIN=true
+      - ME_CONFIG_MONGODB_ADMINUSER=${MONGO_ADMIN_USER}
+      - ME_CONFIG_MONGODB_ADMINPASS=${MONGO_ADMIN_PASSWORD}
       - ME_CONFIG_SITE_READONLY=true
     depends_on:
       mongo:

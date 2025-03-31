@@ -116,6 +116,10 @@ jobs:
           # Google API
           GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}
           
+          # MongoDB Express
+          MONGO_ADMIN_USER=${{ secrets.MONGO_ADMIN_USER }}
+          MONGO_ADMIN_PASSWORD=${{ secrets.MONGO_ADMIN_PASSWORD }}
+          
           # WSS
           FRONTEND_BROADCAST=true
           
