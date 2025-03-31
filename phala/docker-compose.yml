@@ -28,10 +28,9 @@ services:
     restart: always
     networks:
       - defi_space_network
-    expose:
-      - "27017"
+    
     labels:
-      - pruntime.phala.network.port.mongo=27017
+      - pruntime.phala.network.port.mongo=27018
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 30s
@@ -54,6 +53,7 @@ services:
     environment:
       - ME_CONFIG_MONGODB_SERVER=defi-space-agents_mongo
       - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_MONGODB_ENABLE_ADMIN=false
       - ME_CONFIG_SITE_READONLY=true
     depends_on:
       mongo:
