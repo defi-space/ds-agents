@@ -22,12 +22,10 @@
     "@daydreamsai/defai": "workspace:vendored/defai",
     "@daydreamsai/mongodb": "workspace:vendored/mongo",
     "@google/generative-ai": "^0.23.0",
-    "chromadb": "^2.0.1",
     "dotenv": "^16.4.7",
     "graphql": "^16.10.0",
     "graphql-request": "^7.1.2",
     "starknet": "^6.23.1",
-    "ws": "^8.18.1",
     "zod": "^3.24.2"
   }
 }

@@ -1,17 +1,11 @@
 import { spawn, ChildProcess } from 'child_process';
 import path from 'path';
 import chalk from 'chalk';
-import { WebSocketServer, WebSocket } from 'ws';
 
 // Configuration
 const DEFAULT_NUM_AGENTS = 4;
 const MIN_AGENTS = 1;
 const MAX_AGENTS = 4;
-const broadcastPort = 8765; // Hardcoded WebSocket port
-const shouldBroadcast = process.env.FRONTEND_BROADCAST === 'true';
-
-// For handling potentially fragmented JSON messages
-const pendingJsonMessages: Map<string, string> = new Map();
 
 // Faction colors for agent output
 const colorStyles = [
@@ -21,9 +15,6 @@ const colorStyles = [
   chalk.hex('#FFFF84').bold,          // Agent 3 - CP - Celestial Priesthood (Yellow)
   chalk.hex('#2a9d8f').bold,          // Agent 4 - MWU - Mechanized Workers' Union (Teal)
 ];
-
-// WebSocket server for broadcasting
-let wss: WebSocketServer | null = null;
 
 /**
  * Parse command line arguments to determine number of agents to run
@@ -44,81 +35,6 @@ function parseCommandLineArgs(): number {
   console.log(chalk.yellow(`Invalid number of agents specified. Using default (${DEFAULT_NUM_AGENTS}).`));
   console.log(chalk.yellow(`Usage: bun run src/run-agents.ts [number of agents (${MIN_AGENTS}-${MAX_AGENTS})]`));
   return DEFAULT_NUM_AGENTS;
-}
-
-/**
- * Initialize the WebSocket server for broadcasting
- * @returns Promise that resolves once server is initialized
- */
-async function initializeWebSocketServer(): Promise<void> {
-  if (!shouldBroadcast) {
-    return;
-  }
-
-  try {
-    console.log(chalk.blue(`Starting central WebSocket server on port ${broadcastPort}...`));
-    
-    wss = new WebSocketServer({ port: broadcastPort });
-    
-    return new Promise((resolve) => {
-      wss!.on('connection', (ws: WebSocket) => {
-        console.log(chalk.blue('Client connected to central WebSocket server'));
-        
-        ws.on('close', () => {
-          console.log(chalk.blue('Client disconnected from central WebSocket server'));
-        });
-        
-        ws.on('error', (error: Error) => {
-          console.error(chalk.red('WebSocket client error:'), error);
-        });
-        
-        // Send a welcome message
-        ws.send(JSON.stringify({
-          type: 'connection_status',
-          data: { status: 'connected to central server' },
-          timestamp: new Date().toISOString()
-        }));
-      });
-      
-      wss!.on('error', (error: Error) => {
-        console.error(chalk.red('WebSocket server error:'), error);
-        wss = null;
-      });
-      
-      wss!.on('listening', () => {
-        console.log(chalk.green('✓ Central WebSocket server started successfully'));
-        resolve();
-      });
-    });
-  } catch (error) {
-    console.error(chalk.red('Failed to start central WebSocket server:'), error);
-  }
-}
-
-/**
- * Broadcast a message to all connected WebSocket clients
- */
-function broadcastMessage(data: any): void {
-  if (!wss || !wss.clients || wss.clients.size === 0) return;
-  
-  const messageStr = JSON.stringify(data);
-  let sentCount = 0;
-  
-  wss.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      try {
-        client.send(messageStr);
-        sentCount++;
-      } catch (error) {
-        console.error(chalk.red('Error sending message to client:'), error);
-      }
-    }
-  });
-  
-  if (sentCount > 0 && data.type === 'working_memory') {
-    const agentId = data.data?.agentId || 'unknown';
-    console.log(chalk.gray(`[broadcast] Sent working memory from ${agentId} to ${sentCount} clients`));
-  }
 }
 
 /**
@@ -158,60 +74,8 @@ function runAgent(agentNumber: number): ChildProcess {
     lines.forEach((line: string) => {
       if (!line.trim()) return;
       
-      // Check if this is a WebSocket broadcast message
-      const broadcastMatch = line.match(/\[WEBSOCKET_BROADCAST:(\w+)\] (.*)/);
-      if (broadcastMatch && wss) {
-        try {
-          const messageType = broadcastMatch[1];
-          const rawMessage = broadcastMatch[2];
-          
-          try {
-            // Try to parse the JSON directly
-            const jsonData = JSON.parse(rawMessage);
-            
-            // Successfully parsed, forward the message
-            broadcastMessage(jsonData);
-            
-            // Clear any pending messages for this agent if we successfully parsed a complete message
-            pendingJsonMessages.delete(agentName);
-          } catch (jsonError: any) {
-            // If the error is about an unexpected end, it might be a fragmented message
-            if (jsonError.message.includes('Unexpected end') || 
-                jsonError.message.includes('Unterminated string')) {
-              
-              // Store or append to pending message
-              const pendingMessage = pendingJsonMessages.get(agentName) || '';
-              pendingJsonMessages.set(agentName, pendingMessage + rawMessage);
-              
-              // Try parsing the accumulated message
-              try {
-                const accumulatedMessage = pendingJsonMessages.get(agentName) || '';
-                const jsonData = JSON.parse(accumulatedMessage);
-                
-                // If successful, forward and clear the buffer
-                broadcastMessage(jsonData);
-                pendingJsonMessages.delete(agentName);
-                console.log(colorize(`[${agentName}] INFO:`), `Successfully reconstructed fragmented JSON message`);
-              } catch (e) {
-                // Still not complete, wait for more data
-                console.log(colorize(`[${agentName}] INFO:`), `Collecting fragmented JSON message (${(pendingJsonMessages.get(agentName) || '').length} bytes so far)`);
-              }
-            } else {
-              // It's a genuine JSON syntax error
-              console.error(colorize(`[${agentName}] JSON error:`), jsonError.message);
-              console.error(colorize(`[${agentName}] Message excerpt:`), `${rawMessage.substring(0, 300)}...`);
-              
-              // Clear any pending fragments since this is a new error
-              pendingJsonMessages.delete(agentName);
-            }
-          }
-        } catch (error) {
-          console.error(colorize(`[${agentName}] ERROR:`), 'Failed to process WebSocket message:', error);
-        }
-      } else {
-        // Regular log output
-        console.log(`${colorize(`[${agentName}]`)} ${line}`);
-      }
+      // Regular log output
+      console.log(`${colorize(`[${agentName}]`)} ${line}`);
     });
   });
   
@@ -252,27 +116,6 @@ async function runAgentsSimultaneously(numAgents: number): Promise<ChildProcess[
   return processes;
 }
 
-/**
- * Gracefully shut down all processes
- */
-function setupGracefulShutdown(processes: ChildProcess[]): void {
-  process.on('SIGINT', () => {
-    console.log(chalk.yellow('\nShutting down all agents...'));
-    
-    // Close WebSocket server if it exists
-    if (wss) {
-      console.log(chalk.blue('Closing WebSocket server...'));
-      wss.close();
-    }
-    
-    // Kill all agent processes
-    processes.forEach(proc => {
-      if (!proc.killed) {
-        proc.kill('SIGINT');
-      }
-    });
-  });
-}
 
 /**
  * Main function to run everything
@@ -282,17 +125,9 @@ async function main() {
   const numAgentsToRun = parseCommandLineArgs();
   console.log(`Running ${chalk.bold(numAgentsToRun.toString())} agent${numAgentsToRun > 1 ? 's' : ''}`);
   
-  // Initialize WebSocket server if broadcasting is enabled
-  if (shouldBroadcast) {
-    await initializeWebSocketServer();
-  }
-  
   // Start all agents
-  const processes = await runAgentsSimultaneously(numAgentsToRun);
+  await runAgentsSimultaneously(numAgentsToRun);
   console.log(chalk.bold.green('✓') + chalk.bold(` All ${numAgentsToRun} agents are running. Press Ctrl+C to stop.`));
-  
-  // Setup graceful shutdown
-  setupGracefulShutdown(processes);
 }
 
 // Start the application
