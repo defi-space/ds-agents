@@ -28,9 +28,10 @@ services:
     restart: always
     networks:
       - defi_space_network
-    
+    expose:
+      - "27017"
     labels:
-      - pruntime.phala.network.port.mongo=27018
+      - pruntime.phala.network.port.mongo=27017
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 30s
