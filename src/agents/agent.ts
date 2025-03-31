@@ -63,8 +63,7 @@ export async function createAgent(config: AgentConfig) {
     const model = google("gemini-2.0-flash");
     
     // Create a unique collection name for this agent's vector store
-    const collectionName = `agent-${config.id}-collection`;
-    const mongoDbName = `agent-${config.id}-db`;
+    const collectionName = `${config.id}-collection`;
     
     // Get the service URLs
     const chromaDbUrl = getChromaDbUrl();
@@ -73,7 +72,7 @@ export async function createAgent(config: AgentConfig) {
     // Create the MongoDB Atlas store
     const mongoStore = await createMongoMemoryStore({
       uri: mongoAtlasUrl,
-      dbName: mongoDbName,
+      dbName: "defi-space-agents",
       collectionName: collectionName
     });
 
