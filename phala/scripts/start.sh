@@ -26,7 +26,13 @@ CHROMA_PORT=${CHROMA_PORT:-8000}
 echo "Configuration:"
 echo "- Environment: ${NODE_ENV:-development}"
 echo "- ChromaDB: $CHROMA_HOST:$CHROMA_PORT"
-echo "- Database: MongoDB Atlas"
+
+# Check for MongoDB Atlas credentials
+if [ -z "$MONGODB_ATLAS_USER" ] || [ -z "$MONGODB_ATLAS_PASSWORD" ] || [ -z "$MONGODB_ATLAS_CLUSTER" ]; then
+  echo "⚠️ WARNING: MongoDB Atlas credentials are missing. Make sure MONGODB_ATLAS_USER, MONGODB_ATLAS_PASSWORD, and MONGODB_ATLAS_CLUSTER are set."
+else
+  echo "- Database: MongoDB Atlas ($MONGODB_ATLAS_CLUSTER)"
+fi
 
 # Check ChromaDB is reachable
 check_service $CHROMA_HOST $CHROMA_PORT "ChromaDB" || echo "Warning: ChromaDB check failed, will retry during startup"

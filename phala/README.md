@@ -132,12 +132,6 @@ If you encounter issues during deployment:
    - The system automatically removes surrounding quotes if present
    - Check that your API keys have the correct permissions for Gemini API
 
-4. **WebSocket connectivity issues**:
-   - Verify the port is properly exposed in the Phala dashboard
-   - Check that `FRONTEND_BROADCAST` is set to `true` in your environment
-   - Ensure your frontend is connecting to the correct WebSocket URL
-   - Check browser console for WebSocket connection errors
-
 ## Further Resources
 
 - [Phala Cloud Documentation](https://docs.phala.network/phala-cloud/getting-started/start-from-cloud-cli)

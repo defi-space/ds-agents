@@ -42,7 +42,6 @@ services:
       - NODE_ENV=production
       - AGENT_COUNT=${AGENT_COUNT:-4}
       - PHALA_TEE=${PHALA_TEE:-true}
-      - FRONTEND_BROADCAST=${FRONTEND_BROADCAST:-true}
       
       # Database configuration
       - CHROMA_HOST=defi-space-agents_chroma
