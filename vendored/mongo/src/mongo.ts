@@ -1,4 +1,4 @@
-import { Collection, MongoClient, ObjectId, ServerApiVersion } from "mongodb";
+import { Collection, MongoClient, ObjectId } from "mongodb";
 import type { Filter, Document } from "mongodb";
 import type { MemoryStore } from "@daydreamsai/core";
 
@@ -15,7 +15,20 @@ export class MongoMemoryStore implements MemoryStore {
   private readonly collectionName: string;
 
   constructor(options: MongoMemoryOptions) {
-    this.client = new MongoClient(options.uri);
+    // Sanitize the URI to ensure it doesn't contain quotes
+    const sanitizedUri = options.uri.replace(/["']/g, '');
+    
+    // Configure the MongoClient with disabled SSL for Phala environment
+    const clientOptions = {
+      ssl: false,
+      tls: false,
+      connectTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
+      serverSelectionTimeoutMS: 60000,
+      maxPoolSize: 10
+    };
+    
+    this.client = new MongoClient(sanitizedUri, clientOptions);
     this.dbName = options.dbName || "dreams_memory";
     this.collectionName = options.collectionName || "conversations";
   }
@@ -25,6 +38,7 @@ export class MongoMemoryStore implements MemoryStore {
    */
   async initialize(): Promise<void> {
     try {
+      console.log(`Connecting to MongoDB database: ${this.dbName}, collection: ${this.collectionName}...`);
       await this.client.connect();
       
       const db = this.client.db(this.dbName);

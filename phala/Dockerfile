@@ -1,4 +1,4 @@
-FROM node:23-slim
+FROM node:20.15-slim
 
 # Install minimal required tools
 RUN apt-get update && \
