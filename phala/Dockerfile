@@ -9,6 +9,9 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Install pnpm
+RUN npm install -g pnpm
+
 # Set working directory
 WORKDIR /app
 
@@ -16,8 +19,8 @@ WORKDIR /app
 COPY package.json ./
 COPY vendored ./vendored
 
-# Install dependencies with optimized caching
-RUN npm install
+# Install dependencies with pnpm which supports workspace protocol
+RUN pnpm install
 
 # Copy application code
 COPY tsconfig.json contracts.json ./

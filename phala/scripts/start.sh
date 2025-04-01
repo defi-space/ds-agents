@@ -22,7 +22,7 @@ check_service() {
 # Display system and Node.js information
 echo "=== System Information ==="
 echo "- Node.js Version: $(node -v)"
-echo "- NPM Version: $(npm -v)"
+echo "- PNPM Version: $(pnpm -v)"
 echo "- OS: $(uname -a)"
 echo "- Memory: $(free -h | grep Mem | awk '{print $2}' || echo "Unknown")"
 echo "=========================="
@@ -57,4 +57,4 @@ check_service $CHROMA_HOST $CHROMA_PORT "ChromaDB" || echo "Warning: ChromaDB ch
 echo "NODE_OPTIONS: ${NODE_OPTIONS}"
 
 echo "Starting agents with Node.js $(node -v)..."
-exec npm run start-all 
+exec pnpm run start-all 
