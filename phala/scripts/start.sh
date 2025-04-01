@@ -22,9 +22,19 @@ check_service() {
 # Display system and Node.js information
 echo "=== System Information ==="
 echo "- Node.js Version: $(node -v)"
-echo "- Bun Version: $(bun -v)"
+echo -n "- Bun Version: "
+if command -v bun &>/dev/null; then
+  bun -v
+else
+  echo "Not found"
+fi
 echo "- OS: $(uname -a)"
-echo "- Memory: $(free -h | grep Mem | awk '{print $2}' || echo "Unknown")"
+echo -n "- Memory: "
+if command -v free &>/dev/null; then
+  free -h | grep Mem | awk '{print $2}'
+else
+  echo "Unknown (free command not available)"
+fi
 echo "=========================="
 
 # Set up database hostnames with defaults
@@ -46,9 +56,13 @@ fi
 
 # Network diagnostics
 echo "Network diagnostics:"
-ip addr | grep -E "inet\s" || echo "No IP addresses found"
-echo "Network routes:"
-ip route || echo "No routes found"
+if command -v ip &>/dev/null; then
+  ip addr | grep -E "inet\s" || echo "No IP addresses found"
+  echo "Network routes:"
+  ip route || echo "No routes found"
+else
+  echo "IP command not available. Network information cannot be displayed."
+fi
 
 # Check ChromaDB is reachable
 check_service $CHROMA_HOST $CHROMA_PORT "ChromaDB" || echo "Warning: ChromaDB check failed, will retry during startup"
@@ -57,4 +71,9 @@ check_service $CHROMA_HOST $CHROMA_PORT "ChromaDB" || echo "Warning: ChromaDB ch
 echo "NODE_OPTIONS: ${NODE_OPTIONS}"
 
 echo "Starting agents with Node.js $(node -v)..."
-exec bun run start-all 
+if command -v bun &>/dev/null; then
+  exec bun run start-all
+else
+  echo "Error: Bun not found. Cannot start agents."
+  exit 1
+fi 

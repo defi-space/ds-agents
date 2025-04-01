@@ -7,13 +7,16 @@ RUN apt-get update && \
     python3 \
     build-essential \
     unzip \
-    curl && \
+    curl \
+    iproute2 \
+    procps && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Install bun
-RUN curl -fsSL https://bun.sh/install | bash
-ENV PATH="/root/.bun/bin:${PATH}"
+# Install bun globally
+RUN curl -fsSL https://bun.sh/install | bash && \
+    mkdir -p /usr/local/bin && \
+    ln -s /root/.bun/bin/bun /usr/local/bin/bun
 
 # Set working directory
 WORKDIR /app
@@ -31,6 +34,7 @@ COPY src ./src
 
 # Copy startup script
 COPY phala/scripts/start.sh /app/start.sh
+RUN chmod +x /app/start.sh
 
 # Create a non-root user to run the application
 RUN groupadd -r agent && useradd -r -g agent agent && \
