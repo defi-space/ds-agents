@@ -15,35 +15,7 @@ export class MongoMemoryStore implements MemoryStore {
   private readonly collectionName: string;
 
   constructor(options: MongoMemoryOptions) {
-    // Sanitize the URI to ensure it doesn't contain quotes
-    let sanitizedUri = options.uri.replace(/["']/g, '');
-    
-    // Ensure URI includes required parameters for Atlas connection
-    if (sanitizedUri.includes('mongodb+srv') && !sanitizedUri.includes('retryWrites=')) {
-      sanitizedUri += (sanitizedUri.includes('?') ? '&' : '?') + 'retryWrites=true&w=majority';
-    }
-    
-    // Configure the MongoClient with options for Phala environment
-    // Based on https://www.mongodb.com/docs/drivers/node/v3.6/fundamentals/connection/connection-options
-    const clientOptions = {
-      // Connection management
-      connectTimeoutMS: 60000,           // Increased from default 30000
-      socketTimeoutMS: 120000,           // Increased from default 360000
-      serverSelectionTimeoutMS: 60000,   // Increased for Phala environment
-      maxIdleTimeMS: 120000,             // Close idle connections after 2 minutes
-      waitQueueTimeoutMS: 30000,         // Wait up to 30s for a connection
-      
-      // TLS settings
-      tls: true,                         // Use TLS for Atlas
-      tlsInsecure: true,                 // Required for Phala environment
-      
-      // Application identification
-      appName: "ds-agents-cluster"
-    };
-    
-    console.log(`Connecting to MongoDB with URI: ${sanitizedUri.replace(/\/\/([^:]+):[^@]+@/, '//****:****@')}`);
-    
-    this.client = new MongoClient(sanitizedUri, clientOptions);
+    this.client = new MongoClient(options.uri);
     this.dbName = options.dbName || "dreams_memory";
     this.collectionName = options.collectionName || "conversations";
   }
@@ -53,12 +25,10 @@ export class MongoMemoryStore implements MemoryStore {
    */
   async initialize(): Promise<void> {
     try {
-      console.log(`Attempting to connect to MongoDB database: ${this.dbName}, collection: ${this.collectionName}...`);
       await this.client.connect();
       
       const db = this.client.db(this.dbName);
       this.collection = db.collection(this.collectionName);
-      console.log(`Collection ${this.collectionName} accessed successfully`);
     } catch (error) {
       // More detailed error logging
       console.error(`MongoDB Atlas connection error: ${error}`);
