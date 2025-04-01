@@ -15,15 +15,35 @@ export class MongoMemoryStore implements MemoryStore {
   private readonly collectionName: string;
 
   constructor(options: MongoMemoryOptions) {
-    // Configure the MongoClient with disabled SSL for Phala environment
+    // Sanitize the URI to ensure it doesn't contain quotes
+    let sanitizedUri = options.uri.replace(/["']/g, '');
+    
+    // Ensure URI includes required parameters for Atlas connection
+    if (sanitizedUri.includes('mongodb+srv') && !sanitizedUri.includes('retryWrites=')) {
+      sanitizedUri += (sanitizedUri.includes('?') ? '&' : '?') + 'retryWrites=true&w=majority';
+    }
+    
+    // Configure the MongoClient with options for Phala environment
     const clientOptions = {
-      ssl: false,
-      tls: false,
+      ssl: true,
+      tls: true,
+      // Use the +srv protocol options but handle certificate validation differently
+      tlsInsecure: true,
       tlsAllowInvalidCertificates: true,
       tlsAllowInvalidHostnames: true,
+
+      // Set appropriate timeouts for containerized environments
+      connectTimeoutMS: 60000,
+      socketTimeoutMS: 60000,
+      serverSelectionTimeoutMS: 60000,
+ 
+      // Application name for diagnostics
+      appName: "ds-agents-cluster"
     };
     
-    this.client = new MongoClient(options.uri, clientOptions);
+    console.log(`Connecting to MongoDB with URI: ${sanitizedUri.replace(/\/\/([^:]+):[^@]+@/, '//****:****@')}`);
+    
+    this.client = new MongoClient(sanitizedUri, clientOptions);
     this.dbName = options.dbName || "dreams_memory";
     this.collectionName = options.collectionName || "conversations";
   }
