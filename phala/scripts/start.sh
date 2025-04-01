@@ -72,8 +72,18 @@ echo "NODE_OPTIONS: ${NODE_OPTIONS}"
 
 echo "Starting agents with Node.js $(node -v)..."
 if command -v bun &>/dev/null; then
+  echo "Using Bun to start agents"
   exec bun run start-all
 else
-  echo "Error: Bun not found. Cannot start agents."
-  exit 1
+  echo "Bun not found, falling back to Node.js"
+  # Check if the script exists in package.json
+  if grep -q "\"start-all\":" package.json; then
+    echo "Using npm to start agents"
+    exec npm run start-all
+  else
+    echo "Error: Neither Bun nor a compatible npm script was found. Cannot start agents."
+    echo "Package.json contents:"
+    cat package.json
+    exit 1
+  fi
 fi 

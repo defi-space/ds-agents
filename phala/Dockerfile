@@ -13,17 +13,17 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Install bun globally
-RUN curl -fsSL https://bun.sh/install | bash && \
-    mkdir -p /usr/local/bin && \
-    ln -s /root/.bun/bin/bun /usr/local/bin/bun
-
 # Set working directory
 WORKDIR /app
 
-# Copy package files and install dependencies
-COPY package.json ./
+# Copy package files
+COPY package.json bun.lock ./
 COPY vendored ./vendored
+
+# Install Bun globally with proper permissions
+ENV BUN_INSTALL="/usr/local"
+RUN curl -fsSL https://bun.sh/install | bash && \
+    chmod -R 755 /usr/local/bin/bun
 
 # Install dependencies with bun which supports workspace protocol
 RUN bun install
@@ -46,7 +46,8 @@ USER agent
 # Set environment variables for the Phala TEE
 ENV NODE_ENV=production \
     AGENT_COUNT=4 \
-    PHALA_TEE=true
+    PHALA_TEE=true \
+    PATH="/usr/local/bin:${PATH}"
 
 # Run the application
 CMD ["/bin/bash", "/app/start.sh"] 
