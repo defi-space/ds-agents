@@ -17,7 +17,7 @@ COPY package.json ./
 COPY vendored ./vendored
 
 # Install dependencies with optimized caching
-RUN bun install
+RUN npm install
 
 # Copy application code
 COPY tsconfig.json contracts.json ./
