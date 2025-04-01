@@ -9,20 +9,34 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Set working directory
 WORKDIR /app
 
 # Copy package files and install dependencies
-COPY package.json package-lock* ./
+COPY package.json ./
 COPY vendored ./vendored
-RUN npm ci --only=production && npm rebuild
+
+# Install dependencies with optimized caching
+RUN bun install
 
 # Copy application code
-COPY . .
+COPY tsconfig.json contracts.json ./
+COPY src ./src
 
-# Set environment variables
+# Copy startup script
+COPY phala/scripts/start.sh /app/start.sh
+
+# Create a non-root user to run the application
+RUN groupadd -r agent && useradd -r -g agent agent && \
+    chown -R agent:agent /app
+
+# Switch to non-root user
+USER agent
+
+# Set environment variables for the Phala TEE
 ENV NODE_ENV=production \
     AGENT_COUNT=4 \
     PHALA_TEE=true
 
 # Run the application
-CMD ["/bin/bash", "/app/phala/scripts/start.sh"] 
+CMD ["/bin/bash", "/app/start.sh"] 

@@ -3,7 +3,7 @@ set -e
 
 echo "Starting DeFi Space Agents..."
 
-# Basic service check function
+# Function for quick service connectivity check
 check_service() {
   local host=$1
   local port=$2
@@ -19,10 +19,15 @@ check_service() {
   fi
 }
 
-# Basic diagnostics
-echo "Node.js Version: $(node -v)"
+# Display system and Node.js information
+echo "=== System Information ==="
+echo "- Node.js Version: $(node -v)"
+echo "- NPM Version: $(npm -v)"
+echo "- OS: $(uname -a)"
+echo "- Memory: $(free -h | grep Mem | awk '{print $2}' || echo "Unknown")"
+echo "=========================="
 
-# Database settings
+# Set up database hostnames with defaults
 CHROMA_HOST=${CHROMA_HOST:-defi-space-agents_chroma}
 CHROMA_PORT=${CHROMA_PORT:-8000}
 
@@ -30,8 +35,26 @@ echo "Configuration:"
 echo "- Environment: ${NODE_ENV:-development}"
 echo "- ChromaDB: $CHROMA_HOST:$CHROMA_PORT"
 
-# Check ChromaDB
-check_service $CHROMA_HOST $CHROMA_PORT "ChromaDB" || echo "Warning: ChromaDB check failed"
+# Check for MongoDB Atlas URI
+if [ -z "$MONGODB_ATLAS_URI" ]; then
+  echo "⚠️ WARNING: MongoDB Atlas URI is missing. Make sure MONGODB_ATLAS_URI is set."
+else
+  # Extract domain from URI for logging purposes only
+  ATLAS_DOMAIN=$(echo $MONGODB_ATLAS_URI | sed -E 's|^mongodb\+srv://[^@]+@([^/]+).*$|\1|')
+  echo "- Database: MongoDB Atlas ($ATLAS_DOMAIN)"
+fi
 
-echo "Starting agents..."
+# Network diagnostics
+echo "Network diagnostics:"
+ip addr | grep -E "inet\s" || echo "No IP addresses found"
+echo "Network routes:"
+ip route || echo "No routes found"
+
+# Check ChromaDB is reachable
+check_service $CHROMA_HOST $CHROMA_PORT "ChromaDB" || echo "Warning: ChromaDB check failed, will retry during startup"
+
+# Log Node.js options
+echo "NODE_OPTIONS: ${NODE_OPTIONS}"
+
+echo "Starting agents with Node.js $(node -v)..."
 exec npm run start-all 
