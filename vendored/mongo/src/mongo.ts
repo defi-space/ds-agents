@@ -15,20 +15,15 @@ export class MongoMemoryStore implements MemoryStore {
   private readonly collectionName: string;
 
   constructor(options: MongoMemoryOptions) {
-    // Sanitize the URI to ensure it doesn't contain quotes
-    const sanitizedUri = options.uri.replace(/["']/g, '');
-    
     // Configure the MongoClient with disabled SSL for Phala environment
     const clientOptions = {
       ssl: false,
       tls: false,
-      connectTimeoutMS: 30000,
-      socketTimeoutMS: 45000,
-      serverSelectionTimeoutMS: 60000,
-      maxPoolSize: 10
+      tlsAllowInvalidCertificates: true,
+      tlsAllowInvalidHostnames: true,
     };
     
-    this.client = new MongoClient(sanitizedUri, clientOptions);
+    this.client = new MongoClient(options.uri, clientOptions);
     this.dbName = options.dbName || "dreams_memory";
     this.collectionName = options.collectionName || "conversations";
   }
