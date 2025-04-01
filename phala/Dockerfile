@@ -1,4 +1,4 @@
-FROM node:20.15-slim
+FROM node:23-slim
 
 # Install minimal required tools
 RUN apt-get update && \
@@ -25,8 +25,8 @@ ENV BUN_INSTALL="/usr/local"
 RUN curl -fsSL https://bun.sh/install | bash && \
     chmod -R 755 /usr/local/bin/bun
 
-# Install dependencies with bun but using a more reliable registry mirror
-RUN bun install --registry https://registry.npmmirror.com/
+# Install dependencies with bun which supports workspace protocol
+RUN bun install
 
 # Copy application code
 COPY tsconfig.json contracts.json ./
