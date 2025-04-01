@@ -55,6 +55,8 @@ export async function createAgent(config: AgentConfig) {
     StarknetConfigStore.getInstance().setConfig(config.id, config.starknetConfig);
   }
 
+  let mongoStore;
+  
   // Initialize Google AI model
   try {
     const google = createGoogleGenerativeAI({
@@ -69,12 +71,19 @@ export async function createAgent(config: AgentConfig) {
     const chromaDbUrl = getChromaDbUrl();
     const mongoAtlasUrl = getMongoDbUrl();
     
-    // Create the MongoDB Atlas store
-    const mongoStore = await createMongoMemoryStore({
-      uri: mongoAtlasUrl,
-      dbName: "defi-space-agents",
-      collectionName: collectionName
-    });
+    // Create the MongoDB Atlas store with retry logic
+    try {
+      console.log(`Attempting to connect to MongoDB for agent ${config.id}...`);
+      mongoStore = await createMongoMemoryStore({
+        uri: mongoAtlasUrl,
+        dbName: "defi-space-agents",
+        collectionName: collectionName
+      });
+      console.log(`MongoDB connection successful for agent ${config.id}`);
+    } catch (mongoError) {
+      console.error(`MongoDB connection error for agent ${config.id}:`, mongoError);
+      throw new Error(`Failed to connect to MongoDB for agent ${config.id}: ${mongoError}`);
+    }
 
     // Configure agent settings
     const agentConfig = {

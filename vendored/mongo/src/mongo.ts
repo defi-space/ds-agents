@@ -24,7 +24,12 @@ export class MongoMemoryStore implements MemoryStore {
       },
       connectTimeoutMS: 30000,      // 30 seconds
       socketTimeoutMS: 60000,       // 60 seconds
-      serverSelectionTimeoutMS: 30000  // 30 seconds
+      serverSelectionTimeoutMS: 30000,  // 30 seconds
+      ssl: true,
+      tls: true,
+      tlsAllowInvalidCertificates: true,  // Add this option to bypass certificate validation issues
+      tlsAllowInvalidHostnames: true,     // Allow connections to hosts with different certificates
+      useUnifiedTopology: true            // Use the new unified topology
     };
     
     // Log connection attempt (without exposing credentials)
