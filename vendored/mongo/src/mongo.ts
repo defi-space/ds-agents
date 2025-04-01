@@ -15,22 +15,7 @@ export class MongoMemoryStore implements MemoryStore {
   private readonly collectionName: string;
 
   constructor(options: MongoMemoryOptions) {
-    // Core MongoDB client options
-    const clientOptions = {
-      serverApi: {
-        version: ServerApiVersion.v1,
-        strict: true,
-        deprecationErrors: true,
-      },
-      tls: true,
-      tlsAllowInvalidCertificates: true
-    };
-    
-    // Log connection attempt (without exposing credentials)
-    const maskedUri = options.uri.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@');
-    console.log(`Connecting to MongoDB Atlas: ${maskedUri}`);
-    
-    this.client = new MongoClient(options.uri, clientOptions);
+    this.client = new MongoClient(options.uri);
     this.dbName = options.dbName || "dreams_memory";
     this.collectionName = options.collectionName || "conversations";
   }
