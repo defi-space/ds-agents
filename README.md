@@ -62,10 +62,8 @@ The `.env` file contains configuration for all agents. Each agent must have its 
 
 You must also configure MongoDB Atlas:
 ```
-# MongoDB Atlas credentials
-MONGODB_ATLAS_USER="your_username"
-MONGODB_ATLAS_PASSWORD="your_password"
-MONGODB_ATLAS_CLUSTER="your-cluster.mongodb.net"
+# MongoDB Atlas Configuration
+MONGODB_ATLAS_URI="mongodb+srv://username:password@your-cluster.mongodb.net/?retryWrites=true&w=majority"
 ```
 
 Example:
@@ -405,13 +403,12 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 To use MongoDB Atlas instead of local MongoDB:
 
 1. Create an Atlas account and cluster at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
-2. Add your credentials to your `.env` file:
+2. Get your connection string from the Atlas dashboard
+3. Add it to your `.env` file:
 
 ```
-# MongoDB Atlas credentials
-MONGODB_ATLAS_USER="your_username"
-MONGODB_ATLAS_PASSWORD="your_password"
-MONGODB_ATLAS_CLUSTER="your-cluster.mongodb.net"
+# MongoDB Atlas Configuration
+MONGODB_ATLAS_URI="mongodb+srv://username:password@your-cluster.mongodb.net/?retryWrites=true&w=majority"
 ```
 
-The connection string is built automatically in the code without storing the full URI in environment variables. This approach keeps only the necessary credentials in your environment configuration and constructs the connection string when needed.
+The full connection string should be directly added to your environment variables. Be sure to replace `username`, `password`, and the cluster address with your actual MongoDB Atlas credentials.

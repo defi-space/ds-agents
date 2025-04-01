@@ -46,9 +46,7 @@ services:
       # Database configuration
       - CHROMA_HOST=defi-space-agents_chroma
       - CHROMA_PORT=8000
-      - MONGODB_ATLAS_USER=${MONGODB_ATLAS_USER}
-      - MONGODB_ATLAS_PASSWORD=${MONGODB_ATLAS_PASSWORD}
-      - MONGODB_ATLAS_CLUSTER=${MONGODB_ATLAS_CLUSTER}
+      - MONGODB_ATLAS_URI=${MONGODB_ATLAS_URI}
       
       # API Keys (must be properly set in .env!)
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}

@@ -15,14 +15,22 @@ export class MongoMemoryStore implements MemoryStore {
   private readonly collectionName: string;
 
   constructor(options: MongoMemoryOptions) {
-    // MongoDB Atlas client options
+    // MongoDB Atlas client options with increased timeouts
     const clientOptions = {
       serverApi: {
         version: ServerApiVersion.v1,
         strict: true,
         deprecationErrors: true,
-      }
+      },
+      connectTimeoutMS: 30000,      // 30 seconds
+      socketTimeoutMS: 60000,       // 60 seconds
+      serverSelectionTimeoutMS: 30000  // 30 seconds
     };
+    
+    // Log connection attempt (without exposing credentials)
+    const maskedUri = options.uri.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@');
+    console.log(`Connecting to MongoDB Atlas: ${maskedUri}`);
+    
     this.client = new MongoClient(options.uri, clientOptions);
     this.dbName = options.dbName || "dreams_memory";
     this.collectionName = options.collectionName || "conversations";
@@ -37,6 +45,7 @@ export class MongoMemoryStore implements MemoryStore {
       
       const db = this.client.db(this.dbName);
       this.collection = db.collection(this.collectionName);
+      console.log(`Collection ${this.collectionName} accessed successfully`);
     } catch (error) {
       // More detailed error logging
       console.error(`MongoDB Atlas connection error: ${error}`);

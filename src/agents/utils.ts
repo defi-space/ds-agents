@@ -143,25 +143,15 @@ export function getChromaDbUrl(): string {
 }
 
 /**
- * Gets the MongoDB connection URL from Atlas credentials
- * @returns The MongoDB Atlas connection URL
+ * Gets the MongoDB connection URL from Atlas URI
+ * @returns The MongoDB connection URL
  */
 export function getMongoDbUrl(): string {
-  // Build MongoDB Atlas URI from credentials
-  if (process.env.MONGODB_ATLAS_USER && process.env.MONGODB_ATLAS_PASSWORD) {
-    // Ensure we properly URL encode the username and password
-    const user = encodeURIComponent(process.env.MONGODB_ATLAS_USER);
-    const password = encodeURIComponent(process.env.MONGODB_ATLAS_PASSWORD);
-    
-    // Get cluster address
-    const cluster = process.env.MONGODB_ATLAS_CLUSTER;
-
-    // Build the Atlas connection string
-    return `mongodb+srv://${user}:${password}@${cluster}/?retryWrites=true&w=majority`;
+  if (process.env.MONGODB_ATLAS_URI) {
+    return process.env.MONGODB_ATLAS_URI;
   }
   
-  // If Atlas credentials not provided, throw an error
-  throw new Error('MongoDB Atlas credentials not found in environment variables. Set MONGODB_ATLAS_USER, MONGODB_ATLAS_PASSWORD, and MONGODB_ATLAS_CLUSTER.');
+  throw new Error('MongoDB Atlas URI not found in environment variables. Set MONGODB_ATLAS_URI.');
 }
 
 /**

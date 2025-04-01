@@ -27,11 +27,13 @@ echo "Configuration:"
 echo "- Environment: ${NODE_ENV:-development}"
 echo "- ChromaDB: $CHROMA_HOST:$CHROMA_PORT"
 
-# Check for MongoDB Atlas credentials
-if [ -z "$MONGODB_ATLAS_USER" ] || [ -z "$MONGODB_ATLAS_PASSWORD" ] || [ -z "$MONGODB_ATLAS_CLUSTER" ]; then
-  echo "⚠️ WARNING: MongoDB Atlas credentials are missing. Make sure MONGODB_ATLAS_USER, MONGODB_ATLAS_PASSWORD, and MONGODB_ATLAS_CLUSTER are set."
+# Check for MongoDB Atlas URI
+if [ -z "$MONGODB_ATLAS_URI" ]; then
+  echo "⚠️ WARNING: MongoDB Atlas URI is missing. Make sure MONGODB_ATLAS_URI is set."
 else
-  echo "- Database: MongoDB Atlas ($MONGODB_ATLAS_CLUSTER)"
+  # Extract domain from URI for logging purposes only
+  ATLAS_DOMAIN=$(echo $MONGODB_ATLAS_URI | sed -E 's|^mongodb\+srv://[^@]+@([^/]+).*$|\1|')
+  echo "- Database: MongoDB Atlas ($ATLAS_DOMAIN)"
 fi
 
 # Check ChromaDB is reachable

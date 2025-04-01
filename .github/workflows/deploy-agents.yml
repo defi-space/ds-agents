@@ -9,9 +9,7 @@ name: Deploy Agents to Phala
 # - AGENT3_PRIVATE_KEY, AGENT3_API_KEY: Required for each agent
 # - AGENT4_PRIVATE_KEY, AGENT4_API_KEY: Required for each agent
 # - GOOGLE_API_KEY: For API access
-# - MONGODB_ATLAS_USER: MongoDB Atlas username
-# - MONGODB_ATLAS_PASSWORD: MongoDB Atlas password
-# - MONGODB_ATLAS_CLUSTER: MongoDB Atlas cluster address
+# - MONGODB_ATLAS_URI: MongoDB Atlas connection string
 
 on:
   workflow_dispatch:
@@ -120,9 +118,7 @@ jobs:
           GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}
           
           # MongoDB Atlas Configuration
-          MONGODB_ATLAS_USER=${{ secrets.MONGODB_ATLAS_USER }}
-          MONGODB_ATLAS_PASSWORD=${{ secrets.MONGODB_ATLAS_PASSWORD }}
-          MONGODB_ATLAS_CLUSTER=${{ secrets.MONGODB_ATLAS_CLUSTER }}
+          MONGODB_ATLAS_URI=${{ secrets.MONGODB_ATLAS_URI }}
           
           # Phala settings
           PHALA_TEE=true
