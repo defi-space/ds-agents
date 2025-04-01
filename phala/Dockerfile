@@ -5,12 +5,15 @@ RUN apt-get update && \
     apt-get install -y \
     netcat-openbsd \
     python3 \
-    build-essential && \
+    build-essential \
+    unzip \
+    curl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Install pnpm
-RUN npm install -g pnpm
+# Install bun
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:${PATH}"
 
 # Set working directory
 WORKDIR /app
@@ -19,8 +22,8 @@ WORKDIR /app
 COPY package.json ./
 COPY vendored ./vendored
 
-# Install dependencies with pnpm which supports workspace protocol
-RUN pnpm install
+# Install dependencies with bun which supports workspace protocol
+RUN bun install
 
 # Copy application code
 COPY tsconfig.json contracts.json ./
