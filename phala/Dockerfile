@@ -1,43 +1,28 @@
-FROM oven/bun:1 AS base
+FROM node:23-slim
 
-# Install netcat and network diagnostic tools
+# Install minimal required tools
 RUN apt-get update && \
     apt-get install -y \
     netcat-openbsd \
-    iproute2 \
-    net-tools \
-    bash && \
+    python3 \
+    build-essential && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Set working directory
 WORKDIR /app
 
 # Copy package files and install dependencies
-COPY package.json bun.lock* ./
+COPY package.json package-lock* ./
 COPY vendored ./vendored
-
-# Install dependencies with optimized caching
-RUN bun install
+RUN npm ci --only=production && npm rebuild
 
 # Copy application code
-COPY tsconfig.json contracts.json ./
-COPY src ./src
+COPY . .
 
-# Copy startup script
-COPY phala/scripts/start.sh /app/start.sh
-
-# Create a non-root user to run the application
-RUN groupadd -r agent && useradd -r -g agent agent && \
-    chown -R agent:agent /app
-
-# Switch to non-root user
-USER agent
-
-# Set environment variables for the Phala TEE
+# Set environment variables
 ENV NODE_ENV=production \
     AGENT_COUNT=4 \
     PHALA_TEE=true
 
 # Run the application
-CMD ["/bin/bash", "/app/start.sh"] 
+CMD ["/bin/bash", "/app/phala/scripts/start.sh"] 

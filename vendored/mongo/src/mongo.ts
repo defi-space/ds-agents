@@ -15,21 +15,15 @@ export class MongoMemoryStore implements MemoryStore {
   private readonly collectionName: string;
 
   constructor(options: MongoMemoryOptions) {
-    // MongoDB Atlas client options with increased timeouts
+    // Core MongoDB client options
     const clientOptions = {
       serverApi: {
         version: ServerApiVersion.v1,
         strict: true,
         deprecationErrors: true,
       },
-      connectTimeoutMS: 30000,      // 30 seconds
-      socketTimeoutMS: 60000,       // 60 seconds
-      serverSelectionTimeoutMS: 30000,  // 30 seconds
-      ssl: true,
       tls: true,
-      tlsAllowInvalidCertificates: true,  // Add this option to bypass certificate validation issues
-      tlsAllowInvalidHostnames: true,     // Allow connections to hosts with different certificates
-      useUnifiedTopology: true            // Use the new unified topology
+      tlsAllowInvalidCertificates: true
     };
     
     // Log connection attempt (without exposing credentials)
