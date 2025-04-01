@@ -24,20 +24,20 @@ export class MongoMemoryStore implements MemoryStore {
     }
     
     // Configure the MongoClient with options for Phala environment
+    // Based on https://www.mongodb.com/docs/drivers/node/v3.6/fundamentals/connection/connection-options
     const clientOptions = {
-      ssl: true,
-      tls: true,
-      // Use the +srv protocol options but handle certificate validation differently
-      tlsInsecure: true,
-      tlsAllowInvalidCertificates: true,
-      tlsAllowInvalidHostnames: true,
-
-      // Set appropriate timeouts for containerized environments
-      connectTimeoutMS: 60000,
-      socketTimeoutMS: 60000,
-      serverSelectionTimeoutMS: 60000,
- 
-      // Application name for diagnostics
+      // Connection management
+      connectTimeoutMS: 60000,           // Increased from default 30000
+      socketTimeoutMS: 120000,           // Increased from default 360000
+      serverSelectionTimeoutMS: 60000,   // Increased for Phala environment
+      maxIdleTimeMS: 120000,             // Close idle connections after 2 minutes
+      waitQueueTimeoutMS: 30000,         // Wait up to 30s for a connection
+      
+      // TLS settings
+      tls: true,                         // Use TLS for Atlas
+      tlsInsecure: true,                 // Required for Phala environment
+      
+      // Application identification
       appName: "ds-agents-cluster"
     };
     
@@ -53,7 +53,7 @@ export class MongoMemoryStore implements MemoryStore {
    */
   async initialize(): Promise<void> {
     try {
-      console.log(`Connecting to MongoDB database: ${this.dbName}, collection: ${this.collectionName}...`);
+      console.log(`Attempting to connect to MongoDB database: ${this.dbName}, collection: ${this.collectionName}...`);
       await this.client.connect();
       
       const db = this.client.db(this.dbName);
