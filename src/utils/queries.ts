@@ -131,8 +131,8 @@ export const GET_GAME_SESSION_STATUS = gql`
       gameSuspended
       gameOver
       winningAgentIndex
-      isSuspended
-      isOver
+      gameSuspended
+      gameOver
     }
   }
 `;
