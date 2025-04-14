@@ -7,12 +7,12 @@
   },
   "core": {
     "router": "0x1cc757e6f8f2c81f9577bb12838a413a771feeee89fad890266008ab21c2473",
-    "conduit": "",
+    "conduit": "0x353d2efecd1f1cadb04d3b377442fcf907d911da42f164b3824e1266cc9a4",
     "faucet": "0x57a7e8920c8af182be1fe7293e299f1b6c24a1223be081913a8b26aaf79d731",
     "gameFactory": "0x5b03bc53a8a73a23adb10657ce719a5f8a329944be20093a8f1b8f670de98c4"
   },
   "gameSession": {
-    "current": ""
+    "current": "0x1bc03ea4c1a78b0d99062446c6ee05a1b88f478b1eae39dfa9c11b7d1251c96"
   },
   "resources": {
     "wattDollar": "0x474521ddd3cefb371702d4b22d8b3d12107cc72103aa63bb79aed89b4ca3edb",
@@ -39,6 +39,6 @@
     "y": "0x758d96530adb968269c822e6782ee68bfd003d19c92fc779872f769d2c8184b",
     "he3": "0xc5ff8a523c407e541cac4618550b70a61323a76e5260ea73ee62ba8c3ecc42",
     "wdHe3": "0x376dacd5c7640b6f46f08b25c9665cb7b4c587ea5bc3911d3ef3dd1dfcbfca8",
-    "he3Stake": "0x1890583c0954c5f4d1bde3c11c8ef0ebc8c7049deb5b1b53313fff4529ae50d"
+    "he3Stake": ""
   }
 }
