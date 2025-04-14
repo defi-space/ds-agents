@@ -4,11 +4,11 @@ import { executeQuery } from "../../utils/graphql";
 import { normalizeAddress, getAgentAddress } from "../../utils/starknet";
 import {
   GET_POOL_INFO,
-  GET_REACTOR_INFO,
-  GET_ALL_REACTORS,
+  GET_FARM_INFO,
+  GET_ALL_FARMS,
   GET_AGENT_LIQUIDITY_POSITIONS,
   GET_AGENT_STAKE_POSITIONS,
-  GET_REACTOR_INDEX_BY_LP_TOKEN,
+  GET_FARM_INDEX_BY_LP_TOKEN,
   GET_GAME_SESSION_STATUS,
   GET_GAME_SESSION_INDEX_BY_ADDRESS,
   GET_MOST_STAKED_AGENTS
@@ -86,7 +86,7 @@ export const indexerActions = [
         
         const normalizedAddress = normalizeAddress(call.data.reactorAddress);
         
-        const result = await executeQuery(GET_REACTOR_INFO, {
+        const result = await executeQuery(GET_FARM_INFO, {
           address: normalizedAddress
         });
         
@@ -125,9 +125,9 @@ export const indexerActions = [
     }),
     handler: async (call, ctx, agent) => {
       try {
-        const result = await executeQuery(GET_ALL_REACTORS, {});
+        const result = await executeQuery(GET_ALL_FARMS, {});
         
-        if (!result || !result.reactors || !Array.isArray(result.reactors)) {
+        if (!result || !result.farms || !Array.isArray(result.farms)) {
           return {
             success: false,
             error: "No reactors data returned",
@@ -276,17 +276,17 @@ export const indexerActions = [
         
         const normalizedAddress = normalizeAddress(call.data.lpTokenAddress);
         
-        const result = await executeQuery(GET_REACTOR_INDEX_BY_LP_TOKEN, {
+        const result = await executeQuery(GET_FARM_INDEX_BY_LP_TOKEN, {
           lpTokenAddress: normalizedAddress
         });
         
-        const reactorIndex = result?.reactor?.[0]?.reactorIndex ?? null;
+        const farmIndex = result?.farm?.[0]?.farmIndex ?? null;
         
-        if (reactorIndex === null) {
+        if (farmIndex === null) {
           return {
             success: false,
-            error: "Reactor not found for LP token",
-            message: `No reactor found for LP token address ${call.data.lpTokenAddress}`,
+            error: "Farm not found for LP token",
+            message: `No farm found for LP token address ${call.data.lpTokenAddress}`,
             timestamp: Date.now()
           };
         }
@@ -295,9 +295,9 @@ export const indexerActions = [
           success: true,
           data: {
             lpTokenAddress: call.data.lpTokenAddress,
-            reactorIndex
+            farmIndex
           },
-          message: `LP token ${call.data.lpTokenAddress} corresponds to reactor index ${reactorIndex}`,
+          message: `LP token ${call.data.lpTokenAddress} corresponds to farm index ${farmIndex}`,
           timestamp: Date.now()
         };
       } catch (error) {

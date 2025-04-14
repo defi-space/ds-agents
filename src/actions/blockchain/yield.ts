@@ -45,7 +45,7 @@ export const yieldActions = [
         // Get reactor address
         const reactorAddress = toHex(await starknetChain.read({
           contractAddress: conduitAddress,
-          entrypoint: "get_reactor_address",
+          entrypoint: "get_farm_address",
           calldata: [
             ...toUint256WithSpread(call.data.reactorIndex)
           ]
@@ -692,7 +692,7 @@ export const yieldActions = [
         // Get reactor address
         const reactorAddress = toHex(await starknetChain.read({
           contractAddress: conduitAddress,
-          entrypoint: "get_reactor_address",
+          entrypoint: "get_farm_address",
           calldata: [
             ...toUint256WithSpread(call.data.reactorIndex)
           ]

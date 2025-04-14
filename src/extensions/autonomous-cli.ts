@@ -127,44 +127,56 @@ export const autonomousCli = extension({
           }
         );
 
-        // Define the cycle interval in milliseconds (12 minutes)
-        const cycleInterval = 12 * 60 * 1000;
+        // Define intervals for different operations
+        const executionInterval = 5 * 60 * 1000;   // 5 minutes
+        const updateInterval = 30 * 60 * 1000;      // 30 minutes
         
-        // Initialize cycle counter to track which prompt to send
-        let cycleCounter = 0;
-        
-        // Set up the main interval that cycles through prompts every 12 minutes
+        // Set up separate timers for execution and updates
         setTimeout(() => {
-          const runCycle = () => {
-            cycleCounter++;
+          // Start execution cycle (every 5 minutes)
+          const runExecutionCycle = () => {
+            console.log(`${getTimestamp()} Running execution cycle`);
             
-            // Determine which prompt to send based on cycle counter
-            let promptType;
-            if (cycleCounter % 2 === 1) {
-              // Odd cycles (1, 3, 5...) send EXECUTION
-              promptType = PROMPTS.EXECUTION;
-            } else {
-              // Even cycles (2, 4, 6...) send UPDATE
-              promptType = PROMPTS.UPDATE;
-            }
-            
-            // Send the appropriate prompt
+            // Send the execution prompt
             send(
               cliContext,
               { user: agentId },
               {
                 user: agentId,
-                text: promptType,
+                text: PROMPTS.EXECUTION,
               }
             );
             
-            // Schedule the next cycle
-            setTimeout(runCycle, cycleInterval);
+            // Schedule the next execution cycle
+            setTimeout(runExecutionCycle, executionInterval);
           };
           
-          // Start the first cycle
-          runCycle();
-        }, cycleInterval);
+          // Start the first execution cycle
+          runExecutionCycle();
+        }, executionInterval);
+        
+        setTimeout(() => {
+          // Start update cycle (every 30 minutes)
+          const runUpdateCycle = () => {
+            console.log(`${getTimestamp()} Running update cycle`);
+            
+            // Send the update prompt
+            send(
+              cliContext,
+              { user: agentId },
+              {
+                user: agentId,
+                text: PROMPTS.UPDATE,
+              }
+            );
+            
+            // Schedule the next update cycle
+            setTimeout(runUpdateCycle, updateInterval);
+          };
+          
+          // Start the first update cycle
+          runUpdateCycle();
+        }, updateInterval);
 
         // Keep the process running
         return () => {};

@@ -20,11 +20,11 @@ export const GET_POOL_INFO = gql`
   }
 `;
 
-export const GET_REACTOR_INFO = gql`
-  query GetReactorInfo($address: String!) {
-    reactor(where: { address: { _eq: $address } }) {
+export const GET_FARM_INFO = gql`
+  query GetFarmInfo($address: String!) {
+    farm(where: { address: { _eq: $address } }) {
       address
-      powerplantAddress
+      factoryAddress
       lpTokenAddress
       totalStaked
       owner
@@ -47,12 +47,12 @@ export const GET_REACTOR_INFO = gql`
   }
 `;
 
-export const GET_ALL_REACTORS = gql`
-  query GetAllReactors {
-    reactor {
+export const GET_ALL_FARMS = gql`
+  query GetAllFarms {
+    farm {
       address
-      powerplantAddress
-      reactorIndex
+      factoryAddress
+      farmIndex
       lpTokenAddress
       totalStaked
       activeRewards
@@ -96,13 +96,13 @@ export const GET_AGENT_STAKE_POSITIONS = gql`
   query GetAgentStakePositions($agentAddress: String!) {
     agentStake(where: { agentAddress: { _eq: $agentAddress } }) {
       id
-      reactorAddress
+      farmAddress
       agentAddress
       stakedAmount
-      rewards
       penaltyEndTime
       rewardPerTokenPaid
-      reactor {
+      rewards
+      farm {
         lpTokenAddress
         totalStaked
         activeRewards
@@ -113,25 +113,26 @@ export const GET_AGENT_STAKE_POSITIONS = gql`
   }
 `;
 
-export const GET_REACTOR_INDEX_BY_LP_TOKEN = gql`
-  query GetReactorIndexByLpToken($lpTokenAddress: String!) {
-    reactor(where: { lpTokenAddress: { _eq: $lpTokenAddress } }) {
-      reactorIndex
+export const GET_FARM_INDEX_BY_LP_TOKEN = gql`
+  query GetFarmIndexByLpToken($lpTokenAddress: String!) {
+    farm(where: { lpTokenAddress: { _eq: $lpTokenAddress } }) {
+      farmIndex
     }
   }
 `;
 
-// Game Session Queries - Simplified as requested
-
+// Game Session Queries
 export const GET_GAME_SESSION_STATUS = gql`
   query GetGameSessionStatus($address: String!) {
     gameSession(where: { address: { _eq: $address } }) {
       address
       tokenWinConditionAddress
       tokenWinConditionThreshold
+      gameSuspended
+      gameOver
+      winningAgentIndex
       isSuspended
       isOver
-      winningAgentIndex
     }
   }
 `;
@@ -148,12 +149,67 @@ export const GET_MOST_STAKED_AGENTS = gql`
   query GetMostStakedAgents($sessionAddress: String!, $limit: Int = 5) {
     userStake(
       where: { sessionAddress: { _eq: $sessionAddress } }
-      order_by: { stakedAmount: desc }
+      order_by: { amount: desc }
       limit: $limit
     ) {
       agentIndex
       userAddress
-      stakedAmount
+      amount
+    }
+  }
+`;
+
+// Faucet Queries
+export const GET_FAUCET_INFO = gql`
+  query GetFaucetInfo($address: String!) {
+    faucet(where: { address: { _eq: $address } }) {
+      address
+      owner
+      claimInterval
+      gameSessionId
+      tokensList
+      createdAt
+      updatedAt
+      tokens {
+        address
+        amount
+        claimAmount
+      }
+    }
+  }
+`;
+
+export const GET_WHITELISTED_USER = gql`
+  query GetWhitelistedUser($userAddress: String!, $faucetAddress: String!) {
+    whitelistedUser(
+      where: { 
+        address: { _eq: $userAddress },
+        faucetAddress: { _eq: $faucetAddress }
+      }
+    ) {
+      address
+      faucetAddress
+      isWhitelisted
+      lastClaim
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const GET_USER_CLAIM_HISTORY = gql`
+  query GetUserClaimHistory($userAddress: String!) {
+    claimEvent(
+      where: { userAddress: { _eq: $userAddress } }
+      order_by: { createdAt: desc }
+    ) {
+      id
+      transactionHash
+      userAddress
+      tokenAddress
+      faucetAddress
+      amount
+      createdAt
     }
   }
 `; 
