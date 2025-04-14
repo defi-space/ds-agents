@@ -1,0 +1,14 @@
+# Tests
+**/*.test.ts
+vitest.config.ts
+
+# Development
+src/
+node_modules/
+*.log
+tsconfig.json
+tsup.config.ts
+
+# Environment
+.env
+.env.* 

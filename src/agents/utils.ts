@@ -43,7 +43,7 @@ export class StarknetConfigStore {
  * @throws Error if agent number is invalid
  */
 export function validateAgentNumber(agentNumber: number): void {
-  if (agentNumber < 1 || agentNumber > 4) {
+  if (isNaN(agentNumber) || agentNumber < 1 || agentNumber > 4) {
     throw new Error(`Invalid agent number: ${agentNumber}. Must be between 1 and 4.`);
   }
 }
@@ -54,7 +54,12 @@ export function validateAgentNumber(agentNumber: number): void {
  * @returns The agent ID string
  */
 export function getAgentId(agentNumber: number): string {
-  return process.env.CURRENT_AGENT_ID || `agent-${agentNumber}`;
+  if (process.env.CURRENT_AGENT_ID) {
+    return process.env.CURRENT_AGENT_ID;
+  }
+  
+  validateAgentNumber(agentNumber);
+  return `agent-${agentNumber}`;
 }
 
 /**
@@ -81,6 +86,9 @@ export function isManualMode(): boolean {
  * @throws Error if no API key is found
  */
 export function getGoogleApiKey(agentId: string, agentNumber: number): string {
+  // Validate agent number
+  validateAgentNumber(agentNumber);
+  
   const apiKeyEnvVar = `AGENT${agentNumber}_API_KEY`;
   
   // Get API key and remove quotes if present
@@ -96,7 +104,7 @@ export function getGoogleApiKey(agentId: string, agentNumber: number): string {
   }
   
   if (!apiKey) {
-    throw new Error(`No Google API key found for agent ${agentId}`);
+    throw new Error(`No Google API key found for agent ${agentId}. Please set AGENT${agentNumber}_API_KEY or GOOGLE_API_KEY in environment variables.`);
   }
   
   return apiKey;
@@ -143,26 +151,54 @@ export function getChromaDbUrl(): string {
 }
 
 /**
- * Gets the MongoDB connection URL from Atlas URI
- * @returns The MongoDB connection URL
- */
-export function getMongoDbUrl(): string {
-  if (process.env.MONGODB_ATLAS_URI) {
-    return process.env.MONGODB_ATLAS_URI;
-  }
-  
-  throw new Error('MongoDB Atlas URI not found in environment variables. Set MONGODB_ATLAS_URI.');
-}
-
-/**
  * Gets the Starknet configuration for a specific agent
  * @param agentNumber The agent number
  * @returns Starknet configuration object
+ * @throws Error if configuration is missing
  */
 export function getStarknetConfig(agentNumber: number): StarknetConfig {
+  // Validate agent number
+  validateAgentNumber(agentNumber);
+  
+  const rpcUrl = process.env.STARKNET_RPC_URL;
+  const address = process.env[`AGENT${agentNumber}_ADDRESS`];
+  const privateKey = process.env[`AGENT${agentNumber}_PRIVATE_KEY`];
+  
+  if (!rpcUrl) {
+    throw new Error("STARKNET_RPC_URL is not defined in environment variables");
+  }
+  
+  if (!address) {
+    throw new Error(`AGENT${agentNumber}_ADDRESS is not defined in environment variables`);
+  }
+  
+  if (!privateKey) {
+    throw new Error(`AGENT${agentNumber}_PRIVATE_KEY is not defined in environment variables`);
+  }
+  
+  return { rpcUrl, address, privateKey };
+}
+
+/**
+ * Helper function to get Supabase configuration from environment variables
+ * @returns Supabase configuration object
+ * @throws Error if required config is missing
+ */
+export function getSupabaseConfig() {
+  const url = process.env.SUPABASE_URL;
+  const apiKey = process.env.SUPABASE_API_KEY;
+  
+  if (!url) {
+    throw new Error('SUPABASE_URL must be provided in environment variables');
+  }
+  
+  if (!apiKey) {
+    throw new Error('SUPABASE_API_KEY must be provided in environment variables');
+  }
+  
   return {
-    rpcUrl: process.env.STARKNET_RPC_URL!,
-    address: process.env[`AGENT${agentNumber}_ADDRESS`]!,
-    privateKey: process.env[`AGENT${agentNumber}_PRIVATE_KEY`]!,
+    url,
+    apiKey,
+    tableName: process.env.SUPABASE_TABLE_NAME
   };
-} 
+}

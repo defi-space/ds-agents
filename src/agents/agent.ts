@@ -4,7 +4,7 @@ import {
   createContainer,
   LogLevel,
 } from "@daydreamsai/core";
-import { createMongoMemoryStore } from "@daydreamsai/mongodb";
+import { createSupabaseMemoryStore } from "@daydreamsai/supabase";
 import { createChromaVectorStore } from "@daydreamsai/chromadb";
 import { goalContexts } from "../contexts/goal-context";
 import { autonomousCli, cli } from "../extensions";
@@ -21,7 +21,7 @@ import {
   getGoogleApiKey,
   getStarknetConfig,
   getChromaDbUrl,
-  getMongoDbUrl
+  getSupabaseConfig
 } from './utils';
 
 // Load environment variables
@@ -37,6 +37,11 @@ export interface AgentConfig {
     rpcUrl: string;
     address: string;
     privateKey: string;
+  };
+  supabaseConfig?: {
+    url: string;
+    apiKey: string;
+    tableName?: string;
   };
 }
 
@@ -55,7 +60,7 @@ export async function createAgent(config: AgentConfig) {
     StarknetConfigStore.getInstance().setConfig(config.id, config.starknetConfig);
   }
 
-  let mongoStore;
+  let memoryStore;
   
   // Initialize Google AI model
   try {
@@ -65,24 +70,25 @@ export async function createAgent(config: AgentConfig) {
     const model = google("gemini-2.0-flash");
     
     // Create a unique collection name for this agent's vector store
-    const collectionName = `${config.id}-collection`;
+    const collectionName = `${config.id.replace(/-/g, '_')}_collection`;
     
     // Get the service URLs
     const chromaDbUrl = getChromaDbUrl();
-    const mongoAtlasUrl = getMongoDbUrl();
     
-    // Create the MongoDB Atlas store with retry logic
+    // Create the Supabase memory store
     try {
-      console.log(`Attempting to connect to MongoDB for agent ${config.id}...`);
-      mongoStore = await createMongoMemoryStore({
-        uri: mongoAtlasUrl,
-        dbName: "defi-space-agents",
-        collectionName: collectionName
+      const supabaseOptions = config.supabaseConfig || getSupabaseConfig();
+      
+      memoryStore = await createSupabaseMemoryStore({
+        url: supabaseOptions.url,
+        apiKey: supabaseOptions.apiKey,
+        tableName: supabaseOptions.tableName || collectionName
       });
-      console.log(`MongoDB connection successful for agent ${config.id}`);
-    } catch (mongoError) {
-      console.error(`MongoDB connection error for agent ${config.id}:`, mongoError);
-      throw new Error(`Failed to connect to MongoDB for agent ${config.id}: ${mongoError}`);
+    } catch (supabaseError) {
+      const errorMessage = supabaseError instanceof Error 
+        ? supabaseError.message 
+        : String(supabaseError);
+      throw new Error(`Failed to connect to Supabase for agent ${config.id}: ${errorMessage}`);
     }
 
     // Configure agent settings
@@ -93,7 +99,7 @@ export async function createAgent(config: AgentConfig) {
       model,
       extensions: [isManualMode() ? cli : autonomousCli],
       memory: {
-        store: mongoStore,
+        store: memoryStore,
         vector: createChromaVectorStore(collectionName, chromaDbUrl),
       },
       exportTrainingData: true,
@@ -112,14 +118,14 @@ export async function createAgent(config: AgentConfig) {
     // Return the agent
     return agent;
   } catch (error) {
-    console.error(`Error initializing Google AI:`, error);
-    throw new Error(`Failed to initialize Google AI for agent ${config.id}: ${error}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to initialize agent ${config.id}: ${errorMessage}`);
   }
 }
 
 /**
  * Creates and starts an agent with the specified agent number
- * @param agentNumber The agent number (1-7)
+ * @param agentNumber The agent number (1-4)
  * @returns The created agent instance
  */
 export async function createAndStartAgent(agentNumber: number) {
@@ -134,7 +140,8 @@ export async function createAndStartAgent(agentNumber: number) {
   const config = {
     id: AGENT_ID,
     googleApiKey: process.env[`AGENT${agentNumber}_API_KEY`] || process.env.GOOGLE_API_KEY,
-    starknetConfig: getStarknetConfig(agentNumber)
+    starknetConfig: getStarknetConfig(agentNumber),
+    supabaseConfig: getSupabaseConfig()
   };
 
   // Create agent with specific configuration
@@ -151,5 +158,8 @@ export async function createAndStartAgent(agentNumber: number) {
 // If this file is run directly, start the agent based on the provided agent number
 if (require.main === module) {
   const agentNumber = parseInt(process.env.AGENT_NUMBER || "1", 10);
-  await createAndStartAgent(agentNumber);
+  createAndStartAgent(agentNumber).catch(error => {
+    console.error(`Failed to start agent: ${error.message}`);
+    process.exit(1);
+  });
 } 
