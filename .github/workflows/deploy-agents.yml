@@ -9,7 +9,9 @@ name: Deploy Agents to Phala
 # - AGENT3_PRIVATE_KEY, AGENT3_API_KEY: Required for each agent
 # - AGENT4_PRIVATE_KEY, AGENT4_API_KEY: Required for each agent
 # - GOOGLE_API_KEY: For API access
-# - MONGODB_ATLAS_URI: MongoDB Atlas connection string
+# - INDEXER_URL: GraphQL Indexer URL
+# - SUPABASE_URL: Supabase project URL
+# - SUPABASE_API_KEY: Supabase API key
 
 on:
   workflow_dispatch:
@@ -117,16 +119,21 @@ jobs:
           # Google API
           GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}
           
-          # MongoDB Atlas Configuration
-          MONGODB_ATLAS_URI=${{ secrets.MONGODB_ATLAS_URI }}
+          # Indexer URL
+          INDEXER_URL=${{ secrets.INDEXER_URL }}
+          
+          # ChromaDB Configuration
+          CHROMA_HOST="defi-space-agents_chroma"
+          CHROMA_PORT="8000"
           
           # Phala settings
           PHALA_TEE=true
           AGENT_COUNT=4
           PHALA_API_KEY=${{ secrets.PHALA_API_KEY }}
-          PHALA_ENVIRONMENT=production
-          # Indexer URL
-          INDEXER_URL=${{ secrets.INDEXER_URL }}
+          
+          # Supabase Configuration
+          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+          SUPABASE_API_KEY=${{ secrets.SUPABASE_API_KEY }}
           EOF
 
       - name: Deploy to Phala
