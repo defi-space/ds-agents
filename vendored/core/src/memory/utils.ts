@@ -89,7 +89,7 @@ export const generateEpisodicMemory = async (
         const openai = createOpenAI({
           apiKey: apiKey,
         });
-        return openai("gpt-4o-mini");
+        return openai("gpt-4.1-nano");
       } catch (error) {
         console.error(`Failed to create OpenAI model: ${error}`);
         throw new Error(`Failed to create model for episodic memory: ${error}`);
