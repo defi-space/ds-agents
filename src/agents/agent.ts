@@ -1,4 +1,4 @@
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createOpenAI } from '@ai-sdk/openai';
 import {
   createDreams,
   createContainer,
@@ -18,7 +18,7 @@ import {
   validateAgentNumber, 
   getAgentId, 
   isManualMode,
-  getGoogleApiKey,
+  getOpenaiApiKey,
   getStarknetConfig,
   getChromaDbUrl,
   getSupabaseConfig
@@ -32,7 +32,7 @@ dotenv.config();
  */
 export interface AgentConfig {
   id: string;
-  googleApiKey?: string;
+  openaiApiKey?: string;
   starknetConfig?: {
     rpcUrl: string;
     address: string;
@@ -51,9 +51,9 @@ export interface AgentConfig {
  * @returns The created agent instance
  */
 export async function createAgent(config: AgentConfig) {
-  // Get Google API key - prioritize the agent-specific key
+  // Get OpenAI API key - prioritize the agent-specific key
   const agentNumber = parseInt(config.id.split('-')[1], 10);
-  const googleApiKey = config.googleApiKey || getGoogleApiKey(config.id, agentNumber);
+  const openaiApiKey = config.openaiApiKey || getOpenaiApiKey(config.id, agentNumber);
   
   // Store Starknet configuration if provided
   if (config.starknetConfig) {
@@ -62,12 +62,12 @@ export async function createAgent(config: AgentConfig) {
 
   let memoryStore;
   
-  // Initialize Google AI model
+  // Initialize OpenAI model
   try {
-    const google = createGoogleGenerativeAI({
-      apiKey: googleApiKey,
+    const openai = createOpenAI({
+      apiKey: openaiApiKey,
     });
-    const model = google("gemini-2.0-flash");
+    const model = openai("gpt-4.1-nano");
     
     // Create a unique collection name for this agent's vector store
     const collectionName = `${config.id.replace(/-/g, '_')}_collection`;
@@ -139,7 +139,7 @@ export async function createAndStartAgent(agentNumber: number) {
   // Create agent configuration
   const config = {
     id: AGENT_ID,
-    googleApiKey: process.env[`AGENT${agentNumber}_API_KEY`] || process.env.GOOGLE_API_KEY,
+    openaiApiKey: process.env[`AGENT${agentNumber}_API_KEY`] || process.env.OPENAI_API_KEY,
     starknetConfig: getStarknetConfig(agentNumber),
     supabaseConfig: getSupabaseConfig()
   };

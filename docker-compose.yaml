@@ -1,5 +1,9 @@
 name: daydreams
 
+networks:
+  agent-network:
+    driver: bridge
+
 services:
   chroma:
     image: chromadb/chroma:0.6.3
@@ -9,12 +13,14 @@ services:
       - "8000:8000"
     volumes:
       - chroma_data:/chroma/chroma
+    networks:
+      - agent-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   # Agent service configuration
   # Uncomment this service to run agents in a container
@@ -35,6 +41,8 @@ services:
   #     - AGENT_COUNT=4
   #     - CHROMA_HOST=${COMPOSE_PROJECT_NAME:-daydreams}_chroma
   #     - CHROMA_PORT=8000
+  #   networks:
+  #     - agent-network
   #   # Resource allocation
   #   deploy:
   #     resources:
