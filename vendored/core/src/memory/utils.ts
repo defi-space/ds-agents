@@ -1,5 +1,5 @@
 import { generateObject } from "ai";
-import { google, createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createOpenAI } from "@ai-sdk/openai";
 import type {
   AnyAgent,
   Episode,
@@ -48,7 +48,7 @@ function getAgentApiKey(): string {
   
   // Construct the environment variable name for the agent's API key
   // e.g., AGENT1_API_KEY for agent-1
-  const apiKeyEnvVar = agentNumber ? `AGENT${agentNumber}_API_KEY` : "GOOGLE_API_KEY";
+  const apiKeyEnvVar = agentNumber ? `AGENT${agentNumber}_API_KEY` : "OPENAI_API_KEY";
   
   // Get the API key from environment variable
   let apiKey = process.env[apiKeyEnvVar];
@@ -58,14 +58,14 @@ function getAgentApiKey(): string {
     apiKey = apiKey.replace(/^["'](.*)["']$/, '$1').trim();
   } else {
     // Fall back to default key
-    apiKey = process.env.GOOGLE_API_KEY;
+    apiKey = process.env.OPENAI_API_KEY;
     if (apiKey) {
       apiKey = apiKey.replace(/^["'](.*)["']$/, '$1').trim();
     }
   }
   
   if (!apiKey) {
-    throw new Error(`No Google API key found for agent ${agentId}`);
+    throw new Error(`No OpenAI API key found for agent ${agentId}`);
   }
   
   return apiKey;
@@ -86,12 +86,12 @@ export const generateEpisodicMemory = async (
     const model = agent.memory.vectorModel || (() => {
       try {
         const apiKey = getAgentApiKey();
-        const googleAI = createGoogleGenerativeAI({
+        const openai = createOpenAI({
           apiKey: apiKey,
         });
-        return googleAI("gemini-2.0-flash-lite");
+        return openai("gpt-4.1-nano");
       } catch (error) {
-        console.error(`Failed to create Google Generative AI model: ${error}`);
+        console.error(`Failed to create OpenAI model: ${error}`);
         throw new Error(`Failed to create model for episodic memory: ${error}`);
       }
     })();

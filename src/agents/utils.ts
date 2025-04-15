@@ -79,13 +79,13 @@ export function isManualMode(): boolean {
 }
 
 /**
- * Gets the Google API key for a specific agent
+ * Gets the OpenAI API key for a specific agent
  * @param agentId The agent ID
  * @param agentNumber The agent number
- * @returns The Google API key
+ * @returns The OpenAI API key
  * @throws Error if no API key is found
  */
-export function getGoogleApiKey(agentId: string, agentNumber: number): string {
+export function getOpenaiApiKey(agentId: string, agentNumber: number): string {
   // Validate agent number
   validateAgentNumber(agentNumber);
   
@@ -97,14 +97,14 @@ export function getGoogleApiKey(agentId: string, agentNumber: number): string {
     apiKey = apiKey.replace(/^["'](.*)["']$/, '$1').trim();
   } else {
     // Fall back to default key
-    apiKey = process.env.GOOGLE_API_KEY;
+    apiKey = process.env.OPENAI_API_KEY;
     if (apiKey) {
       apiKey = apiKey.replace(/^["'](.*)["']$/, '$1').trim();
     }
   }
   
   if (!apiKey) {
-    throw new Error(`No Google API key found for agent ${agentId}. Please set AGENT${agentNumber}_API_KEY or GOOGLE_API_KEY in environment variables.`);
+    throw new Error(`No OpenAI API key found for agent ${agentId}. Please set AGENT${agentNumber}_API_KEY or OPENAI_API_KEY in environment variables.`);
   }
   
   return apiKey;
@@ -137,7 +137,7 @@ export function getChromaDbUrl(): string {
   let chromaHost;
   
   if (isLocalDev) {
-    // When running locally outside Docker, we need to use localhost
+    // When running locally outside Docker, we need to use localhost or the specified host
     chromaHost = process.env.CHROMA_HOST || "localhost";
   } else {
     // For Phala TEE or Docker environment
