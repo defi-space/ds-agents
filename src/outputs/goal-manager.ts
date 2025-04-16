@@ -1,115 +1,141 @@
 import { output } from "@daydreamsai/core";
 import { z } from "zod";
 import { 
-  goalSchema, 
-  goalPlanningSchema, 
   type SingleGoal, 
   type Goal, 
   type GoalMemory,
   type GoalTerm 
 } from "../contexts/goal-context";
+import { goalPlanningSchema, goalSchema } from "../schema/goal-schema";
+
+
+// Define the output schema 
+const outputSchema = z.object({
+  type: z
+    .enum(["SET", "UPDATE"])
+    .default("UPDATE")
+    .describe("SET to set the goals. UPDATE to update a goal."),
+  goal: z.union([goalSchema, goalPlanningSchema])
+    .optional()
+    .default(() => ({ 
+      id: `goal_${Date.now()}`,
+      description: "Default goal",
+      success_criteria: [],
+      dependencies: [],
+      priority: 5,
+      required_resources: [],
+      estimated_difficulty: 1,
+      tasks: []
+    })),
+});
 
 export const goalManagerOutput = output({
   description:
-    "Use this when you need to update the goals. Use the goal id to update the goal. You should attempt the goal then call this to update the goal.",
-  instructions: "Increment the state of the goal manager",
-  schema: z.object({
-    type: z
-      .enum(["SET", "UPDATE"])
-      .describe("SET to set the goals. UPDATE to update a goal."),
-    goal: z.union([goalSchema, goalPlanningSchema]),
-  }),
+    "Use this when you need to update the goals. Use the goal id to update the goal. You can set or update goal information through this output.",
+  instructions: "Specify either SET to replace the entire goal structure or UPDATE to modify a specific goal.",
+  schema: outputSchema,
   handler: async (
-    call: { type: "SET" | "UPDATE"; goal: SingleGoal | Goal }, 
+    args: { type: "SET" | "UPDATE"; goal: SingleGoal | Goal }, 
     ctx: { memory: GoalMemory }, 
     agent
   ) => {
     const agentMemory = ctx.memory;
     
-    if (call.type === "SET") {
+    // Initialize the memory structure if not present
+    if (!agentMemory.goal) {
+      agentMemory.goal = {
+        long_term: [],
+        medium_term: [],
+        short_term: [],
+        history: []
+      };
+    }
+    
+    if (!agentMemory.history) {
+      agentMemory.history = [];
+    }
+    
+    // Track what changed for return value
+    const changes = {
+      operation: args.type,
+      goalsAdded: 0,
+      goalsUpdated: 0,
+      affectedTerms: new Set<string>()
+    };
+    
+    if (args.type === "SET") {
       // Set the entire goal structure
-      if ('long_term' in call.goal) {
+      if ('long_term' in args.goal) {
         // Initialize history if it doesn't exist
         const newGoal = {
-          ...call.goal,
-          history: call.goal.history ?? []
+          ...args.goal,
+          history: args.goal.history ?? []
         };
+        
+        // Count the goals in each term for reporting
+        changes.goalsAdded = (
+          newGoal.long_term.length + 
+          newGoal.medium_term.length + 
+          newGoal.short_term.length
+        );
+        
+        // Track which terms have goals
+        if (newGoal.long_term.length > 0) changes.affectedTerms.add('long_term');
+        if (newGoal.medium_term.length > 0) changes.affectedTerms.add('medium_term');
+        if (newGoal.short_term.length > 0) changes.affectedTerms.add('short_term');
+        
+        // Update the goal structure
         agentMemory.goal = newGoal;
-        
-        // Initialize history array if it doesn't exist
-        if (!agentMemory.history) {
-          agentMemory.history = [];
-        }
-        
         agentMemory.history.push("Set new complete goal plan");
       } else {
         throw new Error("SET operation requires a complete goal structure with long_term, medium_term, and short_term arrays");
       }
-    } else if (call.type === "UPDATE") {
+    } else if (args.type === "UPDATE") {
       // Find and update the specific goal across all terms
-      const goal = call.goal as SingleGoal;
+      const goal = args.goal as SingleGoal;
       
-      // Check if goals exist, if not initialize an empty goal structure
-      if (!agentMemory.goal) {
-        // Initialize with empty arrays for each term
-        agentMemory.goal = {
-          long_term: [],
-          medium_term: [],
-          short_term: [],
-          history: []
-        };
-        
-        // Initialize history array if it doesn't exist
-        if (!agentMemory.history) {
-          agentMemory.history = [];
-        }
-        
-        agentMemory.history.push("Initialized empty goal structure");
-        
-        // If we're trying to update a goal but none exist, add this goal to short_term
-        agentMemory.goal.short_term.push(goal);
-        agentMemory.history.push(`Added first goal to short_term: ${goal.description}`);
-        
-        // No need to continue with the update logic since we just added the goal
-        agentMemory.lastUpdated = Date.now();
-        return {
-          data: {
-            goal: agentMemory.goal,
-            history: agentMemory.history,
-            lastUpdated: agentMemory.lastUpdated
-          },
-          timestamp: Date.now(),
-        };
+      // If we're trying to update a goal but none exist, add this goal to short_term
+      if (!agentMemory.goal.short_term) {
+        agentMemory.goal.short_term = [];
       }
       
-      // Search in all term categories
-      const terms: GoalTerm[] = ['long_term', 'medium_term', 'short_term'];
-      let found = false;
-      
-      for (const term of terms) {
-        const goalIndex = agentMemory.goal[term].findIndex((g: SingleGoal) => g.id === goal.id);
-        if (goalIndex !== -1) {
-          const oldGoal = agentMemory.goal[term][goalIndex];
-          agentMemory.goal[term][goalIndex] = {
-            ...oldGoal,
-            ...goal
-          };
-          
-          // Initialize history array if it doesn't exist
-          if (!agentMemory.history) {
-            agentMemory.history = [];
+      if (goal && goal.id) {
+        // Search in all term categories
+        const terms: GoalTerm[] = ['long_term', 'medium_term', 'short_term'];
+        let found = false;
+        
+        for (const term of terms) {
+          if (!agentMemory.goal[term]) {
+            agentMemory.goal[term] = [];
+            continue;
           }
           
-          agentMemory.history.push(`Updated ${term} goal: ${goal.description}`);
-          found = true;
-          break;
+          const goalIndex = agentMemory.goal[term].findIndex((g: SingleGoal) => g.id === goal.id);
+          if (goalIndex !== -1) {
+            const oldGoal = agentMemory.goal[term][goalIndex];
+            agentMemory.goal[term][goalIndex] = {
+              ...oldGoal,
+              ...goal
+            };
+            
+            agentMemory.history.push(`Updated ${term} goal: ${goal.description}`);
+            found = true;
+            changes.goalsUpdated++;
+            changes.affectedTerms.add(term);
+            break;
+          }
         }
-      }
-      
-      if (!found) {
-        // If goal not found, add it to short_term goals
-        agentMemory.goal.short_term.push(goal);
-        agentMemory.history.push(`Added new goal to short_term: ${goal.description}`);
+        
+        if (!found) {
+          // If goal not found, add it to short_term goals
+          agentMemory.goal.short_term.push(goal);
+          agentMemory.history.push(`Added new goal to short_term: ${goal.description}`);
+          changes.goalsAdded++;
+          changes.affectedTerms.add('short_term');
+        }
+      } else {
+        // If no valid goal provided, just update the timestamp
+        agentMemory.history.push(`Goal manager queried with no specific goal`);
       }
     }
 
@@ -119,8 +145,12 @@ export const goalManagerOutput = output({
     return {
       data: {
         goal: agentMemory.goal,
-        history: agentMemory.history,
-        lastUpdated: agentMemory.lastUpdated
+        history: agentMemory.history.slice(-5),  // Only return the last 5 history items
+        lastUpdated: agentMemory.lastUpdated,
+        changes: {
+          ...changes,
+          affectedTerms: Array.from(changes.affectedTerms)  // Convert Set to Array for serialization
+        }
       },
       timestamp: Date.now(),
     };

@@ -26,7 +26,8 @@ export class Logger {
 
   error(context: string, message: string, data?: any) {
     this.log(LogLevel.ERROR, context, message, data);
-    console.error(data);
+
+    if (data) console.error(data);
   }
 
   warn(context: string, message: string, data?: any) {
@@ -81,12 +82,7 @@ export class Logger {
     parts.push(entry.message);
 
     if (entry.data) {
-      parts.push(JSON.stringify(entry.data, (key, value) => {
-        if (typeof value === 'bigint') {
-          return value.toString() + 'n';
-        }
-        return value;
-      }, 2));
+      parts.push(JSON.stringify(entry.data, null, 2));
     }
 
     return parts.join(" ");

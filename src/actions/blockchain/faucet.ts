@@ -43,11 +43,12 @@ async function checkFaucetStatus(contractAddress: string, agentAddress: string) 
 export const faucetActions = [
     action({
       name: "claimFaucet",
-      description: "Claims tokens from the faucet with a one-hour cooldown period. Distributes a fixed amount of three different tokens: 70,000 wattDollar (wD) for energy trading, 10,000 Carbon (C) for emissions tracking, and 10,000 Neodymium (Nd) for renewable energy components. Example: claimFaucet()",
+      description: "Claims tokens from the faucet to get wattDollar, Carbon, and Neodymium",
+      instructions: "Use this action when an agent needs tokens. Note there is a one-hour cooldown between claims.",
       schema: z.object({
-        message: z.string().describe("Ignore this field, it is not needed").default("None"),
+
       }),
-      handler: async (call, ctx, agent) => {
+      handler: async (args, ctx, agent) => {
         try {
           const faucetAddress = getContractAddress('core', 'faucet');
           if (!faucetAddress) {
@@ -132,15 +133,21 @@ export const faucetActions = [
           };
         }
       },
+      retry: 3,
+      onError: async (error, ctx, agent) => {
+        console.error(`Faucet claim action failed:`, error);
+        ctx.emit("faucetClaimError", { action: ctx.call.name, error: error.message });
+      }
     }),
   
     action({
       name: "getClaimTimeStatus",
-      description: "Provides comprehensive information about the faucet's current claim status. Checks and returns the time remaining until next eligible claim, last claim timestamp, cooldown interval, and current claim availability. Example: getClaimTimeStatus()",
+      description: "Checks whether tokens can be claimed from the faucet and when the next claim will be available.",
+      instructions: "Use this action when an agent needs to know if they can claim tokens now or when they will be able to claim next.",
       schema: z.object({
-        message: z.string().describe("Ignore this field, it is not needed").default("None"),
+        message: z.string().describe("Not used - can be ignored").default("None"),
       }),
-      handler: async (call, ctx, agent) => {
+      handler: async (args, ctx, agent) => {
         try {
           const faucetAddress = getContractAddress('core', 'faucet');
           if (!faucetAddress) {
@@ -193,5 +200,10 @@ export const faucetActions = [
           };
         }
       },
+      retry: 3,
+      onError: async (error, ctx, agent) => {
+        console.error(`Faucet status check failed:`, error);
+        ctx.emit("faucetStatusError", { action: ctx.call.name, error: error.message });
+      }
     }),
   ];

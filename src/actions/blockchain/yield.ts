@@ -14,15 +14,16 @@ interface PendingRewards {
 export const yieldActions = [
   action({
     name: "depositToReactor",
-    description: "Deposits LP (Liquidity Provider) tokens into a nuclear reactor for yield farming. Automatically handles token approvals and executes a multicall transaction for gas efficiency. The deposit enables earning rewards through the reactor's yield generation mechanism. Example: depositToReactor({ reactorIndex: '1', amount: '1000000000000000000' })",
+    description: "Deposits LP tokens into a farming reactor for yield farming",
+    instructions: "Use this action when an agent wants to stake LP tokens in a reactor to earn rewards",
     schema: z.object({
-        reactorIndex: z.string().describe("Unique identifier index of the target reactor in the Conduit contract (retrieved from getReactorIndexByLpToken action)"),
-        amount: z.string().describe("Amount of LP tokens to deposit (in token base units)")
+        reactorIndex: z.string().describe("Unique reactor identifier in the Conduit contract (numeric index as string)"),
+        amount: z.string().describe("Amount of LP tokens to deposit as a string in base units (e.g., '1000000000000000000' for 1 token with 18 decimals)")
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!call.data.reactorIndex || !call.data.amount) {
+        if (!args.reactorIndex || !args.amount) {
           return {
             success: false,
             error: "Missing required fields",
@@ -47,7 +48,7 @@ export const yieldActions = [
           contractAddress: conduitAddress,
           entrypoint: "get_farm_address",
           calldata: [
-            ...toUint256WithSpread(call.data.reactorIndex)
+            ...toUint256WithSpread(args.reactorIndex)
           ]
         }));
         
@@ -56,24 +57,24 @@ export const yieldActions = [
           contractAddress: conduitAddress,
           entrypoint: "get_lp_token",
           calldata: [
-            ...toUint256WithSpread(call.data.reactorIndex)
+            ...toUint256WithSpread(args.reactorIndex)
           ]
         }));
 
-        // Create approve call for LP token
+        // Create approve args for LP token
         const approveCall = getApproveCall(
           lpToken,
           reactorAddress,
-          call.data.amount
+          args.amount
         );
         
-        // Create deposit call
+        // Create deposit args
         const depositCall = {
           contractAddress: conduitAddress,
           entrypoint: "deposit",
           calldata: [
-            ...toUint256WithSpread(call.data.reactorIndex),
-            ...toUint256WithSpread(call.data.amount)
+            ...toUint256WithSpread(args.reactorIndex),
+            ...toUint256WithSpread(args.amount)
           ]
         };
         
@@ -84,7 +85,7 @@ export const yieldActions = [
           return {
             success: false,
             error: result.error || 'Transaction failed',
-            message: `Failed to deposit ${call.data.amount} LP tokens to reactor ${call.data.reactorIndex}: ${result.error || 'Transaction unsuccessful'}`,
+            message: `Failed to deposit ${args.amount} LP tokens to reactor ${args.reactorIndex}: ${result.error || 'Transaction unsuccessful'}`,
             transactionHash: result.transactionHash,
             receipt: result.receipt,
             timestamp: Date.now(),
@@ -94,13 +95,13 @@ export const yieldActions = [
         return {
           success: true,
           data: {
-            reactorIndex: call.data.reactorIndex,
-            amount: call.data.amount,
+            reactorIndex: args.reactorIndex,
+            amount: args.amount,
             lpToken,
             transactionHash: result.transactionHash,
             receipt: result.receipt
           },
-          message: `Successfully deposited ${call.data.amount} LP tokens to reactor ${call.data.reactorIndex}`,
+          message: `Successfully deposited ${args.amount} LP tokens to reactor ${args.reactorIndex}`,
           timestamp: Date.now(),
         };
       } catch (error) {
@@ -113,19 +114,25 @@ export const yieldActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Reactor deposit failed:`, error);
+      ctx.emit("reactorDepositError", { action: ctx.call.name, error: error.message });
+    }
   }),
 
   action({
     name: "withdrawFromReactor",
-    description: "Withdraws a specified amount of LP tokens from a nuclear reactor. Allows partial withdrawals while keeping remaining tokens staked. The withdrawal process automatically claims any pending rewards. Example: withdrawFromReactor({ reactorIndex: '1', amount: '500000000000000000' })",
+    description: "Withdraws LP tokens from a farming reactor",
+    instructions: "Use this action when an agent wants to withdraw some of their staked LP tokens from a reactor",
     schema: z.object({
-      reactorIndex: z.string().describe("Unique identifier index of the reactor to withdraw from (retrieved from getReactorIndexByLpToken action)"),
-      amount: z.string().describe("Amount of LP tokens to withdraw (in token base units)")
+      reactorIndex: z.string().describe("Unique reactor identifier in the Conduit contract (numeric index as string)"),
+      amount: z.string().describe("Amount of LP tokens to withdraw as a string in base units (e.g., '1000000000000000000' for 1 token with 18 decimals)")
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!call.data.reactorIndex || !call.data.amount) {
+        if (!args.reactorIndex || !args.amount) {
           return {
             success: false,
             error: "Missing required fields",
@@ -150,8 +157,8 @@ export const yieldActions = [
           contractAddress: conduitAddress,
           entrypoint: "withdraw",
           calldata: [
-            ...toUint256WithSpread(call.data.reactorIndex),
-            ...toUint256WithSpread(call.data.amount)
+            ...toUint256WithSpread(args.reactorIndex),
+            ...toUint256WithSpread(args.amount)
           ]
         });
 
@@ -159,7 +166,7 @@ export const yieldActions = [
           return {
             success: false,
             error: 'Transaction failed',
-            message: `Failed to withdraw ${call.data.amount} LP tokens from reactor ${call.data.reactorIndex}: Transaction unsuccessful`,
+            message: `Failed to withdraw ${args.amount} LP tokens from reactor ${args.reactorIndex}: Transaction unsuccessful`,
             transactionHash: result.transactionHash,
             receipt: result,
             timestamp: Date.now(),
@@ -169,12 +176,12 @@ export const yieldActions = [
         return {
           success: true,
           data: {
-            reactorIndex: call.data.reactorIndex,
-            amount: call.data.amount,
+            reactorIndex: args.reactorIndex,
+            amount: args.amount,
             transactionHash: result.transactionHash,
             receipt: result
           },
-          message: `Successfully withdrew ${call.data.amount} LP tokens from reactor ${call.data.reactorIndex}`,
+          message: `Successfully withdrew ${args.amount} LP tokens from reactor ${args.reactorIndex}`,
           timestamp: Date.now(),
         };
       } catch (error) {
@@ -187,18 +194,24 @@ export const yieldActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Reactor withdrawal failed:`, error);
+      ctx.emit("reactorWithdrawalError", { action: ctx.call.name, error: error.message });
+    }
   }),
 
   action({
     name: "exitReactor",
-    description: "Performs a complete withdrawal from a nuclear reactor, removing all deposited LP tokens and harvesting accumulated rewards in a single transaction. This is an optimized operation for full exit scenarios. Example: exitReactor({ reactorIndex: '1' })",
+    description: "Withdraws all LP tokens and rewards from a nuclear reactor",
+    instructions: "Use this action when an agent wants to completely exit a reactor, withdrawing all LP tokens and harvesting all rewards",
     schema: z.object({
-      reactorIndex: z.string().describe("Unique identifier index of the reactor to exit from (retrieved from getReactorIndexByLpToken action)")
+      reactorIndex: z.string().describe("Unique reactor identifier in the Conduit contract (numeric index as string)")
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!call.data.reactorIndex) {
+        if (!args.reactorIndex) {
           return {
             success: false,
             error: "Missing required field",
@@ -227,7 +240,7 @@ export const yieldActions = [
             contractAddress: conduitAddress,
             entrypoint: "balance_of",
             calldata: [
-              ...toUint256WithSpread(call.data.reactorIndex),
+              ...toUint256WithSpread(args.reactorIndex),
               agentAddress
             ]
           });
@@ -242,7 +255,7 @@ export const yieldActions = [
           contractAddress: conduitAddress,
           entrypoint: "exit",
           calldata: [
-            ...toUint256WithSpread(call.data.reactorIndex)
+            ...toUint256WithSpread(args.reactorIndex)
           ]
         });
 
@@ -250,7 +263,7 @@ export const yieldActions = [
           return {
             success: false,
             error: 'Transaction failed',
-            message: `Failed to exit reactor ${call.data.reactorIndex}: Transaction unsuccessful`,
+            message: `Failed to exit reactor ${args.reactorIndex}: Transaction unsuccessful`,
             transactionHash: result.transactionHash,
             receipt: result,
             timestamp: Date.now(),
@@ -260,12 +273,12 @@ export const yieldActions = [
         return {
           success: true,
           data: {
-            reactorIndex: call.data.reactorIndex,
+            reactorIndex: args.reactorIndex,
             exitedAmount: stakedAmount,
             transactionHash: result.transactionHash,
             receipt: result
           },
-          message: `Successfully exited reactor ${call.data.reactorIndex}, withdrew all LP tokens (approximately ${stakedAmount})`,
+          message: `Successfully exited reactor ${args.reactorIndex}, withdrew all LP tokens (approximately ${stakedAmount})`,
           timestamp: Date.now(),
         };
       } catch (error) {
@@ -278,18 +291,24 @@ export const yieldActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Reactor exit failed:`, error);
+      ctx.emit("reactorExitError", { action: ctx.call.name, error: error.message });
+    }
   }),
 
   action({
     name: "harvestRewards",
-    description: "Claims all accumulated reward tokens from a nuclear reactor without withdrawing the staked LP tokens. Supports multiple reward tokens if the reactor offers them. Example: harvestRewards({ reactorIndex: '1' })",
+    description: "Claims accumulated reward tokens from a nuclear reactor",
+    instructions: "Use this action when an agent wants to collect earned rewards without withdrawing their staked LP tokens",
     schema: z.object({
-        reactorIndex: z.string().describe("Unique identifier index of the reactor to harvest rewards from (retrieved from getReactorIndexByLpToken action)")
+        reactorIndex: z.string().describe("Unique reactor identifier in the Conduit contract (numeric index as string)")
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!call.data.reactorIndex) {
+        if (!args.reactorIndex) {
           return {
             success: false,
             error: "Missing required field",
@@ -320,7 +339,7 @@ export const yieldActions = [
             contractAddress: conduitAddress,
             entrypoint: "get_reward_tokens",
             calldata: [
-              ...toUint256WithSpread(call.data.reactorIndex)
+              ...toUint256WithSpread(args.reactorIndex)
             ]
           });
           
@@ -332,7 +351,7 @@ export const yieldActions = [
               contractAddress: conduitAddress,
               entrypoint: "earned",
               calldata: [
-                  ...toUint256WithSpread(call.data.reactorIndex),
+                  ...toUint256WithSpread(args.reactorIndex),
                   agentAddress,
                   token
               ]
@@ -350,7 +369,7 @@ export const yieldActions = [
           contractAddress: conduitAddress,
           entrypoint: "harvest",
           calldata: [
-            ...toUint256WithSpread(call.data.reactorIndex)
+            ...toUint256WithSpread(args.reactorIndex)
           ]
         });
 
@@ -358,7 +377,7 @@ export const yieldActions = [
           return {
             success: false,
             error: 'Transaction failed',
-            message: `Failed to harvest rewards from reactor ${call.data.reactorIndex}: Transaction unsuccessful`,
+            message: `Failed to harvest rewards from reactor ${args.reactorIndex}: Transaction unsuccessful`,
             transactionHash: result.transactionHash,
             receipt: result,
             timestamp: Date.now(),
@@ -368,13 +387,13 @@ export const yieldActions = [
         return {
           success: true,
           data: {
-            reactorIndex: call.data.reactorIndex,
+            reactorIndex: args.reactorIndex,
             rewardTokens,
             harvestedAmounts: pendingRewards,
             transactionHash: result.transactionHash,
             receipt: result
           },
-          message: `Successfully harvested rewards from reactor ${call.data.reactorIndex}`,
+          message: `Successfully harvested rewards from reactor ${args.reactorIndex}`,
           timestamp: Date.now(),
         };
       } catch (error) {
@@ -387,19 +406,25 @@ export const yieldActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Reward harvest failed:`, error);
+      ctx.emit("rewardHarvestError", { action: ctx.call.name, error: error.message });
+    }
   }),
 
   action({
     name: "checkPendingRewards",
-    description: "Queries the current amount of pending rewards for a specific reward token in a reactor. Essential for monitoring yield farming progress. Example: checkPendingRewards({ reactorIndex: '1', rewardToken: '0x123abc...' })",
+    description: "Checks the amount of pending rewards for a specific token in a reactor",
+    instructions: "Use this action when an agent wants to know how much of a specific reward token they've earned",
     schema: z.object({
-        reactorIndex: z.string().describe("Unique identifier index of the reactor to check rewards for (retrieved from getReactorIndexByLpToken action)"),
-        rewardToken: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The Starknet address of the specific reward token to query")
+        reactorIndex: z.string().describe("Unique reactor identifier in the Conduit contract (numeric index as string)"),
+        rewardToken: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Reward token contract address (must be a valid hex address starting with 0x)")
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!call.data.reactorIndex || !call.data.rewardToken) {
+        if (!args.reactorIndex || !args.rewardToken) {
           return {
             success: false,
             error: "Missing required fields",
@@ -435,9 +460,9 @@ export const yieldActions = [
           contractAddress: conduitAddress,
           entrypoint: "earned",
           calldata: [
-              ...toUint256WithSpread(call.data.reactorIndex),
+              ...toUint256WithSpread(args.reactorIndex),
               agentAddress,
-            call.data.rewardToken
+            args.rewardToken
           ]
         });
         
@@ -446,11 +471,11 @@ export const yieldActions = [
         return {
           success: true,
           data: {
-            reactorIndex: call.data.reactorIndex,
-            rewardToken: call.data.rewardToken,
+            reactorIndex: args.reactorIndex,
+            rewardToken: args.rewardToken,
             earnedAmount
           },
-          message: `You have ${earnedAmount} of reward token ${call.data.rewardToken} pending in reactor ${call.data.reactorIndex}`,
+          message: `You have ${earnedAmount} of reward token ${args.rewardToken} pending in reactor ${args.reactorIndex}`,
           timestamp: Date.now(),
         };
       } catch (error) {
@@ -463,18 +488,24 @@ export const yieldActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Pending rewards check failed:`, error);
+      ctx.emit("pendingRewardsError", { action: ctx.call.name, error: error.message });
+    }
   }),
 
   action({
     name: "getReactorLpToken",
-    description: "Retrieves the Starknet address of the LP token accepted by a specific reactor. Essential for token approval operations and balance checks before deposits. Example: getReactorLpToken({ reactorIndex: '1' })",
+    description: "Retrieves the LP token address accepted by a specific reactor",
+    instructions: "Use this action when an agent needs to know which LP token to approve before depositing to a reactor",
     schema: z.object({
-      reactorIndex: z.string().describe("Unique identifier index of the reactor to query (retrieved from getReactorIndexByLpToken action)")
+      reactorIndex: z.string().describe("Unique reactor identifier in the Conduit contract (numeric index as string)")
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!call.data.reactorIndex) {
+        if (!args.reactorIndex) {
           return {
             success: false,
             error: "Missing required field",
@@ -499,7 +530,7 @@ export const yieldActions = [
           contractAddress: conduitAddress,
           entrypoint: "get_lp_token",
           calldata: [
-            ...toUint256WithSpread(call.data.reactorIndex)
+            ...toUint256WithSpread(args.reactorIndex)
           ]
         }));
 
@@ -508,10 +539,10 @@ export const yieldActions = [
         return {
           success: true,
           data: {
-            reactorIndex: call.data.reactorIndex,
+            reactorIndex: args.reactorIndex,
             lpToken
           },
-          message: `The LP token for reactor ${call.data.reactorIndex} is ${lpToken}`,
+          message: `The LP token for reactor ${args.reactorIndex} is ${lpToken}`,
           timestamp: Date.now(),
         };
       } catch (error) {
@@ -524,18 +555,24 @@ export const yieldActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`LP token lookup failed:`, error);
+      ctx.emit("lpTokenLookupError", { action: ctx.call.name, error: error.message });
+    }
   }),
 
   action({
     name: "getAgentStakedAmount",
-    description: "Retrieves the current amount of LP tokens an Agent has staked in a specific reactor. Essential for monitoring staking positions and calculating rewards. Example: getAgentStakedAmount({ reactorIndex: '1' })",
+    description: "Retrieves the amount of LP tokens an agent has staked in a reactor",
+    instructions: "Use this action when an agent wants to check how many LP tokens they have staked in a specific reactor",
     schema: z.object({
-      reactorIndex: z.string().describe("Unique identifier index of the reactor to check balance in (retrieved from getReactorIndexByLpToken action)")
+      reactorIndex: z.string().describe("Unique reactor identifier in the Conduit contract (numeric index as string)")
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!call.data.reactorIndex) {
+        if (!args.reactorIndex) {
           return {
             success: false,
             error: "Missing required field",
@@ -571,7 +608,7 @@ export const yieldActions = [
           contractAddress: conduitAddress,
           entrypoint: "balance_of",
           calldata: [
-            ...toUint256WithSpread(call.data.reactorIndex),
+            ...toUint256WithSpread(args.reactorIndex),
             agentAddress
           ]
         });
@@ -581,10 +618,10 @@ export const yieldActions = [
         return {
           success: true,
           data: {
-            reactorIndex: call.data.reactorIndex,
+            reactorIndex: args.reactorIndex,
             stakedAmount
           },
-          message: `You have ${stakedAmount} LP tokens staked in reactor ${call.data.reactorIndex}`,
+          message: `You have ${stakedAmount} LP tokens staked in reactor ${args.reactorIndex}`,
           timestamp: Date.now(),
         };
       } catch (error) {
@@ -597,18 +634,24 @@ export const yieldActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Staked amount query failed:`, error);
+      ctx.emit("stakedAmountError", { action: ctx.call.name, error: error.message });
+    }
   }),
 
   action({
     name: "getReactorTotalDeposited",
-    description: "Queries the total amount of LP tokens currently deposited in a specific reactor by all users. Crucial for calculating market share and APR/APY rates. Example: getReactorTotalDeposited({ reactorIndex: '1' })",
+    description: "Gets the total amount of LP tokens deposited in a reactor",
+    instructions: "Use this action when an agent needs to know the total amount of LP tokens staked by all agents in a reactor",
     schema: z.object({
-      reactorIndex: z.string().describe("Unique identifier index of the reactor to query total deposits for (retrieved from getReactorIndexByLpToken action)")
+      reactorIndex: z.string().describe("Unique reactor identifier in the Conduit contract (numeric index as string)")
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!call.data.reactorIndex) {
+        if (!args.reactorIndex) {
           return {
             success: false,
             error: "Missing required field",
@@ -633,7 +676,7 @@ export const yieldActions = [
           contractAddress: conduitAddress,
           entrypoint: "total_deposited",
           calldata: [
-            ...toUint256WithSpread(call.data.reactorIndex)
+            ...toUint256WithSpread(args.reactorIndex)
           ]
         });
 
@@ -642,10 +685,10 @@ export const yieldActions = [
         return {
           success: true,
           data: {
-            reactorIndex: call.data.reactorIndex,
+            reactorIndex: args.reactorIndex,
             totalDepositedAmount
           },
-          message: `Total deposits in reactor ${call.data.reactorIndex} amount to ${totalDepositedAmount} LP tokens`,
+          message: `Total deposits in reactor ${args.reactorIndex} amount to ${totalDepositedAmount} LP tokens`,
           timestamp: Date.now(),
         };
       } catch (error) {
@@ -658,18 +701,24 @@ export const yieldActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Total deposits query failed:`, error);
+      ctx.emit("totalDepositsError", { action: ctx.call.name, error: error.message });
+    }
   }),
   
   action({
     name: "getReactorAddress",
-    description: "Retrieves the Starknet contract address of a specific reactor using its index. Essential for direct interactions with the reactor contract. Example: getReactorAddress({ reactorIndex: '1' })",
+    description: "Retrieves the contract address of a specific reactor",
+    instructions: "Use this action when an agent needs to get the contract address of a reactor for direct interaction",
     schema: z.object({
-      reactorIndex: z.string().describe("Unique identifier index of the reactor to get the address for (retrieved from getReactorIndexByLpToken action)")
+      reactorIndex: z.string().describe("Unique reactor identifier in the Conduit contract (numeric index as string)")
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!call.data.reactorIndex) {
+        if (!args.reactorIndex) {
           return {
             success: false,
             error: "Missing required field",
@@ -694,7 +743,7 @@ export const yieldActions = [
           contractAddress: conduitAddress,
           entrypoint: "get_farm_address",
           calldata: [
-            ...toUint256WithSpread(call.data.reactorIndex)
+            ...toUint256WithSpread(args.reactorIndex)
           ]
         }));
 
@@ -703,10 +752,10 @@ export const yieldActions = [
         return {
           success: true,
           data: {
-            reactorIndex: call.data.reactorIndex,
+            reactorIndex: args.reactorIndex,
             reactorAddress: formattedAddress
           },
-          message: `The address for reactor ${call.data.reactorIndex} is ${formattedAddress}`,
+          message: `The address for reactor ${args.reactorIndex} is ${formattedAddress}`,
           timestamp: Date.now(),
         };
       } catch (error) {
@@ -719,18 +768,24 @@ export const yieldActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Reactor address lookup failed:`, error);
+      ctx.emit("reactorAddressError", { action: ctx.call.name, error: error.message });
+    }
   }),
 
   action({
     name: "getReactorRewardTokens",
-    description: "Fetches an array of all reward token addresses that can be earned in a specific reactor. Essential for tracking multiple reward types. Example: getReactorRewardTokens({ reactorIndex: '1' })",
+    description: "Gets the list of reward tokens available from a specific reactor",
+    instructions: "Use this action when an agent needs to know which reward tokens they can earn from a reactor",
     schema: z.object({
-      reactorIndex: z.string().describe("Unique identifier index of the reactor to query reward tokens for (retrieved from getReactorIndexByLpToken action)")
+      reactorIndex: z.string().describe("Unique reactor identifier in the Conduit contract (numeric index as string)")
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!call.data.reactorIndex) {
+        if (!args.reactorIndex) {
           return {
             success: false,
             error: "Missing required field",
@@ -755,7 +810,7 @@ export const yieldActions = [
           contractAddress: conduitAddress,
           entrypoint: "get_reward_tokens",
           calldata: [
-            ...toUint256WithSpread(call.data.reactorIndex)
+            ...toUint256WithSpread(args.reactorIndex)
           ]
         });
 
@@ -764,10 +819,10 @@ export const yieldActions = [
         return {
           success: true,
           data: {
-            reactorIndex: call.data.reactorIndex,
+            reactorIndex: args.reactorIndex,
             rewardTokens: formattedTokens
           },
-          message: `Reactor ${call.data.reactorIndex} has ${formattedTokens.length} reward token(s)`,
+          message: `Reactor ${args.reactorIndex} has ${formattedTokens.length} reward token(s)`,
           timestamp: Date.now(),
         };
       } catch (error) {
@@ -780,5 +835,10 @@ export const yieldActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Reward tokens query failed:`, error);
+      ctx.emit("rewardTokensError", { action: ctx.call.name, error: error.message });
+    }
   }),
 ]; 

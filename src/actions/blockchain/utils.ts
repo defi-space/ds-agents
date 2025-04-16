@@ -74,14 +74,15 @@ interface FormattedTokenBalances {
 export const utilsActions = [
   action({
     name: "getERC20Balance",
-    description: "Retrieves your current balance of any ERC20 token. Returns both the raw balance and a formatted balance with proper decimal formatting. Example: getERC20Balance({ tokenAddress: '0x123abc...' })",
+    description: "Retrieves the current balance of any ERC20 token",
+    instructions: "Use this action when an agent needs to check its balance of a specific token",
     schema: z.object({
-      tokenAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The Starknet address of the ERC20 token contract to query (in hex format)")
+      tokenAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Token contract address (must be a valid hex address starting with 0x)")
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!call.data.tokenAddress) {
+        if (!args.tokenAddress) {
           return {
             success: false,
             error: "Token address is required",
@@ -90,7 +91,7 @@ export const utilsActions = [
           };
         }
         
-        const tokenAddress = normalizeAddress(call.data.tokenAddress);
+        const tokenAddress = normalizeAddress(args.tokenAddress);
         const agentAddress = await getAgentAddress();
         
         if (!agentAddress) {
@@ -114,10 +115,10 @@ export const utilsActions = [
             formattedBalance: adjustedBalance.balance,
           tokenBaseUnitBalance: rawBalance.toString(),
             decimals: 18, // Default assumption
-            tokenAddress: call.data.tokenAddress,
+            tokenAddress: args.tokenAddress,
             holderAddress: agentAddress
           },
-          message: `Current balance of token ${call.data.tokenAddress}: ${adjustedBalance.balance} (${rawBalance} base units)`,
+          message: `Current balance of token ${args.tokenAddress}: ${adjustedBalance.balance} (${rawBalance} base units)`,
           timestamp: Date.now()
         };
       } catch (error) {
@@ -130,19 +131,25 @@ export const utilsActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`ERC20 balance query failed:`, error);
+      ctx.emit("erc20BalanceError", { action: ctx.call.name, error: error.message });
+    }
   }),
   
   action({
     name: "toTokenBaseUnits",
-    description: "Converts a human-readable token amount to its base unit representation by querying the token's decimals() function. Dynamically adjusts the conversion based on the token's decimals. Example: toTokenBaseUnits({ tokenAddress: '0x456def...', amount: '1.5' })",
+    description: "Converts a human-readable token amount to its base unit representation",
+    instructions: "Use this action when an agent needs to convert a decimal token amount to the raw base units required for contract interactions",
     schema: z.object({
-      tokenAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The Starknet address of the ERC20 token contract to query (in hex format)"),
-      amount: z.string().describe("The amount of tokens to convert to base units (as a string to prevent precision issues)")
+      tokenAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Token contract address (must be a valid hex address starting with 0x)"),
+      amount: z.string().describe("Amount of tokens to convert as a string (e.g., '1.5' or '100')")
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!call.data.tokenAddress) {
+        if (!args.tokenAddress) {
           return {
             success: false,
             error: "Token address is required",
@@ -151,7 +158,7 @@ export const utilsActions = [
           };
         }
         
-        if (!call.data.amount) {
+        if (!args.amount) {
           return {
             success: false,
             error: "Amount is required",
@@ -161,16 +168,16 @@ export const utilsActions = [
         }
         
         // Validate amount format (should be a valid number)
-        if (isNaN(parseFloat(call.data.amount))) {
+        if (isNaN(parseFloat(args.amount))) {
           return {
             success: false,
             error: "Invalid amount format",
-            message: `Cannot convert to base units: '${call.data.amount}' is not a valid number`,
+            message: `Cannot convert to base units: '${args.amount}' is not a valid number`,
             timestamp: Date.now()
           };
         }
         
-        const tokenAddress = normalizeAddress(call.data.tokenAddress);
+        const tokenAddress = normalizeAddress(args.tokenAddress);
         
         // Call the decimals function of the ERC20 contract
         const result = await starknetChain.read({
@@ -182,17 +189,17 @@ export const utilsActions = [
         const decimals = Number(result[0]);
         
         // Convert the amount to base units
-        const baseUnits = convertToContractValue(call.data.amount, decimals);
+        const baseUnits = convertToContractValue(args.amount, decimals);
 
         return {
           success: true,
           data: {
           baseUnits: baseUnits.toString(),
           decimals: decimals,
-            originalAmount: call.data.amount,
-            tokenAddress: call.data.tokenAddress
+            originalAmount: args.amount,
+            tokenAddress: args.tokenAddress
           },
-          message: `Converted ${call.data.amount} tokens to ${baseUnits.toString()} base units (${decimals} decimals)`,
+          message: `Converted ${args.amount} tokens to ${baseUnits.toString()} base units (${decimals} decimals)`,
           timestamp: Date.now()
         };
       } catch (error) {
@@ -205,15 +212,21 @@ export const utilsActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Token conversion failed:`, error);
+      ctx.emit("tokenConversionError", { action: ctx.call.name, error: error.message });
+    }
   }),
   
   action({
     name: "getGameResourceState",
-    description: "Retrieves a comprehensive snapshot of a player's resource portfolio including token balances, liquidity positions, and staking positions. Example: getGameResourceState()",
+    description: "Retrieves a comprehensive snapshot of an agent's resource portfolio",
+    instructions: "Use this action when an agent needs to see all its token balances, liquidity positions, and staking positions at once",
     schema: z.object({
-      message: z.string().describe("Ignore this field, it is not needed").default("None")
+      message: z.string().describe("Not used - can be ignored").default("None"),
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         const agentAddress = await getAgentAddress();
         
@@ -577,5 +590,10 @@ export const utilsActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Game resource state query failed:`, error);
+      ctx.emit("gameResourceStateError", { action: ctx.call.name, error: error.message });
+    }
   }),
 ];

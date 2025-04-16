@@ -6,7 +6,7 @@ import {
 } from "@daydreamsai/core";
 import { createSupabaseMemoryStore } from "@daydreamsai/supabase";
 import { createChromaVectorStore } from "@daydreamsai/chromadb";
-import { goalContexts } from "../contexts/goal-context";
+import { goalContext } from "../contexts/goal-context";
 import { autonomousCli, cli } from "../extensions";
 import { actions } from "../actions";
 import { outputs } from "../outputs";
@@ -81,7 +81,7 @@ export async function createAgent(config: AgentConfig) {
       
       memoryStore = await createSupabaseMemoryStore({
         url: supabaseOptions.url,
-        apiKey: supabaseOptions.apiKey,
+        key: supabaseOptions.apiKey,
         tableName: supabaseOptions.tableName || collectionName
       });
     } catch (supabaseError) {
@@ -104,7 +104,7 @@ export async function createAgent(config: AgentConfig) {
       },
       exportTrainingData: true,
       trainingDataPath: `./grpo/group-training-data-${config.id}.jsonl`,
-      context: goalContexts,
+      context: goalContext,
       actions,
       outputs,
     };

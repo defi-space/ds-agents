@@ -8,14 +8,15 @@ import { GET_GAME_SESSION_STATUS } from "../../utils/queries";
 export const gameActions = [
   action({
     name: "getGameAgents",
-    description: "Retrieves the list of agent addresses and their staked amounts in a game session. Allows an agent to check if it is registered in the game session. Example: getGameAgents({ sessionAddress: '0x123abc...' })",
+    description: "Retrieves the list of agent addresses and their staked amounts in a game session",
+    instructions: "Use this action when an agent needs to check which agents are registered in a game session and their stake amounts",
     schema: z.object({
-      sessionAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The Starknet address of the game session to query agents for (in hex format)")
+      sessionAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Game session contract address (must be a valid hex address starting with 0x)")
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!call.data.sessionAddress) {
+        if (!args.sessionAddress) {
           return {
             success: false,
             error: "Game session address is required",
@@ -24,7 +25,7 @@ export const gameActions = [
           };
         }
 
-        const sessionAddress = call.data.sessionAddress;
+        const sessionAddress = args.sessionAddress;
         const currentAgentAddress = await getAgentAddress();
         
         if (!currentAgentAddress) {
@@ -98,18 +99,24 @@ export const gameActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Get game agents action failed:`, error);
+      ctx.emit("getGameAgentsError", { action: ctx.call.name, error: error.message });
+    }
   }),
 
   action({
     name: "endGame",
-    description: "Ends the current game session if the agent has reached the winning threshold of 7,000,000 He3 tokens. This action will trigger the distribution of rewards to the winner and finalize the game session. Example: endGame({ sessionAddress: '0x123abc...' })",
+    description: "Ends the current game session if the agent has reached the winning threshold of He3 tokens",
+    instructions: "Use this action when an agent has accumulated enough He3 tokens to win and wants to end the game session",
     schema: z.object({
-      sessionAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The Starknet address of the game session to end (in hex format)")
+      sessionAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Game session contract address (must be a valid hex address starting with 0x)")
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!call.data.sessionAddress) {
+        if (!args.sessionAddress) {
           return {
             success: false,
             error: "Game session address is required",
@@ -118,7 +125,7 @@ export const gameActions = [
           };
         }
 
-        const sessionAddress = call.data.sessionAddress;
+        const sessionAddress = args.sessionAddress;
         const agentAddress = await getAgentAddress();
         
         if (!agentAddress) {
@@ -229,5 +236,10 @@ export const gameActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`End game action failed:`, error);
+      ctx.emit("endGameError", { action: ctx.call.name, error: error.message });
+    }
   }),
 ]; 

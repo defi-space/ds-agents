@@ -1,22 +1,16 @@
 import { generateObject } from "ai";
-import { createOpenAI } from "@ai-sdk/openai";
+import { openai } from "@ai-sdk/openai";
 import type {
   AnyAgent,
   Episode,
   ActionResult,
   Action,
   Thought,
+  ActionCall,
+  AnyAction,
 } from "../types";
 import { z } from "zod";
 import { v7 as randomUUIDv7 } from "uuid";
-
-/**
- * Checks if the agent is running in a Phala TEE environment
- * @returns Boolean indicating if in Phala TEE
- */
-function isPhalaEnvironment(): boolean {
-  return process.env.PHALA_TEE === 'true';
-}
 
 // Check if we're in a browser environment
 const isBrowser =
@@ -37,40 +31,6 @@ if (!isBrowser) {
   }
 }
 
-// Helper function to get the appropriate API key based on agent ID
-function getAgentApiKey(): string {
-  // Get the current agent ID (e.g., "agent-1", "agent-2", etc.)
-  const agentId = process.env.CURRENT_AGENT_ID || "default-agent";
-  
-  // Extract the agent number from the agent ID
-  // Handle different formats: "agent-1", "agent1", or just "1"
-  const agentNumber = agentId.match(/\d+/)?.[0] || "";
-  
-  // Construct the environment variable name for the agent's API key
-  // e.g., AGENT1_API_KEY for agent-1
-  const apiKeyEnvVar = agentNumber ? `AGENT${agentNumber}_API_KEY` : "OPENAI_API_KEY";
-  
-  // Get the API key from environment variable
-  let apiKey = process.env[apiKeyEnvVar];
-  
-  // Parse out quotes if present
-  if (apiKey) {
-    apiKey = apiKey.replace(/^["'](.*)["']$/, '$1').trim();
-  } else {
-    // Fall back to default key
-    apiKey = process.env.OPENAI_API_KEY;
-    if (apiKey) {
-      apiKey = apiKey.replace(/^["'](.*)["']$/, '$1').trim();
-    }
-  }
-  
-  if (!apiKey) {
-    throw new Error(`No OpenAI API key found for agent ${agentId}`);
-  }
-  
-  return apiKey;
-}
-
 export const generateEpisodicMemory = async (
   agent: AnyAgent,
   thoughts: Thought[],
@@ -81,113 +41,70 @@ export const generateEpisodicMemory = async (
   thoughts: string;
   result: string;
 }> => {
-  try {
-    // Use the agent's vectorModel if provided, otherwise create a model with the agent-specific API key
-    const model = agent.memory.vectorModel || (() => {
-      try {
-        const apiKey = getAgentApiKey();
-        const openai = createOpenAI({
-          apiKey: apiKey,
-        });
-        return openai("gpt-4.1-nano");
-      } catch (error) {
-        console.error(`Failed to create OpenAI model: ${error}`);
-        throw new Error(`Failed to create model for episodic memory: ${error}`);
-      }
-    })();
-
-    const extractEpisode = await generateObject({
-      model: model,
-      schema: z.object({
-        observation: z.string().describe("The context and setup - what happened"),
-        thoughts: z
-          .string()
-          .describe(
-            "Internal reasoning process and observations of the agent in the episode that let it arrive at the correct action and result. 'I ...'"
-          ),
-        result: z
-          .string()
-          .describe(
-            "Outcome and retrospective. What did you do well? What could you do better next time? I ..."
-          ),
-      }),
-      prompt: `
-      You are creating an episodic memory for an AI agent to help it recall and learn from past experiences.
-      
-      Your task is to analyze the agent's thoughts, actions, and the results of those actions to create a structured memory that can be used for future reference and learning.
-
-      ## Context
-      <thoughts>
-      ${JSON.stringify(thoughts, (key, value) => {
-        // Convert BigInt to string with 'n' suffix
-        if (typeof value === 'bigint') {
-          return value.toString() + 'n';
-        }
-        return value;
-      })}
-      </thoughts>
-
-      ## Actions Taken
-      <actions>
-      ${JSON.stringify(actions, (key, value) => {
-        // Convert BigInt to string with 'n' suffix
-        if (typeof value === 'bigint') {
-          return value.toString() + 'n';
-        }
-        return value;
-      })}
-      </actions>
-
-      ## Results & Outcomes
-      <results>
-      ${JSON.stringify(results, (key, value) => {
-        // Convert BigInt to string with 'n' suffix
-        if (typeof value === 'bigint') {
-          return value.toString() + 'n';
-        }
-        return value;
-      })}
-      </results>
-      
-      ## Instructions
-      Create a comprehensive episodic memory with these components:
-      
-      1. OBSERVATION: Provide a clear, concise description of the situation, context, and key elements. Include:
-         - What was the environment or scenario?
-         - What was the agent trying to accomplish?
-         - What were the initial conditions or constraints?
-      
-      2. THOUGHTS: Capture the agent's internal reasoning process that led to its actions:
-         - What was the agent's understanding of the situation?
-         - What strategies or approaches did it consider?
-         - What key insights or realizations occurred during the process?
-         - Use first-person perspective ("I realized...", "I considered...")
-      
-      3. RESULT: Summarize the outcomes and provide a retrospective analysis:
-         - What was accomplished or not accomplished?
-         - What worked well and what didn't?
-         - What lessons can be learned for future similar situations?
-         - What would be done differently next time?
-         - Use first-person perspective ("I succeeded in...", "Next time I would...")
-      
-      Make the memory detailed enough to be useful for future recall, but concise enough to be quickly processed. Focus on capturing the essence of the experience, key decision points, and lessons learned.`,
-    });
-
-    return {
-      observation: extractEpisode.object.observation,
-      thoughts: extractEpisode.object.thoughts,
-      result: extractEpisode.object.result,
-    };
-  } catch (error) {
-    console.error(`Error generating episodic memory: ${error}`);
+  const extractEpisode = await generateObject({
+    model: agent.memory.vectorModel || openai("gpt-4.1-nano"),
+    schema: z.object({
+      observation: z.string().describe("The context and setup - what happened"),
+      thoughts: z
+        .string()
+        .describe(
+          "Internal reasoning process and observations of the agent in the episode that let it arrive at the correct action and result. 'I ...'"
+        ),
+      result: z
+        .string()
+        .describe(
+          "Outcome and retrospective. What did you do well? What could you do better next time? I ..."
+        ),
+    }),
+    prompt: `
+    You are creating an episodic memory for an AI agent to help it recall and learn from past experiences.
     
-    // Return a simplified error-indicating memory
-    return {
-      observation: `Failed to generate memory due to an error: ${error}`,
-      thoughts: "I encountered an issue when trying to process my episodic memory.",
-      result: "I need to resolve API access issues to properly generate memories in the future.",
-    };
-  }
+    Your task is to analyze the agent's thoughts, actions, and the results of those actions to create a structured memory that can be used for future reference and learning.
+
+    ## Context
+    <thoughts>
+    ${JSON.stringify(thoughts)}
+    </thoughts>
+
+    ## Actions Taken
+    <actions>
+    ${JSON.stringify(actions)}
+    </actions>
+
+    ## Results & Outcomes
+    <results>
+    ${JSON.stringify(results)}
+    </results>
+    
+    ## Instructions
+    Create a comprehensive episodic memory with these components:
+    
+    1. OBSERVATION: Provide a clear, concise description of the situation, context, and key elements. Include:
+       - What was the environment or scenario?
+       - What was the agent trying to accomplish?
+       - What were the initial conditions or constraints?
+    
+    2. THOUGHTS: Capture the agent's internal reasoning process that led to its actions:
+       - What was the agent's understanding of the situation?
+       - What strategies or approaches did it consider?
+       - What key insights or realizations occurred during the process?
+       - Use first-person perspective ("I realized...", "I considered...")
+    
+    3. RESULT: Summarize the outcomes and provide a retrospective analysis:
+       - What was accomplished or not accomplished?
+       - What worked well and what didn't?
+       - What lessons can be learned for future similar situations?
+       - What would be done differently next time?
+       - Use first-person perspective ("I succeeded in...", "Next time I would...")
+    
+    Make the memory detailed enough to be useful for future recall, but concise enough to be quickly processed. Focus on capturing the essence of the experience, key decision points, and lessons learned.`,
+  });
+
+  return {
+    observation: extractEpisode.object.observation,
+    thoughts: extractEpisode.object.thoughts,
+    result: extractEpisode.object.result,
+  };
 };
 
 /**
@@ -245,13 +162,7 @@ export async function saveTrainingData(
 
     // Convert each object to a JSON string and join with newlines
     const jsonLines = trainingData
-      .map((item) => JSON.stringify(item, (key, value) => {
-        // Convert BigInt to string with 'n' suffix
-        if (typeof value === 'bigint') {
-          return value.toString() + 'n';
-        }
-        return value;
-      }))
+      .map((item) => JSON.stringify(item))
       .join("\n");
 
     // Write to file
@@ -352,4 +263,43 @@ export async function exportEpisodesAsTrainingData(
   }));
 
   await saveTrainingData(trainingData, filePath);
+}
+
+export async function generateEpisode(
+  thought: Thought,
+  actionCall: ActionCall,
+  result: ActionResult,
+  agent: AnyAgent,
+  contextId: string,
+  actions: AnyAction[]
+) {
+  // Find the corresponding Action for the ActionCall
+  const action = actions.find((a) => a.name === actionCall.name);
+
+  if (!action) {
+    return;
+  }
+
+  const thoughts = [thought];
+  const actionsArray = [action];
+  const results = [result];
+
+  const episode = await createEpisodeFromWorkingMemory(
+    thoughts,
+    actionsArray,
+    results,
+    agent,
+    {
+      exportTrainingData: agent.exportTrainingData === true,
+      trainingDataPath: agent.trainingDataPath || "./training-data.jsonl",
+    }
+  );
+
+  await agent.memory.vector.upsert(`${contextId}`, [
+    {
+      id: episode.id,
+      text: episode.observation,
+      metadata: episode,
+    },
+  ]);
 }
