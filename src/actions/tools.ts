@@ -133,7 +133,7 @@ export const toolActions = [
   action({
     name: "queryAgentStakePositions",
     description: "Retrieves all staking positions for a specific agent address",
-    instructions: "Use this action when an agent needs to know which reactors they have staked in and their reward status",
+    instructions: "Use this action when an agent needs to know which farms they have staked in and their reward status",
     schema: z.object({
       address: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Agent's Starknet address (must be a valid hex address starting with 0x)")
     }),

@@ -49,14 +49,26 @@ export function createSupabaseMemoryStore(
         .from(tableName)
         .select("value")
         .eq("key", key)
-        .single();
+        .maybeSingle();
 
-      if (error || !data) {
+      if (error) {
+        throw new Error(`Failed to get value for key ${key}: ${error.message}`);
+      }
+
+      if (!data) {
         return null;
       }
 
       try {
-        return JSON.parse(data.value) as T;
+        // Parse JSON string with BigInt handling
+        return JSON.parse(data.value, (key, value) => {
+          // Check for BigInt string pattern (ends with 'n')
+          if (typeof value === 'string' && value.endsWith('n') && /^-?\d+n$/.test(value)) {
+            // Remove the 'n' and convert to BigInt
+            return BigInt(value.slice(0, -1));
+          }
+          return value;
+        }) as T;
       } catch (e) {
         console.error(`Error parsing data for key ${key}:`, e);
         return null;
@@ -70,7 +82,13 @@ export function createSupabaseMemoryStore(
      */
     async set<T>(key: string, value: T): Promise<void> {
       try {
-        const serializedValue = JSON.stringify(value);
+        const serializedValue = JSON.stringify(value, (key, value) => {
+          // Convert BigInt to string for serialization
+          if (typeof value === 'bigint') {
+            return value.toString() + 'n';
+          }
+          return value;
+        });
         
         // Removed the .select() call which was causing an unnecessary database roundtrip
         const { error } = await client

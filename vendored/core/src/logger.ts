@@ -82,7 +82,13 @@ export class Logger {
     parts.push(entry.message);
 
     if (entry.data) {
-      parts.push(JSON.stringify(entry.data, null, 2));
+      parts.push(JSON.stringify(entry.data, (key, value) => {
+        // Convert BigInt to string for serialization
+        if (typeof value === 'bigint') {
+          return value.toString() + 'n';
+        }
+        return value;
+      }, 2));
     }
 
     return parts.join(" ");

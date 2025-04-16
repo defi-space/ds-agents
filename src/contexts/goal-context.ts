@@ -420,12 +420,4 @@ Last Analyzed: ${memory.lastCompetitiveAnalysis}`;
   outputs: {
     goalManager: goalManagerOutput
   },
-
-  // Optional: Specify a default LLM for this context type
-  // This allows you to use a specialized model for goal management if needed
-  model: undefined, // Defaults to agent's model if undefined
-  
-  // Optional: Default limits for runs within this context
-  maxSteps: 10, // Limit goal planning to 10 steps max by default
-  maxWorkingMemorySize: 50, // Allow a larger working memory for complex goal structures
 });

@@ -13,67 +13,83 @@ interface PendingRewards {
 
 export const yieldActions = [
   action({
-    name: "depositToReactor",
-    description: "Deposits LP tokens into a farming reactor for yield farming",
-    instructions: "Use this action when an agent wants to stake LP tokens in a reactor to earn rewards",
+    name: "depositTofarm",
+    description: "Deposits LP tokens into a farming farm for yield farming",
+    instructions: "Use this action when an agent wants to stake LP tokens in a farm to earn rewards",
     schema: z.object({
-        reactorIndex: z.string().describe("Unique reactor identifier in the Conduit contract (numeric index as string)"),
+        farmIndex: z.string().describe("Unique farm identifier in the FarmRouter contract (numeric index as string)"),
         amount: z.string().describe("Amount of LP tokens to deposit as a string in base units (e.g., '1000000000000000000' for 1 token with 18 decimals)")
     }),
     handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!args.reactorIndex || !args.amount) {
+        if (!args.farmIndex || !args.amount) {
           return {
             success: false,
             error: "Missing required fields",
-            message: "Both reactorIndex and amount are required for deposit",
+            message: "Both farmIndex and amount are required for deposit",
             timestamp: Date.now(),
           };
         }
 
         // Get contract addresses
-        const conduitAddress = getContractAddress('core', 'conduit');
-        if (!conduitAddress) {
+        const farmRouterAddress = getContractAddress('core', 'farmRouter');
+        if (!farmRouterAddress) {
           return {
             success: false,
-            error: "Conduit address not found",
-            message: "Cannot deposit: conduit contract address not found in configuration",
+            error: "FarmRouter address not found",
+            message: "Cannot deposit: FarmRouter contract address not found in configuration",
             timestamp: Date.now(),
           };
         }
 
-        // Get reactor address
-        const reactorAddress = toHex(await starknetChain.read({
-          contractAddress: conduitAddress,
+        // Get farm address
+        const farmAddress = toHex(await starknetChain.read({
+          contractAddress: farmRouterAddress,
           entrypoint: "get_farm_address",
           calldata: [
-            ...toUint256WithSpread(args.reactorIndex)
+            ...toUint256WithSpread(args.farmIndex)
           ]
         }));
         
         // Get LP token address
         const lpToken = toHex(await starknetChain.read({
-          contractAddress: conduitAddress,
+          contractAddress: farmRouterAddress,
           entrypoint: "get_lp_token",
           calldata: [
-            ...toUint256WithSpread(args.reactorIndex)
+            ...toUint256WithSpread(args.farmIndex)
           ]
         }));
+
+        // Validate amount is a valid integer string
+        try {
+          BigInt(args.amount); // Check if it can be parsed as BigInt
+          if (!/^\d+$/.test(args.amount)) { // Check if it only contains digits
+            throw new Error("Amount must be a string containing only digits.");
+          }
+        } catch (validationError) {
+          console.error('Invalid amount format:', args.amount, validationError);
+          return {
+            success: false,
+            error: 'Invalid amount format',
+            message: `Amount must be a valid integer string in base units. Received: ${args.amount}`,
+            timestamp: Date.now(),
+          };
+        }
 
         // Create approve args for LP token
         const approveCall = getApproveCall(
           lpToken,
-          reactorAddress,
+          farmAddress,
           args.amount
         );
         
         // Create deposit args
         const depositCall = {
-          contractAddress: conduitAddress,
+          contractAddress: farmRouterAddress,
           entrypoint: "deposit",
           calldata: [
-            ...toUint256WithSpread(args.reactorIndex),
+            ...toUint256WithSpread(args.farmIndex),
             ...toUint256WithSpread(args.amount)
           ]
         };
@@ -85,7 +101,7 @@ export const yieldActions = [
           return {
             success: false,
             error: result.error || 'Transaction failed',
-            message: `Failed to deposit ${args.amount} LP tokens to reactor ${args.reactorIndex}: ${result.error || 'Transaction unsuccessful'}`,
+            message: `Failed to deposit ${args.amount} LP tokens to farm ${args.farmIndex}: ${result.error || 'Transaction unsuccessful'}`,
             transactionHash: result.transactionHash,
             receipt: result.receipt,
             timestamp: Date.now(),
@@ -95,69 +111,69 @@ export const yieldActions = [
         return {
           success: true,
           data: {
-            reactorIndex: args.reactorIndex,
+            farmIndex: args.farmIndex,
             amount: args.amount,
             lpToken,
             transactionHash: result.transactionHash,
             receipt: result.receipt
           },
-          message: `Successfully deposited ${args.amount} LP tokens to reactor ${args.reactorIndex}`,
+          message: `Successfully deposited ${args.amount} LP tokens to farm ${args.farmIndex}`,
           timestamp: Date.now(),
         };
       } catch (error) {
-        console.error('Failed to deposit to reactor:', error);
+        console.error('Failed to deposit to farm:', error);
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to deposit to reactor',
-          message: `Failed to deposit to reactor: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          error: error instanceof Error ? error.message : 'Failed to deposit to farm',
+          message: `Failed to deposit to farm: ${error instanceof Error ? error.message : 'Unknown error'}`,
           timestamp: Date.now(),
         };
       }
     },
     retry: 3,
     onError: async (error, ctx, agent) => {
-      console.error(`Reactor deposit failed:`, error);
-      ctx.emit("reactorDepositError", { action: ctx.call.name, error: error.message });
+      console.error(`Farm deposit failed:`, error);
+      ctx.emit("farmDepositError", { action: ctx.call.name, error: error.message });
     }
   }),
 
   action({
-    name: "withdrawFromReactor",
-    description: "Withdraws LP tokens from a farming reactor",
-    instructions: "Use this action when an agent wants to withdraw some of their staked LP tokens from a reactor",
+    name: "withdrawFromfarm",
+    description: "Withdraws LP tokens from a farming farm",
+    instructions: "Use this action when an agent wants to withdraw some of their staked LP tokens from a farm",
     schema: z.object({
-      reactorIndex: z.string().describe("Unique reactor identifier in the Conduit contract (numeric index as string)"),
+      farmIndex: z.string().describe("Unique farm identifier in the FarmRouter contract (numeric index as string)"),
       amount: z.string().describe("Amount of LP tokens to withdraw as a string in base units (e.g., '1000000000000000000' for 1 token with 18 decimals)")
     }),
     handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!args.reactorIndex || !args.amount) {
+        if (!args.farmIndex || !args.amount) {
           return {
             success: false,
             error: "Missing required fields",
-            message: "Both reactorIndex and amount are required for withdrawal",
+            message: "Both farmIndex and amount are required for withdrawal",
             timestamp: Date.now(),
           };
         }
 
         // Get contract address
-        const conduitAddress = getContractAddress('core', 'conduit');
-        if (!conduitAddress) {
+        const farmRouterAddress = getContractAddress('core', 'farmRouter');
+        if (!farmRouterAddress) {
           return {
             success: false,
-            error: "Conduit address not found",
-            message: "Cannot withdraw: conduit contract address not found in configuration",
+            error: "FarmRouter address not found",
+            message: "Cannot withdraw: FarmRouter contract address not found in configuration",
             timestamp: Date.now(),
           };
         }
         
         // Execute withdrawal
         const result = await starknetChain.write({
-          contractAddress: conduitAddress,
+          contractAddress: farmRouterAddress,
           entrypoint: "withdraw",
           calldata: [
-            ...toUint256WithSpread(args.reactorIndex),
+            ...toUint256WithSpread(args.farmIndex),
             ...toUint256WithSpread(args.amount)
           ]
         });
@@ -166,7 +182,7 @@ export const yieldActions = [
           return {
             success: false,
             error: 'Transaction failed',
-            message: `Failed to withdraw ${args.amount} LP tokens from reactor ${args.reactorIndex}: Transaction unsuccessful`,
+            message: `Failed to withdraw ${args.amount} LP tokens from farm ${args.farmIndex}: Transaction unsuccessful`,
             transactionHash: result.transactionHash,
             receipt: result,
             timestamp: Date.now(),
@@ -176,57 +192,57 @@ export const yieldActions = [
         return {
           success: true,
           data: {
-            reactorIndex: args.reactorIndex,
+            farmIndex: args.farmIndex,
             amount: args.amount,
             transactionHash: result.transactionHash,
             receipt: result
           },
-          message: `Successfully withdrew ${args.amount} LP tokens from reactor ${args.reactorIndex}`,
+          message: `Successfully withdrew ${args.amount} LP tokens from farm ${args.farmIndex}`,
           timestamp: Date.now(),
         };
       } catch (error) {
-        console.error('Failed to withdraw from reactor:', error);
+        console.error('Failed to withdraw from farm:', error);
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to withdraw from reactor',
-          message: `Failed to withdraw from reactor: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          error: error instanceof Error ? error.message : 'Failed to withdraw from farm',
+          message: `Failed to withdraw from farm: ${error instanceof Error ? error.message : 'Unknown error'}`,
           timestamp: Date.now(),
         };
       }
     },
     retry: 3,
     onError: async (error, ctx, agent) => {
-      console.error(`Reactor withdrawal failed:`, error);
-      ctx.emit("reactorWithdrawalError", { action: ctx.call.name, error: error.message });
+      console.error(`Farm withdrawal failed:`, error);
+      ctx.emit("farmWithdrawalError", { action: ctx.call.name, error: error.message });
     }
   }),
 
   action({
-    name: "exitReactor",
-    description: "Withdraws all LP tokens and rewards from a nuclear reactor",
-    instructions: "Use this action when an agent wants to completely exit a reactor, withdrawing all LP tokens and harvesting all rewards",
+    name: "exitfarm",
+    description: "Withdraws all LP tokens and rewards from a nuclear farm",
+    instructions: "Use this action when an agent wants to completely exit a farm, withdrawing all LP tokens and harvesting all rewards",
     schema: z.object({
-      reactorIndex: z.string().describe("Unique reactor identifier in the Conduit contract (numeric index as string)")
+      farmIndex: z.string().describe("Unique farm identifier in the FarmRouter contract (numeric index as string)")
     }),
     handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!args.reactorIndex) {
+        if (!args.farmIndex) {
           return {
             success: false,
             error: "Missing required field",
-            message: "ReactorIndex is required for exiting a reactor",
+            message: "farmIndex is required for exiting a farm",
             timestamp: Date.now(),
           };
         }
 
         // Get contract address
-        const conduitAddress = getContractAddress('core', 'conduit');
-        if (!conduitAddress) {
+        const farmRouterAddress = getContractAddress('core', 'farmRouter');
+        if (!farmRouterAddress) {
           return {
             success: false,
-            error: "Conduit address not found",
-            message: "Cannot exit reactor: conduit contract address not found in configuration",
+            error: "FarmRouter address not found",
+            message: "Cannot exit farm: FarmRouter contract address not found in configuration",
             timestamp: Date.now(),
           };
         }
@@ -237,10 +253,10 @@ export const yieldActions = [
         
         try {
           const balance = await starknetChain.read({
-            contractAddress: conduitAddress,
+            contractAddress: farmRouterAddress,
             entrypoint: "balance_of",
             calldata: [
-              ...toUint256WithSpread(args.reactorIndex),
+              ...toUint256WithSpread(args.farmIndex),
               agentAddress
             ]
           });
@@ -252,10 +268,10 @@ export const yieldActions = [
         
         // Execute exit
         const result = await starknetChain.write({
-          contractAddress: conduitAddress,
+          contractAddress: farmRouterAddress,
           entrypoint: "exit",
           calldata: [
-            ...toUint256WithSpread(args.reactorIndex)
+            ...toUint256WithSpread(args.farmIndex)
           ]
         });
 
@@ -263,7 +279,7 @@ export const yieldActions = [
           return {
             success: false,
             error: 'Transaction failed',
-            message: `Failed to exit reactor ${args.reactorIndex}: Transaction unsuccessful`,
+            message: `Failed to exit farm ${args.farmIndex}: Transaction unsuccessful`,
             transactionHash: result.transactionHash,
             receipt: result,
             timestamp: Date.now(),
@@ -273,57 +289,57 @@ export const yieldActions = [
         return {
           success: true,
           data: {
-            reactorIndex: args.reactorIndex,
+            farmIndex: args.farmIndex,
             exitedAmount: stakedAmount,
             transactionHash: result.transactionHash,
             receipt: result
           },
-          message: `Successfully exited reactor ${args.reactorIndex}, withdrew all LP tokens (approximately ${stakedAmount})`,
+          message: `Successfully exited farm ${args.farmIndex}, withdrew all LP tokens (approximately ${stakedAmount})`,
           timestamp: Date.now(),
         };
       } catch (error) {
-        console.error('Failed to exit reactor:', error);
+        console.error('Failed to exit farm:', error);
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to exit reactor',
-          message: `Failed to exit reactor: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          error: error instanceof Error ? error.message : 'Failed to exit farm',
+          message: `Failed to exit farm: ${error instanceof Error ? error.message : 'Unknown error'}`,
           timestamp: Date.now(),
         };
       }
     },
     retry: 3,
     onError: async (error, ctx, agent) => {
-      console.error(`Reactor exit failed:`, error);
-      ctx.emit("reactorExitError", { action: ctx.call.name, error: error.message });
+      console.error(`Farm exit failed:`, error);
+      ctx.emit("farmExitError", { action: ctx.call.name, error: error.message });
     }
   }),
 
   action({
     name: "harvestRewards",
-    description: "Claims accumulated reward tokens from a nuclear reactor",
+    description: "Claims accumulated reward tokens from a nuclear farm",
     instructions: "Use this action when an agent wants to collect earned rewards without withdrawing their staked LP tokens",
     schema: z.object({
-        reactorIndex: z.string().describe("Unique reactor identifier in the Conduit contract (numeric index as string)")
+        farmIndex: z.string().describe("Unique farm identifier in the FarmRouter contract (numeric index as string)")
     }),
     handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!args.reactorIndex) {
+        if (!args.farmIndex) {
           return {
             success: false,
             error: "Missing required field",
-            message: "ReactorIndex is required for harvesting rewards",
+            message: "farmIndex is required for harvesting rewards",
             timestamp: Date.now(),
           };
         }
 
         // Get contract address
-        const conduitAddress = getContractAddress('core', 'conduit');
-        if (!conduitAddress) {
+        const farmRouterAddress = getContractAddress('core', 'farmRouter');
+        if (!farmRouterAddress) {
           return {
             success: false,
-            error: "Conduit address not found",
-            message: "Cannot harvest rewards: conduit contract address not found in configuration",
+            error: "FarmRouter address not found",
+            message: "Cannot harvest rewards: FarmRouter contract address not found in configuration",
             timestamp: Date.now(),
           };
         }
@@ -336,10 +352,10 @@ export const yieldActions = [
         try {
           // Get reward tokens
           const rewardTokensResponse = await starknetChain.read({
-            contractAddress: conduitAddress,
+            contractAddress: farmRouterAddress,
             entrypoint: "get_reward_tokens",
             calldata: [
-              ...toUint256WithSpread(args.reactorIndex)
+              ...toUint256WithSpread(args.farmIndex)
             ]
           });
           
@@ -348,10 +364,10 @@ export const yieldActions = [
           // Get pending amounts for each token
           for (const token of rewardTokens) {
             const earned = await starknetChain.read({
-              contractAddress: conduitAddress,
+              contractAddress: farmRouterAddress,
               entrypoint: "earned",
               calldata: [
-                  ...toUint256WithSpread(args.reactorIndex),
+                  ...toUint256WithSpread(args.farmIndex),
                   agentAddress,
                   token
               ]
@@ -366,10 +382,10 @@ export const yieldActions = [
         
         // Execute harvest
         const result = await starknetChain.write({
-          contractAddress: conduitAddress,
+          contractAddress: farmRouterAddress,
           entrypoint: "harvest",
           calldata: [
-            ...toUint256WithSpread(args.reactorIndex)
+            ...toUint256WithSpread(args.farmIndex)
           ]
         });
 
@@ -377,7 +393,7 @@ export const yieldActions = [
           return {
             success: false,
             error: 'Transaction failed',
-            message: `Failed to harvest rewards from reactor ${args.reactorIndex}: Transaction unsuccessful`,
+            message: `Failed to harvest rewards from farm ${args.farmIndex}: Transaction unsuccessful`,
             transactionHash: result.transactionHash,
             receipt: result,
             timestamp: Date.now(),
@@ -387,13 +403,13 @@ export const yieldActions = [
         return {
           success: true,
           data: {
-            reactorIndex: args.reactorIndex,
+            farmIndex: args.farmIndex,
             rewardTokens,
             harvestedAmounts: pendingRewards,
             transactionHash: result.transactionHash,
             receipt: result
           },
-          message: `Successfully harvested rewards from reactor ${args.reactorIndex}`,
+          message: `Successfully harvested rewards from farm ${args.farmIndex}`,
           timestamp: Date.now(),
         };
       } catch (error) {
@@ -415,31 +431,31 @@ export const yieldActions = [
 
   action({
     name: "checkPendingRewards",
-    description: "Checks the amount of pending rewards for a specific token in a reactor",
+    description: "Checks the amount of pending rewards for a specific token in a farm",
     instructions: "Use this action when an agent wants to know how much of a specific reward token they've earned",
     schema: z.object({
-        reactorIndex: z.string().describe("Unique reactor identifier in the Conduit contract (numeric index as string)"),
+        farmIndex: z.string().describe("Unique farm identifier in the FarmRouter contract (numeric index as string)"),
         rewardToken: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Reward token contract address (must be a valid hex address starting with 0x)")
     }),
     handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!args.reactorIndex || !args.rewardToken) {
+        if (!args.farmIndex || !args.rewardToken) {
           return {
             success: false,
             error: "Missing required fields",
-            message: "Both reactorIndex and rewardToken are required for checking pending rewards",
+            message: "Both farmIndex and rewardToken are required for checking pending rewards",
             timestamp: Date.now(),
           };
         }
 
         // Get contract address
-        const conduitAddress = getContractAddress('core', 'conduit');
-        if (!conduitAddress) {
+        const farmRouterAddress = getContractAddress('core', 'farmRouter');
+        if (!farmRouterAddress) {
           return {
             success: false,
-            error: "Conduit address not found",
-            message: "Cannot check pending rewards: conduit contract address not found in configuration",
+            error: "FarmRouter address not found",
+            message: "Cannot check pending rewards: FarmRouter contract address not found in configuration",
             timestamp: Date.now(),
           };
         }
@@ -457,10 +473,10 @@ export const yieldActions = [
         
         // Get earned amount
         const earned = await starknetChain.read({
-          contractAddress: conduitAddress,
+          contractAddress: farmRouterAddress,
           entrypoint: "earned",
           calldata: [
-              ...toUint256WithSpread(args.reactorIndex),
+              ...toUint256WithSpread(args.farmIndex),
               agentAddress,
             args.rewardToken
           ]
@@ -471,18 +487,18 @@ export const yieldActions = [
         return {
           success: true,
           data: {
-            reactorIndex: args.reactorIndex,
+            farmIndex: args.farmIndex,
             rewardToken: args.rewardToken,
             earnedAmount
           },
-          message: `You have ${earnedAmount} of reward token ${args.rewardToken} pending in reactor ${args.reactorIndex}`,
+          message: `You have ${earnedAmount} of reward token ${args.rewardToken} pending in farm ${args.farmIndex}`,
           timestamp: Date.now(),
         };
       } catch (error) {
-        console.error('Failed to check reactor rewards:', error);
+        console.error('Failed to check farm rewards:', error);
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to check reactor rewards',
+          error: error instanceof Error ? error.message : 'Failed to check farm rewards',
           message: `Failed to check pending rewards: ${error instanceof Error ? error.message : 'Unknown error'}`,
           timestamp: Date.now(),
         };
@@ -496,41 +512,41 @@ export const yieldActions = [
   }),
 
   action({
-    name: "getReactorLpToken",
-    description: "Retrieves the LP token address accepted by a specific reactor",
-    instructions: "Use this action when an agent needs to know which LP token to approve before depositing to a reactor",
+    name: "getfarmLpToken",
+    description: "Retrieves the LP token address accepted by a specific farm",
+    instructions: "Use this action when an agent needs to know which LP token to approve before depositing to a farm",
     schema: z.object({
-      reactorIndex: z.string().describe("Unique reactor identifier in the Conduit contract (numeric index as string)")
+      farmIndex: z.string().describe("Unique farm identifier in the FarmRouter contract (numeric index as string)")
     }),
     handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!args.reactorIndex) {
+        if (!args.farmIndex) {
           return {
             success: false,
             error: "Missing required field",
-            message: "ReactorIndex is required for getting LP token address",
+            message: "farmIndex is required for getting LP token address",
             timestamp: Date.now(),
           };
         }
 
         // Get contract address
-        const conduitAddress = getContractAddress('core', 'conduit');
-        if (!conduitAddress) {
+        const farmRouterAddress = getContractAddress('core', 'farmRouter');
+        if (!farmRouterAddress) {
           return {
             success: false,
-            error: "Conduit address not found",
-            message: "Cannot get LP token: conduit contract address not found in configuration",
+            error: "FarmRouter address not found",
+            message: "Cannot get LP token: FarmRouter contract address not found in configuration",
             timestamp: Date.now(),
           };
         }
         
         // Get LP token address
         const lpTokenResponse = toHex(await starknetChain.read({
-          contractAddress: conduitAddress,
+          contractAddress: farmRouterAddress,
           entrypoint: "get_lp_token",
           calldata: [
-            ...toUint256WithSpread(args.reactorIndex)
+            ...toUint256WithSpread(args.farmIndex)
           ]
         }));
 
@@ -539,10 +555,10 @@ export const yieldActions = [
         return {
           success: true,
           data: {
-            reactorIndex: args.reactorIndex,
+            farmIndex: args.farmIndex,
             lpToken
           },
-          message: `The LP token for reactor ${args.reactorIndex} is ${lpToken}`,
+          message: `The LP token for farm ${args.farmIndex} is ${lpToken}`,
           timestamp: Date.now(),
         };
       } catch (error) {
@@ -564,30 +580,30 @@ export const yieldActions = [
 
   action({
     name: "getAgentStakedAmount",
-    description: "Retrieves the amount of LP tokens an agent has staked in a reactor",
-    instructions: "Use this action when an agent wants to check how many LP tokens they have staked in a specific reactor",
+    description: "Retrieves the amount of LP tokens an agent has staked in a farm",
+    instructions: "Use this action when an agent wants to check how many LP tokens they have staked in a specific farm",
     schema: z.object({
-      reactorIndex: z.string().describe("Unique reactor identifier in the Conduit contract (numeric index as string)")
+      farmIndex: z.string().describe("Unique farm identifier in the FarmRouter contract (numeric index as string)")
     }),
     handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!args.reactorIndex) {
+        if (!args.farmIndex) {
           return {
             success: false,
             error: "Missing required field",
-            message: "ReactorIndex is required for getting staked amount",
+            message: "farmIndex is required for getting staked amount",
             timestamp: Date.now(),
           };
         }
 
         // Get contract address
-        const conduitAddress = getContractAddress('core', 'conduit');
-        if (!conduitAddress) {
+        const farmRouterAddress = getContractAddress('core', 'farmRouter');
+        if (!farmRouterAddress) {
           return {
             success: false,
-            error: "Conduit address not found",
-            message: "Cannot get staked amount: conduit contract address not found in configuration",
+            error: "FarmRouter address not found",
+            message: "Cannot get staked amount: FarmRouter contract address not found in configuration",
             timestamp: Date.now(),
           };
         }
@@ -605,10 +621,10 @@ export const yieldActions = [
         
         // Get balance
         const balance = await starknetChain.read({
-          contractAddress: conduitAddress,
+          contractAddress: farmRouterAddress,
           entrypoint: "balance_of",
           calldata: [
-            ...toUint256WithSpread(args.reactorIndex),
+            ...toUint256WithSpread(args.farmIndex),
             agentAddress
           ]
         });
@@ -618,10 +634,10 @@ export const yieldActions = [
         return {
           success: true,
           data: {
-            reactorIndex: args.reactorIndex,
+            farmIndex: args.farmIndex,
             stakedAmount
           },
-          message: `You have ${stakedAmount} LP tokens staked in reactor ${args.reactorIndex}`,
+          message: `You have ${stakedAmount} LP tokens staked in farm ${args.farmIndex}`,
           timestamp: Date.now(),
         };
       } catch (error) {
@@ -642,41 +658,41 @@ export const yieldActions = [
   }),
 
   action({
-    name: "getReactorTotalDeposited",
-    description: "Gets the total amount of LP tokens deposited in a reactor",
-    instructions: "Use this action when an agent needs to know the total amount of LP tokens staked by all agents in a reactor",
+    name: "getfarmTotalDeposited",
+    description: "Gets the total amount of LP tokens deposited in a farm",
+    instructions: "Use this action when an agent needs to know the total amount of LP tokens staked by all agents in a farm",
     schema: z.object({
-      reactorIndex: z.string().describe("Unique reactor identifier in the Conduit contract (numeric index as string)")
+      farmIndex: z.string().describe("Unique farm identifier in the FarmRouter contract (numeric index as string)")
     }),
     handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!args.reactorIndex) {
+        if (!args.farmIndex) {
           return {
             success: false,
             error: "Missing required field",
-            message: "ReactorIndex is required for getting total deposited amount",
+            message: "farmIndex is required for getting total deposited amount",
             timestamp: Date.now(),
           };
         }
 
         // Get contract address
-        const conduitAddress = getContractAddress('core', 'conduit');
-        if (!conduitAddress) {
+        const farmRouterAddress = getContractAddress('core', 'farmRouter');
+        if (!farmRouterAddress) {
           return {
             success: false,
-            error: "Conduit address not found",
-            message: "Cannot get total deposited: conduit contract address not found in configuration",
+            error: "FarmRouter address not found",
+            message: "Cannot get total deposited: FarmRouter contract address not found in configuration",
             timestamp: Date.now(),
           };
         }
         
         // Get total deposited
         const totalDeposited = await starknetChain.read({
-          contractAddress: conduitAddress,
+          contractAddress: farmRouterAddress,
           entrypoint: "total_deposited",
           calldata: [
-            ...toUint256WithSpread(args.reactorIndex)
+            ...toUint256WithSpread(args.farmIndex)
           ]
         });
 
@@ -685,10 +701,10 @@ export const yieldActions = [
         return {
           success: true,
           data: {
-            reactorIndex: args.reactorIndex,
+            farmIndex: args.farmIndex,
             totalDepositedAmount
           },
-          message: `Total deposits in reactor ${args.reactorIndex} amount to ${totalDepositedAmount} LP tokens`,
+          message: `Total deposits in farm ${args.farmIndex} amount to ${totalDepositedAmount} LP tokens`,
           timestamp: Date.now(),
         };
       } catch (error) {
@@ -709,108 +725,108 @@ export const yieldActions = [
   }),
   
   action({
-    name: "getReactorAddress",
-    description: "Retrieves the contract address of a specific reactor",
-    instructions: "Use this action when an agent needs to get the contract address of a reactor for direct interaction",
+    name: "getfarmAddress",
+    description: "Retrieves the contract address of a specific farm",
+    instructions: "Use this action when an agent needs to get the contract address of a farm for direct interaction",
     schema: z.object({
-      reactorIndex: z.string().describe("Unique reactor identifier in the Conduit contract (numeric index as string)")
+      farmIndex: z.string().describe("Unique farm identifier in the FarmRouter contract (numeric index as string)")
     }),
     handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!args.reactorIndex) {
+        if (!args.farmIndex) {
           return {
             success: false,
             error: "Missing required field",
-            message: "ReactorIndex is required for getting reactor address",
+            message: "farmIndex is required for getting farm address",
             timestamp: Date.now(),
           };
         }
 
         // Get contract address
-        const conduitAddress = getContractAddress('core', 'conduit');
-        if (!conduitAddress) {
+        const farmRouterAddress = getContractAddress('core', 'farmRouter');
+        if (!farmRouterAddress) {
           return {
             success: false,
-            error: "Conduit address not found",
-            message: "Cannot get reactor address: conduit contract address not found in configuration",
+            error: "FarmRouter address not found",
+            message: "Cannot get farm address: FarmRouter contract address not found in configuration",
             timestamp: Date.now(),
           };
         }
         
-        // Get reactor address
-        const reactorAddress = toHex(await starknetChain.read({
-          contractAddress: conduitAddress,
+        // Get farm address
+        const farmAddress = toHex(await starknetChain.read({
+          contractAddress: farmRouterAddress,
           entrypoint: "get_farm_address",
           calldata: [
-            ...toUint256WithSpread(args.reactorIndex)
+            ...toUint256WithSpread(args.farmIndex)
           ]
         }));
 
-        const formattedAddress = Array.isArray(reactorAddress) ? reactorAddress[0] : reactorAddress;
+        const formattedAddress = Array.isArray(farmAddress) ? farmAddress[0] : farmAddress;
         
         return {
           success: true,
           data: {
-            reactorIndex: args.reactorIndex,
-            reactorAddress: formattedAddress
+            farmIndex: args.farmIndex,
+            farmAddress: formattedAddress
           },
-          message: `The address for reactor ${args.reactorIndex} is ${formattedAddress}`,
+          message: `The address for farm ${args.farmIndex} is ${formattedAddress}`,
           timestamp: Date.now(),
         };
       } catch (error) {
-        console.error('Failed to get reactor address:', error);
+        console.error('Failed to get farm address:', error);
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to get reactor address',
-          message: `Failed to get reactor address: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          error: error instanceof Error ? error.message : 'Failed to get farm address',
+          message: `Failed to get farm address: ${error instanceof Error ? error.message : 'Unknown error'}`,
           timestamp: Date.now(),
         };
       }
     },
     retry: 3,
     onError: async (error, ctx, agent) => {
-      console.error(`Reactor address lookup failed:`, error);
-      ctx.emit("reactorAddressError", { action: ctx.call.name, error: error.message });
+      console.error(`Farm address lookup failed:`, error);
+      ctx.emit("farmAddressError", { action: ctx.call.name, error: error.message });
     }
   }),
 
   action({
-    name: "getReactorRewardTokens",
-    description: "Gets the list of reward tokens available from a specific reactor",
-    instructions: "Use this action when an agent needs to know which reward tokens they can earn from a reactor",
+    name: "getfarmRewardTokens",
+    description: "Gets the list of reward tokens available from a specific farm",
+    instructions: "Use this action when an agent needs to know which reward tokens they can earn from a farm",
     schema: z.object({
-      reactorIndex: z.string().describe("Unique reactor identifier in the Conduit contract (numeric index as string)")
+      farmIndex: z.string().describe("Unique farm identifier in the FarmRouter contract (numeric index as string)")
     }),
     handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!args.reactorIndex) {
+        if (!args.farmIndex) {
           return {
             success: false,
             error: "Missing required field",
-            message: "ReactorIndex is required for getting reward tokens",
+            message: "farmIndex is required for getting reward tokens",
             timestamp: Date.now(),
           };
         }
 
         // Get contract address
-        const conduitAddress = getContractAddress('core', 'conduit');
-        if (!conduitAddress) {
+        const farmRouterAddress = getContractAddress('core', 'farmRouter');
+        if (!farmRouterAddress) {
           return {
             success: false,
-            error: "Conduit address not found",
-            message: "Cannot get reward tokens: conduit contract address not found in configuration",
+            error: "FarmRouter address not found",
+            message: "Cannot get reward tokens: FarmRouter contract address not found in configuration",
             timestamp: Date.now(),
           };
         }
         
         // Get reward tokens
         const rewardTokens = await starknetChain.read({
-          contractAddress: conduitAddress,
+          contractAddress: farmRouterAddress,
           entrypoint: "get_reward_tokens",
           calldata: [
-            ...toUint256WithSpread(args.reactorIndex)
+            ...toUint256WithSpread(args.farmIndex)
           ]
         });
 
@@ -819,10 +835,10 @@ export const yieldActions = [
         return {
           success: true,
           data: {
-            reactorIndex: args.reactorIndex,
+            farmIndex: args.farmIndex,
             rewardTokens: formattedTokens
           },
-          message: `Reactor ${args.reactorIndex} has ${formattedTokens.length} reward token(s)`,
+          message: `Farm ${args.farmIndex} has ${formattedTokens.length} reward token(s)`,
           timestamp: Date.now(),
         };
       } catch (error) {

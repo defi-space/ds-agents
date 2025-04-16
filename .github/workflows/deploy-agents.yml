@@ -8,7 +8,7 @@ name: Deploy Agents to Phala
 # - AGENT2_PRIVATE_KEY, AGENT2_API_KEY: Required for each agent
 # - AGENT3_PRIVATE_KEY, AGENT3_API_KEY: Required for each agent
 # - AGENT4_PRIVATE_KEY, AGENT4_API_KEY: Required for each agent
-# - OPENAI_API_KEY: For API access
+# - GOOGLE_API_KEY: For API access
 # - INDEXER_URL: GraphQL Indexer URL
 # - SUPABASE_URL: Supabase project URL
 # - SUPABASE_API_KEY: Supabase API key
@@ -116,8 +116,8 @@ jobs:
           AGENT4_ADDRESS=${{ steps.extract_agents.outputs.AGENT4 }}
           AGENT4_API_KEY=${{ secrets.AGENT4_API_KEY }}
           
-          # OpenAI API
-          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          # Google API
+          GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}
           
           # Indexer URL
           INDEXER_URL=${{ secrets.INDEXER_URL }}

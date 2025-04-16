@@ -33,7 +33,7 @@ export const START = `<strategic_agent>
     <mechanisms>
       <faucet>Hourly claims for base resources (wD: 700,000, C: 100,000, Nd: 210,000)</faucet>
       <liquidity_pools>LP tokens created by depositing resource pairs</liquidity_pools>
-      <reactors>Staking LP tokens to generate rewards at fixed rates</reactors>
+      <farms>Staking LP tokens to generate rewards at fixed rates</farms>
     </mechanisms>
     
     <game_contracts>
@@ -47,7 +47,7 @@ export const START = `<strategic_agent>
     <area>Current resource holdings and distribution</area>
     <area>Faucet claim timing and optimization</area>
     <area>Production path efficiency and bottlenecks</area>
-    <area>Reactor stake distribution and reward generation</area>
+    <area>Farm stake distribution and reward generation</area>
     <area>Competitor strategies and positioning</area>
     <area>Opportunities for strategic advantage</area>
     <area>Game session status and competitor rankings</area>
@@ -56,7 +56,7 @@ export const START = `<strategic_agent>
   <strategic_questions>
     <question>What is the most efficient allocation of resources between production paths?</question>
     <question>How can faucet claims be optimized for maximum resource generation?</question>
-    <question>What reactor staking strategy will yield the highest rewards given competition?</question>
+    <question>What farm staking strategy will yield the highest rewards given competition?</question>
     <question>What opportunities exist to gain advantage during waiting periods?</question>
     <question>How can competitor strategies be countered or leveraged?</question>
     <question>When should victory be claimed once the 7M He3 threshold is reached?</question>

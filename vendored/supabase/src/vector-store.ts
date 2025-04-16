@@ -30,47 +30,47 @@ export interface TextEmbeddingModel {
  * @param model - OpenAI embedding model to use (defaults to text-embedding-3-small)
  * @returns A TextEmbeddingModel implementation for generating embeddings
  */
-export function createOpenAIEmbeddingProvider(
-  apiKey: string = process.env.OPENAI_API_KEY || "",
-  model: string = "text-embedding-3-small"
-): TextEmbeddingModel {
-  return {
-    provider: "openai",
-    modelId: model,
+// export function createOpenAIEmbeddingProvider(
+//   apiKey: string = process.env.GOOGLE_API_KEY || "",
+//   model: string = "text-embedding-004"
+// ): TextEmbeddingModel {
+//   return {
+//     provider: "google",
+//     modelId: model,
 
-    async generateEmbeddings(texts: string[]): Promise<number[][]> {
-      if (!apiKey) {
-        throw new Error("OpenAI API key is required for embedding generation");
-      }
+//     async generateEmbeddings(texts: string[]): Promise<number[][]> {
+//       if (!apiKey) {
+//         throw new Error("Google API key is required for embedding generation");
+//       }
 
-      try {
-        // Use fetch directly to avoid requiring the OpenAI SDK as a dependency
-        const response = await fetch("https://api.openai.com/v1/embeddings", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            model,
-            input: texts,
-          }),
-        });
+//       try {
+//         // Use fetch directly to avoid requiring the OpenAI SDK as a dependency
+//         const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:embedText?key=" + apiKey, {
+//           method: "POST",
+//           headers: {
+//             "Content-Type": "application/json",
+//             Authorization: `Bearer ${apiKey}`,
+//           },
+//           body: JSON.stringify({
+//             model,
+//             input: texts,
+//           }),
+//         });
 
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(`OpenAI API error: ${JSON.stringify(error)}`);
-        }
+//         if (!response.ok) {
+//           const error = await response.json();
+//           throw new Error(`OpenAI API error: ${JSON.stringify(error)}`);
+//         }
 
-        const data = await response.json();
-        return data.data.map((item: any) => item.embedding);
-      } catch (error) {
-        console.error("Error generating embeddings:", error);
-        throw error;
-      }
-    },
-  };
-}
+//         const data = await response.json();
+//         return data.data.map((item: any) => item.embedding);
+//       } catch (error) {
+//         console.error("Error generating embeddings:", error);
+//         throw error;
+//       }
+//     },
+//   };
+// }
 
 /**
  * Creates a Supabase vector store that implements the core VectorStore interface

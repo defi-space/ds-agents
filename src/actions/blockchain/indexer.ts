@@ -73,35 +73,35 @@ export const indexerActions = [
   }),
 
   action({
-    name: "getReactorInfo",
-    description: "Fetches detailed information about a specific farming reactor",
-    instructions: "Use this action when an agent needs data about a reactor including its rewards, staked amounts, and other metrics",
+    name: "getFarmInfo",
+    description: "Fetches detailed information about a specific farming farm",
+    instructions: "Use this action when an agent needs data about a farm including its rewards, staked amounts, and other metrics",
     schema: z.object({
-      reactorAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Reactor contract address (must be a valid hex address starting with 0x)")
+      farmAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Farm contract address (must be a valid hex address starting with 0x)")
     }),
     handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!args.reactorAddress) {
+        if (!args.farmAddress) {
           return {
             success: false,
-            error: "Reactor address is required",
-            message: "Cannot retrieve reactor information: reactor address is missing",
+            error: "Farm address is required",
+            message: "Cannot retrieve farm information: farm address is missing",
             timestamp: Date.now()
           };
         }
         
-        const normalizedAddress = normalizeAddress(args.reactorAddress);
+        const normalizedAddress = normalizeAddress(args.farmAddress);
         
         const result = await executeQuery(GET_FARM_INFO, {
           address: normalizedAddress
         });
         
-        if (!result || !result.reactor) {
+        if (!result || !result.farm) {
           return {
             success: false,
-            error: "Reactor not found",
-            message: `No reactor information found for address ${args.reactorAddress}`,
+            error: "Farm not found",
+            message: `No farm information found for address ${args.farmAddress}`,
             timestamp: Date.now()
           };
         }
@@ -109,30 +109,30 @@ export const indexerActions = [
         return {
           success: true,
           data: result,
-          message: `Successfully retrieved information for reactor at ${args.reactorAddress}`,
+          message: `Successfully retrieved information for farm at ${args.farmAddress}`,
           timestamp: Date.now()
         };
       } catch (error) {
-        console.error('Failed to get reactor info:', error);
+        console.error('Failed to get farm info:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to get reactor info",
-          message: `Failed to retrieve reactor information: ${(error as Error).message || "Unknown error"}`,
+          error: (error as Error).message || "Failed to get farm info",
+          message: `Failed to retrieve farm information: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };
       }
     },
     retry: 3,
     onError: async (error, ctx, agent) => {
-      console.error(`Reactor info query failed:`, error);
-      ctx.emit("reactorInfoError", { action: ctx.call.name, error: error.message });
+      console.error(`Farm info query failed:`, error);
+      ctx.emit("farmInfoError", { action: ctx.call.name, error: error.message });
     }
   }),
 
   action({
-    name: "getAllReactors",
-    description: "Retrieves a list of all registered farming reactors in the network",
-    instructions: "Use this action when an agent needs to discover all available reactors and their data",
+    name: "getAllfarms",
+    description: "Retrieves a list of all registered farming farms in the network",
+    instructions: "Use this action when an agent needs to discover all available farms and their data",
     schema: z.object({
       message: z.string().describe("Not used - can be ignored").default("None"),
     }),
@@ -143,8 +143,8 @@ export const indexerActions = [
         if (!result || !result.farms || !Array.isArray(result.farms)) {
           return {
             success: false,
-            error: "No reactors data returned",
-            message: "Failed to retrieve reactors list: no reactors data returned from query",
+            error: "No farms data returned",
+            message: "Failed to retrieve farms list: no farms data returned from query",
             timestamp: Date.now()
           };
         }
@@ -152,23 +152,23 @@ export const indexerActions = [
         return {
           success: true,
           data: result,
-          message: `Successfully retrieved information for ${result.reactors.length} reactors`,
+          message: `Successfully retrieved information for ${result.farms.length} farms`,
           timestamp: Date.now()
         };
       } catch (error) {
-        console.error('Failed to get all reactors:', error);
+        console.error('Failed to get all farms:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to get all reactors",
-          message: `Failed to retrieve reactor list: ${(error as Error).message || "Unknown error"}`,
+          error: (error as Error).message || "Failed to get all farms",
+          message: `Failed to retrieve farm list: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };
       }
     },
     retry: 3,
     onError: async (error, ctx, agent) => {
-      console.error(`Get all reactors query failed:`, error);
-      ctx.emit("getAllReactorsError", { action: ctx.call.name, error: error.message });
+      console.error(`Get all farms query failed:`, error);
+      ctx.emit("getAllfarmsError", { action: ctx.call.name, error: error.message });
     }
   }),
 
@@ -287,9 +287,9 @@ export const indexerActions = [
   }),
 
   action({
-    name: "getReactorIndexByLpToken",
-    description: "Retrieves the reactor index for a given LP token address",
-    instructions: "Use this action when an agent needs to find which reactor corresponds to a specific LP token",
+    name: "getfarmIndexByLpToken",
+    description: "Retrieves the farm index for a given LP token address",
+    instructions: "Use this action when an agent needs to find which farm corresponds to a specific LP token",
     schema: z.object({
       lpTokenAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("LP token contract address (must be a valid hex address starting with 0x)")
     }),
@@ -300,7 +300,7 @@ export const indexerActions = [
           return {
             success: false,
             error: "LP token address is required",
-            message: "Cannot retrieve reactor index: LP token address is missing",
+            message: "Cannot retrieve farm index: LP token address is missing",
             timestamp: Date.now()
           };
         }
@@ -332,19 +332,19 @@ export const indexerActions = [
           timestamp: Date.now()
         };
       } catch (error) {
-        console.error('Failed to get reactor index by LP token:', error);
+        console.error('Failed to get farm index by LP token:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to get reactor index by LP token",
-          message: `Failed to retrieve reactor index for LP token: ${(error as Error).message || "Unknown error"}`,
+          error: (error as Error).message || "Failed to get farm index by LP token",
+          message: `Failed to retrieve farm index for LP token: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };
       }
     },
     retry: 3,
     onError: async (error, ctx, agent) => {
-      console.error(`Reactor index lookup failed:`, error);
-      ctx.emit("reactorIndexLookupError", { action: ctx.call.name, error: error.message });
+      console.error(`Farm index lookup failed:`, error);
+      ctx.emit("farmIndexLookupError", { action: ctx.call.name, error: error.message });
     }
   }),
 

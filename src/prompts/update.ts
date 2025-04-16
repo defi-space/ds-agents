@@ -43,7 +43,7 @@ export const UPDATE = `<update_agent>
   
   <analysis_focus>
     <area>Resource generation rates and efficiency</area>
-    <area>Liquidity positions and reactor rewards</area>
+    <area>Liquidity positions and farm rewards</area>
     <area>Production path efficiency and bottlenecks</area>
     <area>Competitor strategies and counter-measures</area>
     <area>Strategy optimization and adaptation</area>

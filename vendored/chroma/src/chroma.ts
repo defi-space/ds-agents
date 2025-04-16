@@ -4,7 +4,7 @@
 import {
   ChromaClient,
   Collection,
-  OpenAIEmbeddingFunction,
+  GoogleGenerativeAiEmbeddingFunction,
   type IEmbeddingFunction,
 } from "chromadb";  
 // For the @daydreamsai/core import error, let's create a type alias locally
@@ -49,7 +49,7 @@ export class ChromaVectorStore implements VectorStore {
       
       // Construct the environment variable name for the agent's API key
       // e.g., AGENT1_API_KEY for agent-1
-      const apiKeyEnvVar = agentNumber ? `AGENT${agentNumber}_API_KEY` : "OPENAI_API_KEY";
+      const apiKeyEnvVar = agentNumber ? `AGENT${agentNumber}_API_KEY` : "GOOGLE_API_KEY";
       
       // Get the API key from environment variable
       let apiKey = process.env[apiKeyEnvVar];
@@ -59,24 +59,26 @@ export class ChromaVectorStore implements VectorStore {
         apiKey = apiKey.replace(/^["'](.*)["']$/, '$1').trim();
       } else {
         // Fall back to default key
-        apiKey = process.env.OPENAI_API_KEY;
+        apiKey = process.env.GOOGLE_API_KEY;
         if (apiKey) {
           apiKey = apiKey.replace(/^["'](.*)["']$/, '$1').trim();
         }
       }
       
       if (!apiKey) {
-        throw new Error(`No OpenAI API key found for agent ${agentId}`);
+        throw new Error(`No Google API key found for agent ${agentId}`);
       }
       
       try {
-        this.embedder = new OpenAIEmbeddingFunction({
-          openai_api_key: apiKey,
-          openai_model: "text-embedding-3-small",
+        this.embedder = new GoogleGenerativeAiEmbeddingFunction({
+          googleApiKey: apiKey,
+          model: "text-embedding-004",
+          apiKeyEnvVar: "GOOGLE_API_KEY",
         });
       } catch (error) {
-        console.error(`Error creating embedding function: ${error}`);
-        throw new Error(`Failed to initialize OpenAIEmbeddingFunction: ${error}`);
+        // Log the specific error during embedding function creation
+        console.error(`Error creating embedding function for agent ${agentId}:`, error);
+        throw new Error(`Failed to initialize GoogleGenerativeAiEmbeddingFunction: ${error}`);
       }
     } else {
       this.embedder = embedder;
@@ -89,8 +91,10 @@ export class ChromaVectorStore implements VectorStore {
     });
 
     this.initCollection(collectionName).catch(error => {
-      console.error("Failed to initialize in constructor:", error);
-      throw error;
+      // Log the specific error during constructor's initCollection call
+      console.error(`Failed to initialize collection '${collectionName}' in constructor:`, error);
+      // No need to throw again, let the original throw from initCollection propagate if needed
+      // throw error; // Removed redundant throw
     });
   }
 
@@ -122,9 +126,10 @@ export class ChromaVectorStore implements VectorStore {
 
       this.isInitialized = true;
     } catch (error) {
-      console.error("Failed to initialize collection:", error);
+      // Log the specific error during collection initialization
+      console.error(`Failed to initialize collection '${collectionName}':`, error);
       this.isInitialized = false;
-      throw error;
+      throw error; // Re-throw the error after logging
     }
   }
 
@@ -194,7 +199,9 @@ export class ChromaVectorStore implements VectorStore {
         
         return results.documents[0] || [];
       } catch (filterError) {
-        console.warn(`Query with filter failed. Trying without filter...`);
+        // Log the specific error when the filtered query fails
+        console.warn(`Query with filter failed for contextId '${contextId}'. Error:`, filterError);
+        console.warn(`Trying query without filter...`);
         
         // If filtering fails, try without the where clause
         try {
@@ -217,12 +224,14 @@ export class ChromaVectorStore implements VectorStore {
           
           return matchingDocuments;
         } catch (noFilterError) {
-          console.error(`Query without filter also failed`);
-          return [];
+          // Log the specific error when the unfiltered query also fails
+          console.error(`Query without filter also failed for contextId '${contextId}'. Error:`, noFilterError);
+          return []; // Return empty array as per original logic
         }
       }
     } catch (error) {
-      console.error("Error in query operation:", error);
+      // Log any other errors occurring during the query operation
+      console.error(`Error in query operation for contextId '${contextId}':`, error);
       // Return empty array instead of throwing to avoid breaking the agent
       return [];
     }

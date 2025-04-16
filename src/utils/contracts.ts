@@ -1,11 +1,11 @@
 import contractAddresses from '../../contracts.json';
 
-export type ContractCategory = 'core' | 'resources' | 'lpPairs' | 'reactors' | 'agents' | 'gameSession';
+export type ContractCategory = 'core' | 'resources' | 'lpPairs' | 'farms' | 'agents' | 'gameSession';
 export type ContractName = keyof typeof contractAddresses[ContractCategory];
 
 /**
  * Get a contract address from the contracts.json file
- * @param category The category of the contract (core, resources, lpPairs, reactors, agents, gameSessions)
+ * @param category The category of the contract (core, resources, lpPairs, farms, agents, gameSessions)
  * @param name The name of the contract within the category
  * @returns The contract address
  * @throws Error if the contract address is not found

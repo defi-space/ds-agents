@@ -405,21 +405,21 @@ export const utilsActions = [
         const stakingPositionsWithRewards = stakePositions?.userStake && Array.isArray(stakePositions.userStake) 
           ? await Promise.all(
               stakePositions.userStake.map(async (stake: any) => {
-                // Get the reactor address from the stake
-                const reactorAddress = stake.reactorAddress;
+                // Get the farm address from the stake
+                const farmAddress = stake.farmAddress;
                 
-                if (!reactorAddress) {
+                if (!farmAddress) {
                   return {
                     ...stake,
                     pendingRewards: [],
-                    error: "Missing reactor address"
+                    error: "Missing farm address"
                   };
                 }
                 
                 try {
-            // Get all reward tokens for this reactor
+            // Get all reward tokens for this farm
             const rewardTokensResponse = await starknetChain.read({
-              contractAddress: reactorAddress,
+              contractAddress: farmAddress,
               entrypoint: "get_reward_tokens",
               calldata: []
             });
@@ -431,7 +431,7 @@ export const utilsActions = [
               rewardTokens.map(async (rewardToken: string) => {
                       try {
                 const earnedResponse = await starknetChain.read({
-                  contractAddress: reactorAddress,
+                  contractAddress: farmAddress,
                   entrypoint: "earned",
                   calldata: [
                     agentAddress,
@@ -457,22 +457,22 @@ export const utilsActions = [
             );
                   
             return {
-              reactorAddress: stake.reactorAddress,
+              farmAddress: stake.farmAddress,
               stakedAmount: stake.stakedAmount,
               rewards: stake.rewards,
               penaltyEndTime: stake.penaltyEndTime,
               rewardPerTokenPaid: stake.rewardPerTokenPaid,
               pendingRewards,
-                    reactorInfo: stake.reactor ? {
-                lpTokenAddress: stake.reactor.lpTokenAddress,
-                totalStaked: stake.reactor.totalStaked,
-                activeRewards: stake.reactor.activeRewards,
-                penaltyDuration: stake.reactor.penaltyDuration,
-                withdrawPenalty: stake.reactor.withdrawPenalty
+                    farmInfo: stake.farm ? {
+                lpTokenAddress: stake.farm.lpTokenAddress,
+                totalStaked: stake.farm.totalStaked,
+                activeRewards: stake.farm.activeRewards,
+                penaltyDuration: stake.farm.penaltyDuration,
+                withdrawPenalty: stake.farm.withdrawPenalty
                     } : null,
                   };
                 } catch (error) {
-                  console.error(`Error processing stake for reactor ${reactorAddress}:`, error);
+                  console.error(`Error processing stake for farm ${farmAddress}:`, error);
                   return {
                     ...stake,
                     pendingRewards: [],

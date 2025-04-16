@@ -27,13 +27,13 @@ export interface LiquidityPosition {
 
 export interface StakePosition {
   id: string;
-  reactorAddress: string;
+  farmAddress: string;
   userAddress: string;
   stakedAmount: string;
   rewards: string;
   penaltyEndTime: string;
   rewardPerTokenPaid: string;
-  reactor?: {
+  farm?: {
     lpTokenAddress: string;
     totalStaked: string;
     activeRewards: boolean;
@@ -201,20 +201,20 @@ export function analyzePathPreference(
     // Score based on stake positions
     const stakes = stakePositions?.userStake || [];
     for (const stake of stakes) {
-      const reactorAddress = stake.reactorAddress;
+      const farmAddress = stake.farmAddress;
       
-      // Check if this reactor is for graphene path tokens
+      // Check if this farm is for graphene path tokens
       if (
-        isAddressOfType(reactorAddress, 'reactors', 'grp') ||
-        isAddressOfType(reactorAddress, 'reactors', 'gph')
+        isAddressOfType(farmAddress, 'farms', 'grp') ||
+        isAddressOfType(farmAddress, 'farms', 'gph')
       ) {
         graphenePathScore += 3;
       }
       
-      // Check if this reactor is for yttrium path tokens
+      // Check if this farm is for yttrium path tokens
       if (
-        isAddressOfType(reactorAddress, 'reactors', 'dy') ||
-        isAddressOfType(reactorAddress, 'reactors', 'y')
+        isAddressOfType(farmAddress, 'farms', 'dy') ||
+        isAddressOfType(farmAddress, 'farms', 'y')
       ) {
         yttriumPathScore += 3;
       }
@@ -319,32 +319,32 @@ export function analyzeStakingStrategy(stakePositions: any): string {
     let he3SingleStake = 0;
     
     for (const stake of stakes) {
-      const reactorAddress = stake.reactorAddress;
+      const farmAddress = stake.farmAddress;
       
-      // Check for base resource reactors
+      // Check for base resource farms
       if (
-        isAddressOfType(reactorAddress, 'reactors', 'grp') ||
-        isAddressOfType(reactorAddress, 'reactors', 'dy')
+        isAddressOfType(farmAddress, 'farms', 'grp') ||
+        isAddressOfType(farmAddress, 'farms', 'dy')
       ) {
         baseResourceStakes += 1;
       } 
-      // Check for intermediate resource reactors
+      // Check for intermediate resource farms
       else if (
-        isAddressOfType(reactorAddress, 'reactors', 'gph') ||
-        isAddressOfType(reactorAddress, 'reactors', 'y')
+        isAddressOfType(farmAddress, 'farms', 'gph') ||
+        isAddressOfType(farmAddress, 'farms', 'y')
       ) {
         intermediateResourceStakes += 1;
       } 
-      // Check for He3 production reactors
+      // Check for He3 production farms
       else if (
-        isAddressOfType(reactorAddress, 'reactors', 'he3') && 
-        !isAddressOfType(reactorAddress, 'reactors', 'he3Stake')
+        isAddressOfType(farmAddress, 'farms', 'he3') && 
+        !isAddressOfType(farmAddress, 'farms', 'he3Stake')
       ) {
         advancedResourceStakes += 1;
       } 
       // Check for He3 single staking
       else if (
-        isAddressOfType(reactorAddress, 'reactors', 'he3Stake')
+        isAddressOfType(farmAddress, 'farms', 'he3Stake')
       ) {
         he3SingleStake += 1;
       }

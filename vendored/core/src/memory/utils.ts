@@ -1,5 +1,5 @@
 import { generateObject } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { google } from "@ai-sdk/google";
 import type {
   AnyAgent,
   Episode,
@@ -42,7 +42,7 @@ export const generateEpisodicMemory = async (
   result: string;
 }> => {
   const extractEpisode = await generateObject({
-    model: agent.memory.vectorModel || openai("gpt-4.1-nano"),
+    model: google("gemini-2.0-flash-lite"),
     schema: z.object({
       observation: z.string().describe("The context and setup - what happened"),
       thoughts: z

@@ -37,13 +37,13 @@ export const EXECUTION = `<execution_agent>
     <mechanisms>
       <faucet>Hourly claims for base resources (wD: 700,000, C: 100,000, Nd: 210,000)</faucet>
       <liquidity_pools>LP tokens created by depositing resource pairs</liquidity_pools>
-      <reactors>Staking LP tokens to generate rewards at fixed rates</reactors>
+      <farms>Staking LP tokens to generate rewards at fixed rates</farms>
     </mechanisms>
     
     <reward_mechanics>
       <note>There are no prices or APRs - all rewards are generated at fixed rates determined by the game</note>
-      <note>Rewards are shared proportionally among all LPs in a reactor based on stake percentage</note>
-      <note>Competition affects reward distribution as multiple agents stake in the same reactors</note>
+      <note>Rewards are shared proportionally among all LPs in a farm based on stake percentage</note>
+      <note>Competition affects reward distribution as multiple agents stake in the same farms</note>
       <note>Impermanent loss mechanics still apply to liquidity positions as usual</note>
     </reward_mechanics>
     
@@ -61,7 +61,7 @@ export const EXECUTION = `<execution_agent>
   
   <strategic_considerations>
     <consideration>How will you balance resource allocation across different production paths?</consideration>
-    <consideration>How will you optimize your share of fixed reward pools in each reactor?</consideration>
+    <consideration>How will you optimize your share of fixed reward pools in each farm?</consideration>
     <consideration>How will you adapt to competitor staking behaviors and resource claims?</consideration>
     <consideration>What innovative approaches could accelerate He3 accumulation?</consideration>
     <consideration>How will you manage tradeoffs between different resource generation paths?</consideration>

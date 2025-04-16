@@ -38,18 +38,18 @@ This is your unique identifier on the network
 
    B. Intermediate Resources:
       Graphene Path:
-      - LP token from Carbon (C) / wD pair deposited in GRP Reactor generates Graphite (GRP)
-      - LP token from Graphite (GRP) / wD pair deposited in GPH Reactor generates Graphene (GPH)
+      - LP token from Carbon (C) / wD pair deposited in GRP Farm generates Graphite (GRP)
+      - LP token from Graphite (GRP) / wD pair deposited in GPH Farm generates Graphene (GPH)
       
       Yttrium Path:
-      - LP token from Neodymium (Nd) / wD pair deposited in Dy Reactor generates Dysprosium (Dy) 
-      - LP token from Dysprosium (Dy) / wD pair deposited in Y Reactor generates Yttrium (Y)
+      - LP token from Neodymium (Nd) / wD pair deposited in Dy Farm generates Dysprosium (Dy) 
+      - LP token from Dysprosium (Dy) / wD pair deposited in Y Farm generates Yttrium (Y)
 
    C. Final Resources:
-      - LP token from Graphene (GPH) / Yttrium (Y) pair deposited in He3 Reactor generates Helium-3 (He3)
+      - LP token from Graphene (GPH) / Yttrium (Y) pair deposited in He3 Farm generates Helium-3 (He3)
       - He3 can be:
-        * Paired with wD, LP token from He3 / wD pair deposited in He3 Reactor generates more wD
-        * Deposited in an other He3 Reactor to earn more He3
+        * Paired with wD, LP token from He3 / wD pair deposited in He3 Farm generates more wD
+        * Deposited in an other He3 Farm to earn more He3
 
 2. Resource Generation:
    A. Faucet Claims (Every Hour):
@@ -59,15 +59,15 @@ This is your unique identifier on the network
 
    B. Liquidity Mining Rewards:
       Primary Production:
-      - wD-C lp token generates GRP when deposited in GRP Reactor
-      - wD-GRP lp token generates GPH when deposited in GPH Reactor
-      - wD-Nd lp token generates Dy when deposited in Dy Reactor
-      - wD-Dy lp token generates Y when deposited in Y Reactor
+      - wD-C lp token generates GRP when deposited in GRP Farm
+      - wD-GRP lp token generates GPH when deposited in GPH Farm
+      - wD-Nd lp token generates Dy when deposited in Dy Farm
+      - wD-Dy lp token generates Y when deposited in Y Farm
 
       Advanced Production:
-      - GPH-Y lp token generates He3 when deposited in He3 Reactor
-      - wD-He3 lp token generates wD when deposited in He3 Reactor
-      - He3 Single Stake generates He3 when deposited in an other He3 Reactor
+      - GPH-Y lp token generates He3 when deposited in He3 Farm
+      - wD-He3 lp token generates wD when deposited in He3 Farm
+      - He3 Single Stake generates He3 when deposited in an other He3 Farm
 
 3. Game Mechanics:
    A. Resource Progression:
@@ -97,9 +97,9 @@ The following contracts are available on Starknet:
 <ds_router>
     Router Contract address: ${getContractAddress('core', 'router')}
 </ds_router>
-<ds_conduit>
-    Conduit Contract address: ${getContractAddress('core', 'conduit')}
-</ds_conduit>
+<ds_farmRouter>
+    FarmRouter Contract address: ${getContractAddress('core', 'farmRouter')}
+</ds_farmRouter>
 <ds_faucet>
     Faucet Contract address: ${getContractAddress('core', 'faucet')}
 </ds_faucet>
@@ -149,236 +149,52 @@ The following contracts are available on Starknet:
      - Contract Address: ${getContractAddress('lpPairs', 'wdHelium3')}
 </ds_lp_pair_addresses>
 
-<ds_reactor_addresses>
-   - wD/C Reactor (Graphite Production)
-     - Contract Address: ${getContractAddress('reactors', 'grp')}
+<ds_farm_addresses>
+   - wD/C Farm (Graphite Production)
+     - Contract Address: ${getContractAddress('farms', 'grp')}
      - LP Token: ${getContractAddress('lpPairs', 'wdCarbon')}
      - Reward Token: GRP
      - Reward Amount: 10000000000000000000000000
 
-   - wD/GRP Reactor (Graphene Production)
-     - Contract Address: ${getContractAddress('reactors', 'gph')}
+   - wD/GRP Farm (Graphene Production)
+     - Contract Address: ${getContractAddress('farms', 'gph')}
      - LP Token: ${getContractAddress('lpPairs', 'wdGraphite')}
      - Reward Token: GPH
      - Reward Amount: 5000000000000000000000000
 
-   - wD/Nd Reactor (Dysprosium Production)
-     - Contract Address: ${getContractAddress('reactors', 'dy')}
+   - wD/Nd Farm (Dysprosium Production)
+     - Contract Address: ${getContractAddress('farms', 'dy')}
      - LP Token: ${getContractAddress('lpPairs', 'wdNeodymium')}
      - Reward Token: Dy
      - Reward Amount: 8000000000000000000000000
 
-   - wD/Dy Reactor (Yttrium Production)
-     - Contract Address: ${getContractAddress('reactors', 'y')}
+   - wD/Dy Farm (Yttrium Production)
+     - Contract Address: ${getContractAddress('farms', 'y')}
      - LP Token: ${getContractAddress('lpPairs', 'wdDysprosium')}
      - Reward Token: Y
      - Reward Amount: 4000000000000000000000000
 
-   - GPH/Y Reactor (He3 Production)
-     - Contract Address: ${getContractAddress('reactors', 'he3')}
+   - GPH/Y Farm (He3 Production)
+     - Contract Address: ${getContractAddress('farms', 'he3')}
      - LP Token: ${getContractAddress('lpPairs', 'grapheneYttrium')}
      - Reward Token: He3
      - Reward Amount: 2000000000000000000000000
 
-   - wD/He3 Reactor (wD Production)
-     - Contract Address: ${getContractAddress('reactors', 'wdHe3')}
+   - wD/He3 Farm (wD Production)
+     - Contract Address: ${getContractAddress('farms', 'wdHe3')}
      - LP Token: ${getContractAddress('lpPairs', 'wdHelium3')}
      - Reward Token: wD
      - Reward Amount: 1000000000000000000000000
 
-   - He3 Single Stake Reactor (He3 Production)
-     - Contract Address: ${getContractAddress('reactors', 'he3Stake')}
+   - He3 Single Stake Farm (He3 Production)
+     - Contract Address: ${getContractAddress('farms', 'he3Stake')}
      - Stake Token: ${getContractAddress('resources', 'helium3')}
      - Reward Token: He3
      - Reward Amount: 500000000000000000000000
-</ds_reactor_addresses>
+</ds_farm_addresses>
 </ds_contract_addresses>
 
-5. Indexer Data Models
-
-<indexer_data_models>
-1. AMM Protocol Models:
-
-   A. Factory Model:
-      - Top-level contract managing the AMM protocol
-      - Tracks pairs, TVL, and protocol configuration
-      - Key fields:
-        * address (PK): Contract address
-        * numOfPairs: Total trading pairs created
-        * owner: Current protocol owner
-        * feeTo: Fee receiver address
-        * configHistory: Historical configuration changes
-
-   B. Pair Model:
-      - Individual trading pair contract
-      - Manages token reserves and enables swaps
-      - Key fields:
-        * address (PK): Contract address
-        * factoryAddress: Parent factory
-        * token0Address: First token address
-        * token1Address: Second token address
-        * reserve0: First token reserve
-        * reserve1: Second token reserve
-        * totalSupply: Total LP tokens
-
-   C. LiquidityPosition Model:
-      - Agent's position in a trading pair
-      - Tracks LP tokens and historical actions
-      - Key fields:
-        * id (PK): Position identifier
-        * pairAddress: Trading pair contract
-        * agentAddress: Position owner
-        * liquidity: Current LP token balance
-        * depositsToken0: Historical token0 deposits
-        * depositsToken1: Historical token1 deposits
-        * withdrawalsToken0: Historical token0 withdrawals
-        * withdrawalsToken1: Historical token1 withdrawals
-
-   D. Trading Events:
-      - LiquidityEvent: Records mint/burn actions
-      - SwapEvent: Records individual trades
-      - Key fields include:
-        * transactionHash: On-chain reference
-        * amount0In: First token input
-        * amount1In: Second token input
-        * amount0Out: First token output
-        * amount1Out: Second token output
-        * createdAt: Event timestamp
-
-2. Yield Farming Models:
-
-   A. Powerplant Model:
-      - Top-level farming protocol manager
-      - Creates and controls reward reactors
-      - Key fields:
-        * address (PK): Contract address
-        * reactorCount: Total reactors created
-        * owner: Protocol controller
-        * configHistory: Setting changes
-
-   B. Reactor Model:
-      - Individual farming pool contract
-      - Manages staking and rewards
-      - Key fields:
-        * address (PK): Contract address
-        * powerplantAddress: Parent protocol
-        * lpTokenAddress: Stakeable token
-        * totalStaked: Total tokens locked
-        * activeRewards: Current reward rates
-        * penaltyDuration: Lock period length
-        * withdrawPenalty: Early exit fee
-
-   C. AgentStake Model:
-      - Agent's position in a reactor
-      - Tracks staked amounts and rewards
-      - Key fields:
-        * id (PK): Stake identifier
-        * reactorAddress: Farming pool
-        * agentAddress: Position owner
-        * stakedAmount: Locked tokens
-        * rewards: Earned but unclaimed
-        * penaltyEndTime: Lock period end
-        * rewardPerTokenPaid: Reward tracking
-
-   D. Farming Events:
-      - AgentStakeEvent: Records deposits/withdrawals
-      - RewardEvent: Tracks reward claims/additions
-      - Key fields include:
-        * transactionHash: On-chain reference
-        * eventType: Action type
-        * rewardAmount: Token quantity
-        * createdAt: Event timestamp
-
-3. Game Session Models:
-
-   A. GameFactory Model:
-      - Top-level contract managing game sessions
-      - Creates and tracks game competitions
-      - Key fields:
-        * address (PK): Contract address
-        * numOfSessions: Total sessions created
-        * totalValueLockedUsd: Total protocol TVL
-        * owner: Current protocol owner
-        * gameSessionClassHash: Session implementation
-        * configHistory: Historical configuration changes
-        * createdAt: Creation timestamp
-        * updatedAt: Last update timestamp
-
-   B. GameSession Model:
-      - Individual game competition contract
-      - Manages agent staking and victory conditions
-      - Key fields:
-        * address (PK): Contract address
-        * factoryAddress: Parent factory
-        * stakeTokenAddress: Token used for staking
-        * tokenWinConditionAddress: Token for winning (He3)
-        * tokenWinConditionThreshold: Victory amount (7M He3)
-        * sessionIndex: Session identifier
-        * owner: Session controller
-        * burnFeePercentage: Fee percentage burned
-        * platformFeePercentage: Fee percentage to platform
-        * feeRecipient: Platform fee receiver
-        * numberOfStakeWindows: Total staking periods
-        * numberOfAgents: Total competing agents
-        * isSuspended: Suspension status
-        * isOver: Completion status
-        * winningAgentIndex: Index of victorious agent
-        * totalStaked: Total tokens staked
-        * currentWindowIndex: Active staking window
-        * totalRewards: Total rewards for victor
-        * createdAt: Creation timestamp
-        * updatedAt: Last update timestamp
-        * endedAt: Completion timestamp
-
-   C. StakeWindow Model:
-      - Game session staking period
-      - Controls when agents can stake/unstake
-      - Key fields:
-        * id (PK): Window identifier
-        * sessionAddress: Parent game session
-        * windowIndex: Sequential index
-        * startTime: Opening timestamp
-        * endTime: Closing timestamp
-        * isActive: Activity status
-        * totalStaked: Tokens staked in window
-        * createdAt: Creation timestamp
-
-   D. UserStake Model:
-      - User's position in a game session
-      - Tracks staked amounts for specific agents
-      - Key fields:
-        * id (PK): Stake identifier
-        * sessionAddress: Game session contract
-        * userAddress: Stake owner
-        * agentIndex: Supported agent identifier
-        * stakedAmount: Tokens committed
-        * claimedRewards: Rewards withdrawn
-        * createdAt: First stake timestamp
-        * updatedAt: Last action timestamp
-
-   E. Game Events:
-      - Tracks all game-related transactions
-      - Records stakes, unstakes, and reward claims
-      - Key fields:
-        * id (PK): Event identifier
-        * transactionHash: On-chain reference
-        * createdAt: Event timestamp
-        * eventType: Action category (STAKE, UNSTAKE, etc.)
-        * userAddress: Acting participant
-        * agentIndex: Target agent
-        * windowIndex: Active staking window
-        * amount: Token quantity
-
-   F. Agent Structure:
-      - Represents a participant in the game session
-      - Contains the agent's address and total staked amount
-      - Key fields:
-        * address: Contract address of the agent
-        * totalStaked: Total amount staked by or for this agent
-
-</indexer_data_models>
-
-6. Blockchain Error Handling
+5. Blockchain Error Handling
 
 <blockchain_errors>
 1. Transaction Errors:
@@ -427,7 +243,7 @@ The following contracts are available on Starknet:
       - Implement percentage-based calculations instead of fixed amounts
 </blockchain_errors>
 
-7. Game Session Functions
+6. Game Session Functions
 
 <game_session_functions>
 1. End Game Function:
