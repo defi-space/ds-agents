@@ -1,18 +1,14 @@
-# Source files
-src/
+# Tests
+**/*.test.ts
+vitest.config.ts
 
-# Config files
+# Development
+src/
+node_modules/
+*.log
 tsconfig.json
 tsup.config.ts
-.eslintrc.js
-.prettierrc
 
-# Tests
-__tests__/
-*.test.ts
-*.spec.ts
-
-# Misc
-.DS_Store
+# Environment
 .env
-.env.local 
+.env.* 

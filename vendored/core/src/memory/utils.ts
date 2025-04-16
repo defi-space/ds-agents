@@ -1,5 +1,5 @@
 import { generateObject } from "ai";
-import { google } from "@ai-sdk/google";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import type {
   AnyAgent,
   Episode,
@@ -31,6 +31,40 @@ if (!isBrowser) {
   }
 }
 
+// Helper function to get the appropriate API key based on agent ID
+function getAgentApiKey(): string {
+  // Get the current agent ID (e.g., "agent-1", "agent-2", etc.)
+  const agentId = process.env.CURRENT_AGENT_ID || "default-agent";
+  
+  // Extract the agent number from the agent ID
+  // Handle different formats: "agent-1", "agent1", or just "1"
+  const agentNumber = agentId.match(/\d+/)?.[0] || "";
+  
+  // Construct the environment variable name for the agent's API key
+  // e.g., AGENT1_API_KEY for agent-1
+  const apiKeyEnvVar = agentNumber ? `AGENT${agentNumber}_API_KEY` : "GOOGLE_API_KEY";
+  
+  // Get the API key from environment variable
+  let apiKey = process.env[apiKeyEnvVar];
+  
+  // Parse out quotes if present
+  if (apiKey) {
+    apiKey = apiKey.replace(/^["'](.*)["']$/, '$1').trim();
+  } else {
+    // Fall back to default key
+    apiKey = process.env.GOOGLE_API_KEY;
+    if (apiKey) {
+      apiKey = apiKey.replace(/^["'](.*)["']$/, '$1').trim();
+    }
+  }
+  
+  if (!apiKey) {
+    throw new Error(`No Google API key found for agent ${agentId}`);
+  }
+  
+  return apiKey;
+}
+
 export const generateEpisodicMemory = async (
   agent: AnyAgent,
   thoughts: Thought[],
@@ -41,8 +75,23 @@ export const generateEpisodicMemory = async (
   thoughts: string;
   result: string;
 }> => {
+
+  // Use the agent's vectorModel if provided, otherwise create a model with the agent-specific API key
+  const model = agent.memory.vectorModel || (() => {
+    try {
+      const apiKey = getAgentApiKey();
+      const google = createGoogleGenerativeAI({
+        apiKey: apiKey,
+      });
+      return google("gemini-2.0-flash-lite");
+    } catch (error) {
+      console.error(`Failed to create Google model: ${error}`);
+      throw new Error(`Failed to create model for episodic memory: ${error}`);
+    }
+  })();
+  
   const extractEpisode = await generateObject({
-    model: google("gemini-2.0-flash-lite"),
+    model: model,
     schema: z.object({
       observation: z.string().describe("The context and setup - what happened"),
       thoughts: z

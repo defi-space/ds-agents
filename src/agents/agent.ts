@@ -81,9 +81,8 @@ export async function createAgent(config: AgentConfig) {
       
       memoryStore = await createSupabaseMemoryStore({
         url: supabaseOptions.url,
-        key: supabaseOptions.apiKey,
+        apiKey: supabaseOptions.apiKey,
         tableName: supabaseOptions.tableName || collectionName,
-        timeout: 90000
       });
     } catch (supabaseError) {
       const errorMessage = supabaseError instanceof Error 

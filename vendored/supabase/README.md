@@ -1,263 +1,124 @@
 # @daydreamsai/supabase
 
-A Supabase integration package for the DaydreamsAI platform, providing vector
-storage with pgvector and memory storage capabilities.
-
-## Features
-
-- Store and retrieve vector embeddings in Supabase using pgvector
-- Perform similarity searches with customizable thresholds and filters
-- Persistent memory storage for conversation data
-- Fully typed API with Zod schema validation
-- Implements core DaydreamsAI interfaces for seamless integration
+Supabase implementation of the MemoryStore interface for DaydreamsAI.
 
 ## Installation
 
 ```bash
+# If using npm
 npm install @daydreamsai/supabase
-# or
+
+# If using yarn
 yarn add @daydreamsai/supabase
-# or
+
+# If using pnpm
 pnpm add @daydreamsai/supabase
+
+# If using bun
+bun add @daydreamsai/supabase
 ```
+
+## Setup
+
+Before using this package, you need to set up a Supabase project:
+
+1. Create a new project at [supabase.com](https://supabase.com)
+2. Get your project URL and API key from the project settings
+3. Create the required Postgres function in your Supabase SQL editor:
+
+```sql
+-- This function allows automatic table creation
+CREATE OR REPLACE FUNCTION create_table_if_not_exists(table_name TEXT)
+RETURNS VOID AS $$
+BEGIN
+  EXECUTE format('
+    CREATE TABLE IF NOT EXISTS %I (
+      key TEXT PRIMARY KEY,
+      value JSONB NOT NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+  ', table_name);
+END;
+$$ LANGUAGE plpgsql;
+```
+
+The package will automatically create tables as needed by calling this function.
 
 ## Usage
 
-### Vector Store
-
-#### Basic Vector Store Setup
-
 ```typescript
-import { SupabaseVectorStore } from "@daydreamsai/supabase";
-import { createClient } from "@supabase/supabase-js";
+import { createSupabaseMemoryStore } from '@daydreamsai/supabase';
 
-// Create a Supabase client
-const supabaseClient = createClient(
-  "https://your-project-url.supabase.co",
-  "your-supabase-api-key"
-);
-
-// Create a vector store
-const vectorStore = new SupabaseVectorStore({
-  client: supabaseClient,
-  tableName: "embeddings",
+// Create and initialize the store
+const store = await createSupabaseMemoryStore({
+  url: 'https://your-project-id.supabase.co',
+  apiKey: 'your-supabase-api-key',
+  tableName: 'my_conversations' // Optional, defaults to "conversations"
+  // autoCreateTable: true, // Optional, defaults to true
 });
 
-// Initialize the database schema (creates tables and functions)
-await vectorStore.initialize(1536); // 1536 is the dimension of OpenAI embeddings
+// Use in your application
+await store.set('user123', { messages: [...] });
+const data = await store.get('user123');
 ```
 
-#### Using Core VectorStore Interface
+### Integration with DaydreamsAI
 
 ```typescript
-import { createSupabaseStore } from '@daydreamsai/supabase';
+import { createDreams } from '@daydreamsai/core';
+import { createSupabaseMemoryStore } from '@daydreamsai/supabase';
+import { createVectorStore } from 'some-vector-store';
 
-// Create a vector store that implements the core VectorStore interface
-const vectorStore = createSupabaseStore(
-  'https://your-project-url.supabase.co',
-  'your-supabase-api-key',
-  'embeddings' // optional table name
-);
-
-// Use with the core interface
-await vectorStore.upsert('context-123', [
-  {
-    id: '1',
-    content: 'This is a sample text',
-    embedding: [0.1, 0.2, 0.3, ...], // Your embedding vector
-    metadata: { source: 'example' },
-  }
-]);
-
-// Query for similar vectors
-const results = await vectorStore.query('context-123', {
-  embedding: [0.1, 0.2, 0.3, ...],
-  threshold: 0.7,
-  limit: 5
-});
-```
-
-### Memory Store
-
-```typescript
-import { createSupabaseMemory } from "@daydreamsai/supabase";
-
-// Create a memory store that implements the core MemoryStore interface
-const memoryStore = createSupabaseMemory(
-  "https://your-project-url.supabase.co",
-  "your-supabase-api-key",
-  "memory" // optional table name
-);
-
-// Store data
-await memoryStore.set("conversation-123", {
-  messages: [
-    { role: "user", content: "Hello" },
-    { role: "assistant", content: "Hi there!" },
-  ],
+const supabaseStore = await createSupabaseMemoryStore({
+  url: process.env.SUPABASE_URL!,
+  apiKey: process.env.SUPABASE_API_KEY!,
+  tableName: 'dreams'
 });
 
-// Retrieve data
-const conversation = await memoryStore.get("conversation-123");
-
-// Delete data
-await memoryStore.delete("conversation-123");
-
-// Clear all data
-await memoryStore.clear();
-```
-
-### Complete Memory System
-
-```typescript
-import { createSupabaseBaseMemory } from "@daydreamsai/supabase";
-import { OpenAI } from "openai";
-
-// Create OpenAI client for embeddings
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+const vectorStore = createVectorStore({
+  // vector store configuration
 });
 
-// Create a complete memory system with both memory store and vector store
-const memory = createSupabaseBaseMemory({
-  url: "https://your-project-url.supabase.co",
-  key: "your-supabase-api-key",
-  memoryTableName: "memory",
-  vectorTableName: "embeddings",
-  vectorModel: {
-    // Implement the TextEmbeddingModel interface for embeddings
-    provider: "openai",
-    modelId: "text-embedding-3-small",
-    async generateEmbeddings(texts) {
-      const response = await openai.embeddings.create({
-        model: "text-embedding-3-small",
-        input: texts,
-      });
-      return response.data.map((item) => item.embedding);
-    },
+const agent = createDreams({
+  memory: {
+    store: supabaseStore,
+    vector: vectorStore,
   },
-});
-
-// Use the memory system with an agent
-const agent = createAgent({
-  memory,
-  // ... other agent configuration
+  // other configuration
 });
 ```
 
-### Using Vector Store with Embeddings
+## Table Naming
 
-The Supabase vector store now includes built-in support for generating
-embeddings. You can use the default OpenAI embedding provider or provide your
-own custom embedding provider.
+The package automatically sanitizes table names to be PostgreSQL compatible:
+- Hyphens and special characters are replaced with underscores
+- Table names that don't start with a letter are prefixed with `t_`
 
-#### Default OpenAI Embedding Provider
+For example:
+- `agent-1-collection` becomes `agent_1_collection`
+- `1agent` becomes `t_1agent`
 
-If you have an OpenAI API key set in your environment variables
-(`OPENAI_API_KEY`), the vector store will automatically use OpenAI's embedding
-model to generate embeddings for your data:
+## API
 
-```typescript
-import { createSupabaseStore } from "@daydreamsai/supabase";
+### `createSupabaseMemoryStore(options: SupabaseMemoryOptions): Promise<MemoryStore>`
 
-// Create a vector store with automatic OpenAI embeddings
-const vectorStore = createSupabaseStore(
-  "https://your-project-url.supabase.co",
-  "your-supabase-api-key",
-  "embeddings" // optional table name
-);
+Creates and initializes a Supabase memory store implementation.
 
-// Add data to the vector store - embeddings will be generated automatically
-await vectorStore.upsert("context-123", [
-  { text: "This is a document about artificial intelligence" },
-  { text: "This is a document about machine learning" },
-]);
+#### Options
 
-// Query the vector store - embeddings will be generated for the query text
-const results = await vectorStore.query("context-123", "What is AI?");
-```
+- `url`: Supabase project URL
+- `apiKey`: Supabase API key
+- `tableName` (optional): Name of the Supabase table to use (defaults to "conversations")
+- `autoCreateTable` (optional): Whether to automatically create tables if they don't exist (defaults to true)
 
-#### Custom Embedding Provider
+### Methods
 
-You can also provide your own custom embedding provider:
-
-```typescript
-import {
-  createSupabaseStore,
-  createOpenAIEmbeddingProvider,
-  type TextEmbeddingModel,
-} from "@daydreamsai/supabase";
-
-// Use the built-in OpenAI provider with custom settings
-const openaiEmbedder = createOpenAIEmbeddingProvider(
-  "your-openai-api-key", // or use process.env.OPENAI_API_KEY
-  "text-embedding-3-small" // specify the model
-);
-
-// Or create a custom embedding provider
-const customEmbedder: TextEmbeddingModel = {
-  provider: "custom",
-  modelId: "my-custom-model",
-  async generateEmbeddings(texts: string[]): Promise<number[][]> {
-    // Implement your custom embedding logic here
-    // This could call a local model, another API, etc.
-    return texts.map((text) => {
-      // Example: generate a simple embedding (not for production use)
-      return Array.from({ length: 384 }, () => Math.random() - 0.5);
-    });
-  },
-};
-
-// Create a vector store with your custom embedding provider
-const vectorStore = createSupabaseStore(
-  "https://your-project-url.supabase.co",
-  "your-supabase-api-key",
-  "embeddings",
-  customEmbedder // or openaiEmbedder
-);
-
-// Add and query data as before
-await vectorStore.upsert("context-123", [
-  { text: "This is a document about artificial intelligence" },
-]);
-
-const results = await vectorStore.query("context-123", "What is AI?");
-```
-
-## SQL Setup
-
-The package includes SQL scripts to set up the necessary database functions in
-Supabase:
-
-```sql
--- Enable the pgvector extension
-CREATE EXTENSION IF NOT EXISTS vector;
-
--- Function to enable pgvector extension
-CREATE OR REPLACE FUNCTION enable_pgvector_extension()
-RETURNS void
-LANGUAGE plpgsql
-AS $$
-BEGIN
-  CREATE EXTENSION IF NOT EXISTS vector;
-END;
-$$;
-
--- Function to execute arbitrary SQL
-CREATE OR REPLACE FUNCTION execute_sql(query text)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-BEGIN
-  EXECUTE query;
-END;
-$$;
-```
-
-You can run these scripts in the Supabase SQL editor or use the provided
-setup.sql file.
+- `get<T>(key: string): Promise<T | null>` - Retrieve a value by key
+- `set<T>(key: string, value: T): Promise<void>` - Store a value by key
+- `delete(key: string): Promise<void>` - Remove a value by key
+- `clear(): Promise<void>` - Remove all values from the store
 
 ## License
 
-MIT
+MIT 
