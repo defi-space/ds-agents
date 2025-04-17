@@ -23,7 +23,6 @@ export const ammActions = [
         if (args.tokenIn === args.tokenOut) {
           return {
             success: false,
-            error: "Token addresses must be different",
             message: "Cannot calculate amount out: input and output tokens are the same",
             timestamp: Date.now()
           };
@@ -36,7 +35,6 @@ export const ammActions = [
         if (!routerAddress) {
           return {
             success: false,
-            error: "Router address not found",
             message: "Cannot calculate amount out: router contract address not found",
             timestamp: Date.now()
           };
@@ -59,7 +57,6 @@ export const ammActions = [
         if (pairAddress === "0x0" || pairAddress === "0x00") {
           return {
             success: false,
-            error: "Liquidity pair not found",
             message: `Cannot calculate amount out: no liquidity pair exists for ${tokenIn} and ${tokenOut}. Please check context to get available pairs.`,
             timestamp: Date.now()
           };
@@ -79,7 +76,6 @@ export const ammActions = [
         if (reserveIn.toString() === "0" || reserveOut.toString() === "0") {
           return {
             success: false,
-            error: "Insufficient liquidity",
             message: "Cannot calculate amount out: insufficient liquidity in the pool",
             timestamp: Date.now()
           };
@@ -100,20 +96,19 @@ export const ammActions = [
         
         return {
           success: true,
+          message: `For ${amountIn} of token ${tokenIn}, you will receive approximately ${amountOut} of token ${tokenOut}`,
           data: {
             amountOut,
             reserveIn,
             reserveOut,
             pairAddress
           },
-          message: `For ${amountIn} of token ${tokenIn}, you will receive approximately ${amountOut} of token ${tokenOut}`,
           timestamp: Date.now()
         };
       } catch (error) {
         console.error('Failed to get amount out:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to calculate output amount",
           message: `Failed to calculate swap output amount: ${(error as Error).message}`,
           timestamp: Date.now()
         };
@@ -154,7 +149,6 @@ export const ammActions = [
         if (pairAddress === "0x0" || pairAddress === "0x00") {
           return {
             success: false,
-            error: "Liquidity pair not found",
             message: `Cannot calculate quote: no liquidity pair exists for ${args.tokenIn} and ${args.tokenOut}. Please check context to get available pairs.`,
             timestamp: Date.now(),
           };
@@ -176,16 +170,18 @@ export const ammActions = [
             ...toUint256WithSpread(reserveOut.toString())
           ]
         });
+        const amountOut = convertU256ToDecimal(result[0], result[1]);
         return {
           success: true,
-          amountOut: convertU256ToDecimal(result[0], result[1]),
+          message: `For ${args.amountIn} of token ${args.tokenIn}, you will receive approximately ${amountOut} of token ${args.tokenOut}`,
+          data: { amountOut },
           timestamp: Date.now(),
         };
       } catch (error) {
         console.error('Failed to calculate quote:', error);
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to calculate quote',
+          message: error instanceof Error ? error.message : 'Failed to calculate quote',
           timestamp: Date.now(),
         };
       }
@@ -230,7 +226,6 @@ export const ammActions = [
         if (pairAddress === "0x0" || pairAddress === "0x00") {
           return {
             success: false,
-            error: "Liquidity pair not found",
             message: `Cannot execute swap: no liquidity pair exists for ${args.tokenIn} and ${args.tokenOut}. Please check context to get available pairs.`,
             timestamp: Date.now()
           };
@@ -263,8 +258,7 @@ export const ammActions = [
         if (result.receipt?.statusReceipt !== 'success') {
           return {
             success: false,
-            error: result.error || 'Transaction failed',
-            transactionHash: result.transactionHash,
+            message: result.error || 'Transaction failed',
             receipt: result.receipt,
             timestamp: Date.now(),
           };
@@ -272,15 +266,15 @@ export const ammActions = [
 
         return {
           success: true,
-          transactionHash: result.transactionHash,
-          receipt: result.receipt,
+          message: `Swap executed successfully`,
+          txHash: result.transactionHash,
           timestamp: Date.now(),
         };
       } catch (error) {
         console.error('Failed to execute swap:', error);
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to execute swap',
+          message: error instanceof Error ? error.message : 'Failed to execute swap',
           timestamp: Date.now(),
         };
       }
@@ -331,7 +325,6 @@ export const ammActions = [
         if (!optimalAmounts.isFirstProvision && (pairAddress === "0x0" || pairAddress === "0x00")) {
           return {
             success: false,
-            error: "Liquidity pair not found",
             message: `Cannot add liquidity: no liquidity pair exists for ${args.tokenA} and ${args.tokenB}. Please check context to get available pairs.`,
             timestamp: Date.now()
           };
@@ -344,18 +337,14 @@ export const ammActions = [
         if (balanceA < BigInt(amountA)) {
           return {
             success: false,
-            error: 'Insufficient balance for token A, consider decreasing amountADesired',
-            balanceA,
-            amountA,
+            message: 'Insufficient balance for token A, consider decreasing amountADesired',
             timestamp: Date.now(),
           };
         }
         if (balanceB < BigInt(amountB)) {
           return {
             success: false,
-            error: 'Insufficient balance for token B, consider decreasing amountADesired',
-            balanceB,
-            amountB,
+            message: 'Insufficient balance for token B, consider decreasing amountADesired',
             timestamp: Date.now(),
           };
         }
@@ -392,8 +381,7 @@ export const ammActions = [
         if (result.receipt?.statusReceipt !== 'success') {
           return {
             success: false,
-            error: result.error || 'Transaction failed',
-            transactionHash: result.transactionHash,
+            message: result.error || 'Transaction failed',
             receipt: result.receipt,
             timestamp: Date.now(),
           };
@@ -401,20 +389,15 @@ export const ammActions = [
 
         return {
           success: true,
-          transactionHash: result.transactionHash,
-          receipt: result.receipt,
-          amounts: {
-            amountA,
-            amountB,
-            isFirstProvision: optimalAmounts.isFirstProvision
-          },
+          message: `Liquidity added successfully`,
+          txHash: result.transactionHash,
           timestamp: Date.now(),
         };
       } catch (error) {
         console.error('Failed to add liquidity:', error);
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to add liquidity',
+          message: error instanceof Error ? error.message : 'Failed to add liquidity',
           timestamp: Date.now(),
         };
       }
@@ -449,7 +432,6 @@ export const ammActions = [
         if (pairAddress === "0x0" || pairAddress === "0x00") {
           return {
             success: false,
-            error: "Liquidity pair not found",
             message: `Cannot remove liquidity: no liquidity pair exists for ${args.tokenA} and ${args.tokenB}. Please check context to get available pairs.`,
             timestamp: Date.now()
           };
@@ -483,8 +465,7 @@ export const ammActions = [
         if (result.receipt?.statusReceipt !== 'success') {
           return {
             success: false,
-            error: result.error || 'Transaction failed',
-            transactionHash: result.transactionHash,
+            message: result.error || 'Transaction failed',
             receipt: result.receipt,
             timestamp: Date.now(),
           };
@@ -492,15 +473,15 @@ export const ammActions = [
 
         return {
           success: true,
-          transactionHash: result.transactionHash,
-          receipt: result.receipt,
+          message: `Liquidity removed successfully`,
+          txHash: result.transactionHash,
           timestamp: Date.now(),
         };
       } catch (error) {
         console.error('Failed to remove liquidity:', error);
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to remove liquidity',
+          message: error instanceof Error ? error.message : 'Failed to remove liquidity',
           timestamp: Date.now(),
         };
       }

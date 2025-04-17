@@ -26,7 +26,6 @@ export const yieldActions = [
         if (!args.farmIndex || !args.amount) {
           return {
             success: false,
-            error: "Missing required fields",
             message: "Both farmIndex and amount are required for deposit",
             timestamp: Date.now(),
           };
@@ -37,7 +36,6 @@ export const yieldActions = [
         if (!farmRouterAddress) {
           return {
             success: false,
-            error: "FarmRouter address not found",
             message: "Cannot deposit: FarmRouter contract address not found in configuration",
             timestamp: Date.now(),
           };
@@ -71,7 +69,6 @@ export const yieldActions = [
           console.error('Invalid amount format:', args.amount, validationError);
           return {
             success: false,
-            error: 'Invalid amount format',
             message: `Amount must be a valid integer string in base units. Received: ${args.amount}`,
             timestamp: Date.now(),
           };
@@ -100,9 +97,7 @@ export const yieldActions = [
         if (result.receipt?.statusReceipt !== 'success') {
           return {
             success: false,
-            error: result.error || 'Transaction failed',
             message: `Failed to deposit ${args.amount} LP tokens to farm ${args.farmIndex}: ${result.error || 'Transaction unsuccessful'}`,
-            transactionHash: result.transactionHash,
             receipt: result.receipt,
             timestamp: Date.now(),
           };
@@ -110,21 +105,19 @@ export const yieldActions = [
 
         return {
           success: true,
+          message: `Successfully deposited ${args.amount} LP tokens to farm ${args.farmIndex}`,
+          txHash: result.transactionHash,
           data: {
             farmIndex: args.farmIndex,
             amount: args.amount,
-            lpToken,
-            transactionHash: result.transactionHash,
-            receipt: result.receipt
+            lpToken
           },
-          message: `Successfully deposited ${args.amount} LP tokens to farm ${args.farmIndex}`,
           timestamp: Date.now(),
         };
       } catch (error) {
         console.error('Failed to deposit to farm:', error);
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to deposit to farm',
           message: `Failed to deposit to farm: ${error instanceof Error ? error.message : 'Unknown error'}`,
           timestamp: Date.now(),
         };
@@ -151,7 +144,6 @@ export const yieldActions = [
         if (!args.farmIndex || !args.amount) {
           return {
             success: false,
-            error: "Missing required fields",
             message: "Both farmIndex and amount are required for withdrawal",
             timestamp: Date.now(),
           };
@@ -162,7 +154,6 @@ export const yieldActions = [
         if (!farmRouterAddress) {
           return {
             success: false,
-            error: "FarmRouter address not found",
             message: "Cannot withdraw: FarmRouter contract address not found in configuration",
             timestamp: Date.now(),
           };
@@ -181,9 +172,7 @@ export const yieldActions = [
         if (result?.statusReceipt !== 'success') {
           return {
             success: false,
-            error: 'Transaction failed',
             message: `Failed to withdraw ${args.amount} LP tokens from farm ${args.farmIndex}: Transaction unsuccessful`,
-            transactionHash: result.transactionHash,
             receipt: result,
             timestamp: Date.now(),
           };
@@ -191,20 +180,18 @@ export const yieldActions = [
 
         return {
           success: true,
+          message: `Successfully withdrew ${args.amount} LP tokens from farm ${args.farmIndex}`,
+          txHash: result.transactionHash,
           data: {
             farmIndex: args.farmIndex,
-            amount: args.amount,
-            transactionHash: result.transactionHash,
-            receipt: result
+            amount: args.amount
           },
-          message: `Successfully withdrew ${args.amount} LP tokens from farm ${args.farmIndex}`,
           timestamp: Date.now(),
         };
       } catch (error) {
         console.error('Failed to withdraw from farm:', error);
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to withdraw from farm',
           message: `Failed to withdraw from farm: ${error instanceof Error ? error.message : 'Unknown error'}`,
           timestamp: Date.now(),
         };
@@ -230,7 +217,6 @@ export const yieldActions = [
         if (!args.farmIndex) {
           return {
             success: false,
-            error: "Missing required field",
             message: "farmIndex is required for exiting a farm",
             timestamp: Date.now(),
           };
@@ -241,7 +227,6 @@ export const yieldActions = [
         if (!farmRouterAddress) {
           return {
             success: false,
-            error: "FarmRouter address not found",
             message: "Cannot exit farm: FarmRouter contract address not found in configuration",
             timestamp: Date.now(),
           };
@@ -278,9 +263,7 @@ export const yieldActions = [
         if (result?.statusReceipt !== 'success') {
           return {
             success: false,
-            error: 'Transaction failed',
             message: `Failed to exit farm ${args.farmIndex}: Transaction unsuccessful`,
-            transactionHash: result.transactionHash,
             receipt: result,
             timestamp: Date.now(),
           };
@@ -288,20 +271,18 @@ export const yieldActions = [
 
         return {
           success: true,
+          message: `Successfully exited farm ${args.farmIndex}, withdrew all LP tokens (approximately ${stakedAmount})`,
+          txHash: result.transactionHash,
           data: {
             farmIndex: args.farmIndex,
-            exitedAmount: stakedAmount,
-            transactionHash: result.transactionHash,
-            receipt: result
+            exitedAmount: stakedAmount
           },
-          message: `Successfully exited farm ${args.farmIndex}, withdrew all LP tokens (approximately ${stakedAmount})`,
           timestamp: Date.now(),
         };
       } catch (error) {
         console.error('Failed to exit farm:', error);
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to exit farm',
           message: `Failed to exit farm: ${error instanceof Error ? error.message : 'Unknown error'}`,
           timestamp: Date.now(),
         };
@@ -327,7 +308,6 @@ export const yieldActions = [
         if (!args.farmIndex) {
           return {
             success: false,
-            error: "Missing required field",
             message: "farmIndex is required for harvesting rewards",
             timestamp: Date.now(),
           };
@@ -338,7 +318,6 @@ export const yieldActions = [
         if (!farmRouterAddress) {
           return {
             success: false,
-            error: "FarmRouter address not found",
             message: "Cannot harvest rewards: FarmRouter contract address not found in configuration",
             timestamp: Date.now(),
           };
@@ -392,9 +371,7 @@ export const yieldActions = [
         if (result?.statusReceipt !== 'success') {
           return {
             success: false,
-            error: 'Transaction failed',
             message: `Failed to harvest rewards from farm ${args.farmIndex}: Transaction unsuccessful`,
-            transactionHash: result.transactionHash,
             receipt: result,
             timestamp: Date.now(),
           };
@@ -402,21 +379,19 @@ export const yieldActions = [
 
         return {
           success: true,
+          message: `Successfully harvested rewards from farm ${args.farmIndex}`,
+          txHash: result.transactionHash,
           data: {
             farmIndex: args.farmIndex,
             rewardTokens,
-            harvestedAmounts: pendingRewards,
-            transactionHash: result.transactionHash,
-            receipt: result
+            harvestedAmounts: pendingRewards
           },
-          message: `Successfully harvested rewards from farm ${args.farmIndex}`,
           timestamp: Date.now(),
         };
       } catch (error) {
         console.error('Failed to harvest rewards:', error);
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to harvest rewards',
           message: `Failed to harvest rewards: ${error instanceof Error ? error.message : 'Unknown error'}`,
           timestamp: Date.now(),
         };
@@ -443,7 +418,6 @@ export const yieldActions = [
         if (!args.farmIndex || !args.rewardToken) {
           return {
             success: false,
-            error: "Missing required fields",
             message: "Both farmIndex and rewardToken are required for checking pending rewards",
             timestamp: Date.now(),
           };
@@ -454,7 +428,6 @@ export const yieldActions = [
         if (!farmRouterAddress) {
           return {
             success: false,
-            error: "FarmRouter address not found",
             message: "Cannot check pending rewards: FarmRouter contract address not found in configuration",
             timestamp: Date.now(),
           };
@@ -465,7 +438,6 @@ export const yieldActions = [
         if (!agentAddress) {
           return {
             success: false,
-            error: "Agent address not found",
             message: "Cannot check pending rewards: failed to retrieve agent address",
             timestamp: Date.now(),
           };
@@ -486,19 +458,18 @@ export const yieldActions = [
         
         return {
           success: true,
+          message: `You have ${earnedAmount} of reward token ${args.rewardToken} pending in farm ${args.farmIndex}`,
           data: {
             farmIndex: args.farmIndex,
             rewardToken: args.rewardToken,
             earnedAmount
           },
-          message: `You have ${earnedAmount} of reward token ${args.rewardToken} pending in farm ${args.farmIndex}`,
           timestamp: Date.now(),
         };
       } catch (error) {
         console.error('Failed to check farm rewards:', error);
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to check farm rewards',
           message: `Failed to check pending rewards: ${error instanceof Error ? error.message : 'Unknown error'}`,
           timestamp: Date.now(),
         };
@@ -524,7 +495,6 @@ export const yieldActions = [
         if (!args.farmIndex) {
           return {
             success: false,
-            error: "Missing required field",
             message: "farmIndex is required for getting LP token address",
             timestamp: Date.now(),
           };
@@ -535,7 +505,6 @@ export const yieldActions = [
         if (!farmRouterAddress) {
           return {
             success: false,
-            error: "FarmRouter address not found",
             message: "Cannot get LP token: FarmRouter contract address not found in configuration",
             timestamp: Date.now(),
           };
@@ -554,18 +523,17 @@ export const yieldActions = [
 
         return {
           success: true,
+          message: `The LP token for farm ${args.farmIndex} is ${lpToken}`,
           data: {
             farmIndex: args.farmIndex,
             lpToken
           },
-          message: `The LP token for farm ${args.farmIndex} is ${lpToken}`,
           timestamp: Date.now(),
         };
       } catch (error) {
         console.error('Failed to get LP token:', error);
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to get LP token',
           message: `Failed to get LP token: ${error instanceof Error ? error.message : 'Unknown error'}`,
           timestamp: Date.now(),
         };
@@ -591,7 +559,6 @@ export const yieldActions = [
         if (!args.farmIndex) {
           return {
             success: false,
-            error: "Missing required field",
             message: "farmIndex is required for getting staked amount",
             timestamp: Date.now(),
           };
@@ -602,7 +569,6 @@ export const yieldActions = [
         if (!farmRouterAddress) {
           return {
             success: false,
-            error: "FarmRouter address not found",
             message: "Cannot get staked amount: FarmRouter contract address not found in configuration",
             timestamp: Date.now(),
           };
@@ -613,7 +579,6 @@ export const yieldActions = [
         if (!agentAddress) {
           return {
             success: false,
-            error: "Agent address not found",
             message: "Cannot get staked amount: failed to retrieve agent address",
             timestamp: Date.now(),
           };
@@ -633,18 +598,17 @@ export const yieldActions = [
         
         return {
           success: true,
+          message: `You have ${stakedAmount} LP tokens staked in farm ${args.farmIndex}`,
           data: {
             farmIndex: args.farmIndex,
             stakedAmount
           },
-          message: `You have ${stakedAmount} LP tokens staked in farm ${args.farmIndex}`,
           timestamp: Date.now(),
         };
       } catch (error) {
         console.error('Failed to get balance:', error);
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to get user staked amount',
           message: `Failed to get staked amount: ${error instanceof Error ? error.message : 'Unknown error'}`,
           timestamp: Date.now(),
         };
@@ -670,7 +634,6 @@ export const yieldActions = [
         if (!args.farmIndex) {
           return {
             success: false,
-            error: "Missing required field",
             message: "farmIndex is required for getting total deposited amount",
             timestamp: Date.now(),
           };
@@ -681,7 +644,6 @@ export const yieldActions = [
         if (!farmRouterAddress) {
           return {
             success: false,
-            error: "FarmRouter address not found",
             message: "Cannot get total deposited: FarmRouter contract address not found in configuration",
             timestamp: Date.now(),
           };
@@ -700,18 +662,17 @@ export const yieldActions = [
         
         return {
           success: true,
+          message: `Total deposits in farm ${args.farmIndex} amount to ${totalDepositedAmount} LP tokens`,
           data: {
             farmIndex: args.farmIndex,
             totalDepositedAmount
           },
-          message: `Total deposits in farm ${args.farmIndex} amount to ${totalDepositedAmount} LP tokens`,
           timestamp: Date.now(),
         };
       } catch (error) {
         console.error('Failed to get total deposited:', error);
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to get total deposited amount',
           message: `Failed to get total deposited amount: ${error instanceof Error ? error.message : 'Unknown error'}`,
           timestamp: Date.now(),
         };
@@ -737,7 +698,6 @@ export const yieldActions = [
         if (!args.farmIndex) {
           return {
             success: false,
-            error: "Missing required field",
             message: "farmIndex is required for getting farm address",
             timestamp: Date.now(),
           };
@@ -748,7 +708,6 @@ export const yieldActions = [
         if (!farmRouterAddress) {
           return {
             success: false,
-            error: "FarmRouter address not found",
             message: "Cannot get farm address: FarmRouter contract address not found in configuration",
             timestamp: Date.now(),
           };
@@ -767,18 +726,17 @@ export const yieldActions = [
         
         return {
           success: true,
+          message: `The address for farm ${args.farmIndex} is ${formattedAddress}`,
           data: {
             farmIndex: args.farmIndex,
             farmAddress: formattedAddress
           },
-          message: `The address for farm ${args.farmIndex} is ${formattedAddress}`,
           timestamp: Date.now(),
         };
       } catch (error) {
         console.error('Failed to get farm address:', error);
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to get farm address',
           message: `Failed to get farm address: ${error instanceof Error ? error.message : 'Unknown error'}`,
           timestamp: Date.now(),
         };
@@ -804,7 +762,6 @@ export const yieldActions = [
         if (!args.farmIndex) {
           return {
             success: false,
-            error: "Missing required field",
             message: "farmIndex is required for getting reward tokens",
             timestamp: Date.now(),
           };
@@ -815,7 +772,6 @@ export const yieldActions = [
         if (!farmRouterAddress) {
           return {
             success: false,
-            error: "FarmRouter address not found",
             message: "Cannot get reward tokens: FarmRouter contract address not found in configuration",
             timestamp: Date.now(),
           };
@@ -834,18 +790,17 @@ export const yieldActions = [
         
         return {
           success: true,
+          message: `Farm ${args.farmIndex} has ${formattedTokens.length} reward token(s)`,
           data: {
             farmIndex: args.farmIndex,
             rewardTokens: formattedTokens
           },
-          message: `Farm ${args.farmIndex} has ${formattedTokens.length} reward token(s)`,
           timestamp: Date.now(),
         };
       } catch (error) {
         console.error('Failed to get reward tokens:', error);
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to get reward tokens',
           message: `Failed to get reward tokens: ${error instanceof Error ? error.message : 'Unknown error'}`,
           timestamp: Date.now(),
         };

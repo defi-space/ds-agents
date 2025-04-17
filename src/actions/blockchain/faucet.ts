@@ -54,7 +54,6 @@ export const faucetActions = [
           if (!faucetAddress) {
             return {
               success: false,
-              error: "Faucet contract address not found",
               message: "Cannot claim tokens: faucet contract address not found in configuration",
               timestamp: Date.now()
             };
@@ -64,7 +63,6 @@ export const faucetActions = [
           if (!agentAddress) {
             return {
               success: false,
-              error: "Agent address not found",
               message: "Cannot claim tokens: failed to retrieve agent address",
               timestamp: Date.now()
             };
@@ -76,14 +74,11 @@ export const faucetActions = [
           if (!status.canClaim) {
             return {
               success: false,
-              error: "Cooldown period not expired",
+              message: `Cannot claim yet. Please wait approximately ${status.minutesLeft} minutes before claiming again.`,
               data: {
                 minutesLeft: status.minutesLeft,
-                timeLeft: status.timeLeft,
-                lastClaim: status.lastClaim,
                 nextClaimTime: new Date((status.lastClaim + status.interval) * 1000).toISOString()
               },
-              message: `Cannot claim yet. Please wait approximately ${status.minutesLeft} minutes before claiming again.`,
               timestamp: Date.now()
             };
           }
@@ -98,21 +93,17 @@ export const faucetActions = [
           if (result?.statusReceipt !== 'success') {
             return {
               success: false,
-              error: 'Transaction failed',
-              data: {
-                transactionHash: result.transactionHash,
-                receipt: result
-              },
               message: "Failed to claim tokens from faucet. The transaction was submitted but did not complete successfully.",
+              receipt: result,
               timestamp: Date.now()
             };
           }
           
           return {
             success: true,
+            message: "Successfully claimed 7,000,000 wD, 100,000 C, 210,000 Nd from faucet",
+            txHash: result.transactionHash,
             data: {
-              transactionHash: result.transactionHash,
-              receipt: result,
               claimedTokens: {
                 wattDollar: "7,000,000",
                 carbon: "100,000",
@@ -120,14 +111,12 @@ export const faucetActions = [
               },
               nextClaimTime: new Date((Math.floor(Date.now() / 1000) + status.interval) * 1000).toISOString()
             },
-            message: "Successfully claimed 7,000,000 wD, 100,000 C, 210,000 Nd from faucet",
             timestamp: Date.now()
           };
         } catch (error) {
           console.error('Failed to claim from faucet:', error);
           return {
             success: false,
-            error: error instanceof Error ? error.message : 'Failed to claim from faucet',
             message: `Failed to claim tokens from faucet: ${error instanceof Error ? error.message : 'Unknown error'}`,
             timestamp: Date.now()
           };
@@ -153,7 +142,6 @@ export const faucetActions = [
           if (!faucetAddress) {
             return {
               success: false,
-              error: "Faucet contract address not found",
               message: "Cannot check faucet status: faucet contract address not found in configuration",
               timestamp: Date.now()
             };
@@ -163,7 +151,6 @@ export const faucetActions = [
           if (!agentAddress) {
             return {
               success: false,
-              error: "Agent address not found",
               message: "Cannot check faucet status: failed to retrieve agent address",
               timestamp: Date.now()
             };
@@ -173,6 +160,9 @@ export const faucetActions = [
           
           return {
             success: true,
+            message: status.canClaim 
+              ? "You can claim tokens from the faucet now" 
+              : `You need to wait approximately ${status.minutesLeft} minutes before claiming again`,
             data: {
               timeLeft: status.timeLeft,
               minutesLeft: status.minutesLeft,
@@ -185,16 +175,12 @@ export const faucetActions = [
                 ? "Available now" 
                 : new Date((status.lastClaim + status.interval) * 1000).toISOString()
             },
-            message: status.canClaim 
-              ? "You can claim tokens from the faucet now" 
-              : `You need to wait approximately ${status.minutesLeft} minutes before claiming again`,
             timestamp: Date.now()
           };
         } catch (error) {
           console.error('Failed to check faucet status:', error);
           return {
             success: false,
-            error: error instanceof Error ? error.message : 'Failed to check faucet status',
             message: `Failed to check faucet claim status: ${error instanceof Error ? error.message : 'Unknown error'}`,
             timestamp: Date.now()
           };

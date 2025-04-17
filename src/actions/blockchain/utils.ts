@@ -82,7 +82,6 @@ export const utilsActions = [
         if (!args.tokenAddress) {
           return {
             success: false,
-            error: "Token address is required",
             message: "Cannot retrieve ERC20 balance: token address is missing",
             timestamp: Date.now()
           };
@@ -94,7 +93,6 @@ export const utilsActions = [
         if (!agentAddress) {
           return {
             success: false,
-            error: "Agent address not found",
             message: "Cannot retrieve ERC20 balance: failed to get agent address",
             timestamp: Date.now()
           };
@@ -108,21 +106,20 @@ export const utilsActions = [
 
         return {
           success: true,
+          message: `Current balance of token ${args.tokenAddress}: ${adjustedBalance.balance} (${rawBalance} base units)`,
           data: {
             formattedBalance: adjustedBalance.balance,
-          tokenBaseUnitBalance: rawBalance.toString(),
+            tokenBaseUnitBalance: rawBalance.toString(),
             decimals: 18, // Default assumption
             tokenAddress: args.tokenAddress,
             holderAddress: agentAddress
           },
-          message: `Current balance of token ${args.tokenAddress}: ${adjustedBalance.balance} (${rawBalance} base units)`,
           timestamp: Date.now()
         };
       } catch (error) {
         console.error('Failed to get ERC20 balance:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to get ERC20 balance",
           message: `Failed to retrieve ERC20 balance: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };
@@ -149,7 +146,6 @@ export const utilsActions = [
         if (!args.tokenAddress) {
           return {
             success: false,
-            error: "Token address is required",
             message: "Cannot convert to base units: token address is missing",
             timestamp: Date.now()
           };
@@ -158,7 +154,6 @@ export const utilsActions = [
         if (!args.amount) {
           return {
             success: false,
-            error: "Amount is required",
             message: "Cannot convert to base units: amount is missing",
             timestamp: Date.now()
           };
@@ -168,7 +163,6 @@ export const utilsActions = [
         if (isNaN(parseFloat(args.amount))) {
           return {
             success: false,
-            error: "Invalid amount format",
             message: `Cannot convert to base units: '${args.amount}' is not a valid number`,
             timestamp: Date.now()
           };
@@ -190,20 +184,19 @@ export const utilsActions = [
 
         return {
           success: true,
+          message: `Converted ${args.amount} tokens to ${baseUnits.toString()} base units (${decimals} decimals)`,
           data: {
-          baseUnits: baseUnits.toString(),
-          decimals: decimals,
+            baseUnits: baseUnits.toString(),
+            decimals: decimals,
             originalAmount: args.amount,
             tokenAddress: args.tokenAddress
           },
-          message: `Converted ${args.amount} tokens to ${baseUnits.toString()} base units (${decimals} decimals)`,
           timestamp: Date.now()
         };
       } catch (error) {
         console.error('Failed to convert token amount to base units:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to convert token amount to base units",
           message: `Failed to convert to base units: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };
@@ -230,7 +223,6 @@ export const utilsActions = [
         if (!agentAddress) {
           return {
             success: false,
-            error: "Agent address not found",
             message: "Cannot retrieve game resource state: failed to get agent address",
             timestamp: Date.now()
           };
@@ -292,7 +284,6 @@ export const utilsActions = [
         if (missingAddresses.length > 0) {
           return {
             success: false,
-            error: "Missing token addresses",
             message: `Cannot retrieve game resource state: missing contract addresses for: ${missingAddresses.join(', ')}`,
             timestamp: Date.now()
           };
@@ -544,6 +535,7 @@ export const utilsActions = [
 
         return {
           success: true,
+          message: `Retrieved game resource state: ${progressStats.he3Goal.progressPercentage.toFixed(2)}% towards He3 goal with ${progressStats.activeStakes} active stakes and ${formattedLiquidityPositions.length} liquidity positions`,
           data: {
             tokenBalances: formattedTokenBalances,
             rawTokenBalances: {
@@ -568,7 +560,6 @@ export const utilsActions = [
             stakePositions: stakingPositionsWithRewards,
             progressStats
           },
-          message: `Retrieved game resource state: ${progressStats.he3Goal.progressPercentage.toFixed(2)}% towards He3 goal with ${progressStats.activeStakes} active stakes and ${formattedLiquidityPositions.length} liquidity positions`,
           timestamp: Date.now()
         };
       } catch (error) {
@@ -576,7 +567,6 @@ export const utilsActions = [
         console.error('[getGameResourceState] Error stack:', (error as Error).stack);
         return {
           success: false,
-          error: (error as Error).message || "Failed to get player state",
           message: `Failed to retrieve game resource state: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };

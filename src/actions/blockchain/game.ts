@@ -19,7 +19,6 @@ export const gameActions = [
         if (!args.sessionAddress) {
           return {
             success: false,
-            error: "Game session address is required",
             message: "Cannot retrieve game agents: session address is missing",
             timestamp: Date.now()
           };
@@ -31,7 +30,6 @@ export const gameActions = [
         if (!currentAgentAddress) {
           return {
             success: false,
-            error: "Agent address not found",
             message: "Cannot retrieve game agents: failed to get current agent address",
             timestamp: Date.now()
           };
@@ -48,7 +46,6 @@ export const gameActions = [
         if (!result || !Array.isArray(result)) {
           return {
             success: false,
-            error: "Failed to retrieve game agents",
             message: "Contract did not return valid game agents data",
             timestamp: Date.now()
           };
@@ -78,22 +75,21 @@ export const gameActions = [
         
         return {
           success: true,
+          message: isInGame 
+            ? `Successfully retrieved ${numAgents} game agents. Your agent is registered in this game session.` 
+            : `Successfully retrieved ${numAgents} game agents. Your agent is NOT registered in this game session.`,
           data: {
             agents,
             currentAgentAddress,
             isInGame,
             totalAgents: numAgents
           },
-          message: isInGame 
-            ? `Successfully retrieved ${numAgents} game agents. Your agent is registered in this game session.` 
-            : `Successfully retrieved ${numAgents} game agents. Your agent is NOT registered in this game session.`,
           timestamp: Date.now()
         };
       } catch (error) {
         console.error('Failed to get game agents:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to get game agents",
           message: `Failed to retrieve game agents: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };
@@ -119,7 +115,6 @@ export const gameActions = [
         if (!args.sessionAddress) {
           return {
             success: false,
-            error: "Game session address is required",
             message: "Cannot end game: session address is missing",
             timestamp: Date.now()
           };
@@ -131,7 +126,6 @@ export const gameActions = [
         if (!agentAddress) {
           return {
             success: false,
-            error: "Agent address not found",
             message: "Cannot end game: failed to get agent address",
             timestamp: Date.now()
           };
@@ -145,7 +139,6 @@ export const gameActions = [
         if (!sessionResult || !sessionResult.gameSession) {
           return {
             success: false,
-            error: "Game session not found",
             message: `No game session found for address ${sessionAddress}`,
             timestamp: Date.now()
           };
@@ -157,7 +150,6 @@ export const gameActions = [
         if (gameSession.gameOver) {
           return {
             success: false,
-            error: "Game is already over",
             message: "Cannot end game: the game session is already over",
             timestamp: Date.now()
           };
@@ -167,7 +159,6 @@ export const gameActions = [
         if (gameSession.gameSuspended) {
           return {
             success: false,
-            error: "Game is suspended",
             message: "Cannot end game: the game session is suspended",
             timestamp: Date.now()
           };
@@ -181,7 +172,6 @@ export const gameActions = [
         if (BigInt(he3Balance) < BigInt(winThreshold)) {
           return {
             success: false,
-            error: "Winning threshold not met",
             message: `Cannot end game: agent has ${he3Balance} He3 tokens but needs ${winThreshold} to win`,
             data: {
               currentBalance: he3Balance,
@@ -203,34 +193,28 @@ export const gameActions = [
         if (result?.statusReceipt !== 'success') {
           return {
             success: false,
-            error: 'Transaction failed',
-            data: {
-              transactionHash: result.transactionHash,
-              receipt: result
-            },
             message: "Failed to end game. The transaction was submitted but did not complete successfully.",
+            receipt: result,
             timestamp: Date.now()
           };
         }
         
         return {
           success: true,
+          message: "Successfully ended the game and claimed victory!",
+          txHash: result.transactionHash,
           data: {
-            transactionHash: result.transactionHash,
-            receipt: result,
             gameSession: {
               address: sessionAddress,
               winningAgent: agentAddress
             }
           },
-          message: "Successfully ended the game and claimed victory!",
           timestamp: Date.now()
         };
       } catch (error) {
         console.error('Failed to end game:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to end game",
           message: `Failed to end game: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };

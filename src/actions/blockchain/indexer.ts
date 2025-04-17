@@ -28,7 +28,6 @@ export const indexerActions = [
         if (!args.pairAddress) {
           return {
             success: false,
-            error: "Pair address is required",
             message: "Cannot retrieve pair information: pair address is missing",
             timestamp: Date.now()
           };
@@ -43,7 +42,6 @@ export const indexerActions = [
         if (!result || !result.pair) {
           return {
             success: false,
-            error: "Pair not found",
             message: `No pair information found for address ${args.pairAddress}`,
             timestamp: Date.now()
           };
@@ -51,15 +49,14 @@ export const indexerActions = [
         
         return {
           success: true,
-          data: result,
           message: `Successfully retrieved information for pair at ${args.pairAddress}`,
+          data: result,
           timestamp: Date.now()
         };
       } catch (error) {
         console.error('Failed to get pair info:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to get pair info",
           message: `Failed to retrieve pair information: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };
@@ -85,7 +82,6 @@ export const indexerActions = [
         if (!args.farmAddress) {
           return {
             success: false,
-            error: "Farm address is required",
             message: "Cannot retrieve farm information: farm address is missing",
             timestamp: Date.now()
           };
@@ -100,7 +96,6 @@ export const indexerActions = [
         if (!result || !result.farm) {
           return {
             success: false,
-            error: "Farm not found",
             message: `No farm information found for address ${args.farmAddress}`,
             timestamp: Date.now()
           };
@@ -108,15 +103,14 @@ export const indexerActions = [
         
         return {
           success: true,
-          data: result,
           message: `Successfully retrieved information for farm at ${args.farmAddress}`,
+          data: result,
           timestamp: Date.now()
         };
       } catch (error) {
         console.error('Failed to get farm info:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to get farm info",
           message: `Failed to retrieve farm information: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };
@@ -143,7 +137,6 @@ export const indexerActions = [
         if (!result || !result.farm || !Array.isArray(result.farm)) {
           return {
             success: false,
-            error: "No farms data returned",
             message: "Failed to retrieve farms list: no farms data returned from query",
             timestamp: Date.now()
           };
@@ -151,15 +144,14 @@ export const indexerActions = [
         
         return {
           success: true,
-          data: result,
           message: `Successfully retrieved information for ${result.farm.length} farms`,
+          data: result,
           timestamp: Date.now()
         };
       } catch (error) {
         console.error('Failed to get all farms:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to get all farms",
           message: `Failed to retrieve farm list: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };
@@ -185,7 +177,6 @@ export const indexerActions = [
         if (!args.userAddress) {
           return {
             success: false,
-            error: "Agent address is required",
             message: "Cannot retrieve liquidity positions: agent address is missing",
             timestamp: Date.now()
           };
@@ -200,23 +191,22 @@ export const indexerActions = [
         if (!result || !result.liquidityPosition || !Array.isArray(result.liquidityPosition)) {
           return {
             success: true,
-            data: { liquidityPosition: [] },
             message: `No liquidity positions found for user ${args.userAddress}`,
+            data: { liquidityPosition: [] },
             timestamp: Date.now()
           };
         }
         
         return {
           success: true,
-          data: result,
           message: `Successfully retrieved ${result.liquidityPosition.length} liquidity positions for user ${args.userAddress}`,
+          data: result,
           timestamp: Date.now()
         };
       } catch (error) {
         console.error('Failed to get user liquidity positions:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to get user liquidity positions",
           message: `Failed to retrieve user liquidity positions: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };
@@ -242,7 +232,6 @@ export const indexerActions = [
         if (!args.userAddress) {
           return {
             success: false,
-            error: "Agent address is required",
             message: "Cannot retrieve stake positions: agent address is missing",
             timestamp: Date.now()
           };
@@ -257,23 +246,22 @@ export const indexerActions = [
         if (!result || !result.agentStake || !Array.isArray(result.agentStake)) {
           return {
             success: true,
-            data: { agentStake: [] },
             message: `No stake positions found for user ${args.userAddress}`,
+            data: { agentStake: [] },
             timestamp: Date.now()
           };
         }
         
         return {
           success: true,
-          data: result,
           message: `Successfully retrieved ${result.agentStake.length} stake positions for user ${args.userAddress}`,
+          data: result,
           timestamp: Date.now()
         };
       } catch (error) {
         console.error('Failed to get agent stake positions:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to get agent stake positions",
           message: `Failed to retrieve agent stake positions: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };
@@ -299,7 +287,6 @@ export const indexerActions = [
         if (!args.lpTokenAddress) {
           return {
             success: false,
-            error: "LP token address is required",
             message: "Cannot retrieve farm index: LP token address is missing",
             timestamp: Date.now()
           };
@@ -316,7 +303,6 @@ export const indexerActions = [
         if (farmIndex === null) {
           return {
             success: false,
-            error: "Farm not found for LP token",
             message: `No farm found for LP token address ${args.lpTokenAddress}`,
             timestamp: Date.now()
           };
@@ -324,18 +310,17 @@ export const indexerActions = [
         
         return {
           success: true,
+          message: `LP token ${args.lpTokenAddress} corresponds to farm index ${farmIndex}`,
           data: {
             lpTokenAddress: args.lpTokenAddress,
             farmIndex
           },
-          message: `LP token ${args.lpTokenAddress} corresponds to farm index ${farmIndex}`,
           timestamp: Date.now()
         };
       } catch (error) {
         console.error('Failed to get farm index by LP token:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to get farm index by LP token",
           message: `Failed to retrieve farm index for LP token: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };
@@ -361,7 +346,6 @@ export const indexerActions = [
         if (!args.sessionAddress) {
           return {
             success: false,
-            error: "Game session address is required",
             message: "Cannot retrieve game session status: address is missing",
             timestamp: Date.now()
           };
@@ -376,7 +360,6 @@ export const indexerActions = [
         if (!result || !result.gameSession) {
           return {
             success: false,
-            error: "Game session not found",
             message: `No game session found for address ${args.sessionAddress}`,
             timestamp: Date.now()
           };
@@ -386,20 +369,19 @@ export const indexerActions = [
         
         return {
           success: true,
+          message: isActive 
+            ? `Game session at ${args.sessionAddress} is active` 
+            : `Game session at ${args.sessionAddress} is not active (${result.gameSession.gameSuspended ? 'suspended' : 'over'})`,
           data: {
             ...result.gameSession,
             isActive
           },
-          message: isActive 
-            ? `Game session at ${args.sessionAddress} is active` 
-            : `Game session at ${args.sessionAddress} is not active (${result.gameSession.gameSuspended ? 'suspended' : 'over'})`,
           timestamp: Date.now()
         };
       } catch (error) {
         console.error('Failed to get game session status:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to get game session status",
           message: `Failed to retrieve game session status: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };
@@ -425,7 +407,6 @@ export const indexerActions = [
         if (!args.sessionAddress) {
           return {
             success: false,
-            error: "Game session address is required",
             message: "Cannot retrieve game session index: address is missing",
             timestamp: Date.now()
           };
@@ -440,7 +421,6 @@ export const indexerActions = [
         if (!result?.gameSession || !result.gameSession.gameSessionIndex) {
           return {
             success: false,
-            error: "Game session index not found",
             message: `No game session index found for address ${args.sessionAddress}`,
             timestamp: Date.now()
           };
@@ -448,18 +428,17 @@ export const indexerActions = [
         
         return {
           success: true,
+          message: `Game session at ${args.sessionAddress} has index ${result.gameSession.gameSessionIndex}`,
           data: {
             sessionAddress: args.sessionAddress,
             sessionIndex: result.gameSession.gameSessionIndex
           },
-          message: `Game session at ${args.sessionAddress} has index ${result.gameSession.gameSessionIndex}`,
           timestamp: Date.now()
         };
       } catch (error) {
         console.error('Failed to get game session index:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to get game session index",
           message: `Failed to retrieve game session index: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };
@@ -486,7 +465,6 @@ export const indexerActions = [
         if (!args.sessionAddress) {
           return {
             success: false,
-            error: "Session address is required",
             message: "Cannot retrieve most staked agents: session address is missing",
             timestamp: Date.now()
           };
@@ -503,7 +481,6 @@ export const indexerActions = [
         if (!result || !result.userStake || !Array.isArray(result.userStake)) {
           return {
             success: false,
-            error: "No agent data returned",
             message: "Failed to retrieve most staked agents: no data returned from query",
             timestamp: Date.now()
           };
@@ -524,20 +501,19 @@ export const indexerActions = [
         
         return {
           success: true,
+          message: `Successfully retrieved ${topAgents.length} most staked agents${
+            currentAgentInList ? `. Your agent ranks #${currentAgentInList.rank}` : ''
+          }`,
           data: {
             topAgents,
             currentAgentRank: currentAgentInList ? currentAgentInList.rank : null
           },
-          message: `Successfully retrieved ${topAgents.length} most staked agents${
-            currentAgentInList ? `. Your agent ranks #${currentAgentInList.rank}` : ''
-          }`,
           timestamp: Date.now()
         };
       } catch (error) {
         console.error('Failed to get most staked agents:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to get most staked agents",
           message: `Failed to retrieve most staked agents: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };

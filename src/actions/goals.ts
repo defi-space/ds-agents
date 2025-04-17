@@ -34,7 +34,6 @@ export const goalActions = [
       if (!ctx.memory) {
         return { 
           success: false,
-          error: "Agent memory not initialized", 
           message: "Cannot add task: agent memory is not initialized",
           timestamp: Date.now() 
         };
@@ -74,6 +73,7 @@ export const goalActions = [
       
       return { 
         success: true,
+        message: `Successfully added new ${term} task: ${args.task}`,
         data: {
           task: newTask,
           term: term,
@@ -82,7 +82,6 @@ export const goalActions = [
             status: agentMemory.status
           }
         },
-        message: `Successfully added new ${term} task: ${args.task}`,
         timestamp: Date.now()
       };
     },
@@ -105,7 +104,6 @@ export const goalActions = [
       if (!ctx.memory) {
         return { 
           success: false,
-          error: "Agent memory not initialized", 
           message: "Cannot set goal plan: agent memory is not initialized",
           timestamp: Date.now() 
         };
@@ -138,16 +136,16 @@ export const goalActions = [
       
       return {
         success: true,
+        message: "Successfully updated the complete goal plan",
         data: {
           newGoals,
         },
-        message: "Successfully updated the complete goal plan",
         timestamp: Date.now()
       };
     },
     format: (result) => {
       if (!result.data || result.data.success === false) {
-        return `Failed to set goal plan: ${result.data?.error || "Unknown error"}`;
+        return `Failed to set goal plan: ${result.data?.message || "Unknown error"}`;
       }
       
       const goalData = result.data.data?.newGoals;
@@ -178,7 +176,6 @@ export const goalActions = [
       if (!ctx.memory) {
         return { 
           success: false,
-          error: "Agent memory not initialized", 
           message: "Cannot update goal: agent memory is not initialized",
           timestamp: Date.now() 
         };
@@ -189,7 +186,6 @@ export const goalActions = [
       if (!agentMemory.goals) {
         return { 
           success: false,
-          error: "No goals initialized",
           message: "Cannot update goal: no goals have been initialized yet",
           timestamp: Date.now()
         };
@@ -230,7 +226,6 @@ export const goalActions = [
       if (!updated) {
         return { 
           success: false,
-          error: `Goal with id ${args.goal.id} not found`,
           message: `Cannot update goal: no goal with ID ${args.goal.id} was found`,
           timestamp: Date.now()
         };
@@ -238,11 +233,11 @@ export const goalActions = [
 
       return {
         success: true,
+        message: `Successfully updated ${updatedTerm} goal: ${updatedGoal?.description}`,
         data: {
           goal: updatedGoal,
           term: updatedTerm
         },
-        message: `Successfully updated ${updatedTerm} goal: ${updatedGoal?.description}`,
         timestamp: Date.now()
       };
     },
@@ -265,7 +260,6 @@ export const goalActions = [
       if (!ctx.memory) {
         return { 
           success: false,
-          error: "Agent memory not initialized", 
           message: "Cannot delete goal: agent memory is not initialized",
           timestamp: Date.now() 
         };
@@ -275,8 +269,7 @@ export const goalActions = [
       
       if (!agentMemory.goals) {
         return { 
-          success: false, 
-          error: "No goals initialized",
+          success: false,
           message: "Cannot delete goal: no goals have been initialized yet",
           timestamp: Date.now()
         };
@@ -312,7 +305,6 @@ export const goalActions = [
       if (!deleted) {
         return { 
           success: false,
-          error: `Goal with id ${args.goalId} not found`,
           message: `Cannot delete goal: no goal with ID ${args.goalId} was found`,
           timestamp: Date.now()
         };
@@ -320,11 +312,11 @@ export const goalActions = [
 
       return {
         success: true,
+        message: `Successfully deleted ${deletedTerm} goal: ${deletedGoal?.description || "unknown goal"}`,
         data: {
           deletedGoal,
           term: deletedTerm
         },
-        message: `Successfully deleted ${deletedTerm} goal: ${deletedGoal?.description || "unknown goal"}`,
         timestamp: Date.now()
       };
     },
@@ -386,19 +378,18 @@ export const goalActions = [
         
         return {
           success: true,
+          message: `Retrieved competitive intelligence on ${competitiveMetrics.agentsWithData} agents. Current rank: ${competitiveMetrics.currentAgentRank} of ${competitiveMetrics.totalAgents}.`,
           data: {
             competitiveIntelligence,
             competitiveMetrics,
             timestamp: new Date().toISOString()
           },
-          message: `Retrieved competitive intelligence on ${competitiveMetrics.agentsWithData} agents. Current rank: ${competitiveMetrics.currentAgentRank} of ${competitiveMetrics.totalAgents}.`,
           timestamp: Date.now(),
         };
       } catch (error) {
         console.error('Failed to get competitive intelligence:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to get competitive intelligence",
           message: `Failed to retrieve competitive intelligence: ${(error as Error).message}`,
           timestamp: Date.now(),
         };
@@ -435,18 +426,17 @@ export const goalActions = [
         
         return {
           success: true,
+          message: `Successfully analyzed strategies for ${Object.keys(strategicAnalysis).length} competitors`,
           data: {
             strategicAnalysis,
             timestamp: new Date().toISOString()
           },
-          message: `Successfully analyzed strategies for ${Object.keys(strategicAnalysis).length} competitors`,
           timestamp: Date.now(),
         };
       } catch (error) {
         console.error('Failed to detect competitor strategies:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to detect competitor strategies",
           message: `Failed to analyze competitor strategies: ${(error as Error).message}`,
           timestamp: Date.now(),
         };
@@ -490,7 +480,6 @@ export const goalActions = [
         if (!targetAgentId) {
           return {
             success: false,
-            error: "No target agent found for analysis",
             message: "Failed to generate strategy inspiration: no target agent found",
             timestamp: Date.now()
           };
@@ -502,7 +491,6 @@ export const goalActions = [
         if (!targetAgentData) {
           return {
             success: false,
-            error: `Agent data not found for ID: ${targetAgentId}`,
             message: `Failed to generate strategy inspiration: agent data not found for ID ${targetAgentId}`,
             timestamp: Date.now()
           };
@@ -521,19 +509,18 @@ export const goalActions = [
         
         return {
           success: true,
+          message: `Generated creative strategy inspiration based on analysis of agent ${targetAgentId}`,
           data: {
             targetAgentId,
             strategyInspiration,
             timestamp: new Date().toISOString()
           },
-          message: `Generated creative strategy inspiration based on analysis of agent ${targetAgentId}`,
           timestamp: Date.now()
         };
       } catch (error) {
         console.error('Failed to generate strategy inspiration:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to generate strategy inspiration",
           message: `Failed to generate strategy inspiration: ${(error as Error).message}`,
           timestamp: Date.now()
         };

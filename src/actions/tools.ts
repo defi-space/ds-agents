@@ -21,8 +21,8 @@ export const toolActions = [
     handler(args, ctx, agent) {
       return {
         success: true,
-        data: DS_CONTEXT,
         message: "Successfully retrieved complete defi.space context and configuration",
+        data: DS_CONTEXT,
         timestamp: Date.now(),
       };
     },
@@ -53,17 +53,16 @@ export const toolActions = [
         
         return {
           success: true,
+          message: `Converted uint256(${high}, ${low}) to decimal: ${u256Value.toString(10)}`,
           data: {
             decimal: u256Value.toString(10),
             hex: "0x" + u256Value.toString(16)
           },
-          message: `Converted uint256(${high}, ${low}) to decimal: ${u256Value.toString(10)}`,
           timestamp: Date.now()
         };
       } catch (error) {
         return {
           success: false,
-          error: (error as Error).message,
           message: `Failed to convert uint256: ${(error as Error).message}`,
           timestamp: Date.now()
         };
@@ -90,7 +89,6 @@ export const toolActions = [
         if (!agentId) {
           return {
             success: false,
-            error: "Could not determine agent ID",
             message: "Failed to get resource balances: could not determine agent ID",
             timestamp: Date.now()
           };
@@ -103,30 +101,29 @@ export const toolActions = [
         if (!balances || Object.keys(balances).length === 0) {
           return {
             success: true,
+            message: `No token balances found for agent ${agentId}`,
             data: {
               agentId,
               balances: {},
               count: 0
             },
-            message: `No token balances found for agent ${agentId}`,
             timestamp: Date.now()
           };
         }
         
         return {
           success: true,
+          message: `Found balances for ${Object.keys(balances).length} tokens for agent ${agentId}`,
           data: {
             agentId,
             balances,
             count: Object.keys(balances).length
           },
-          message: `Found balances for ${Object.keys(balances).length} tokens for agent ${agentId}`,
           timestamp: Date.now()
         };
       } catch (error) {
         return {
           success: false,
-          error: (error as Error).message,
           message: `Failed to get agent resource balances: ${(error as Error).message}`,
           timestamp: Date.now()
         };
@@ -154,7 +151,6 @@ export const toolActions = [
         if (agentId1 === agentId2) {
           return {
             success: false,
-            error: "Agent IDs must be different",
             message: "Cannot compare: both agent IDs are the same",
             timestamp: Date.now()
           };
@@ -166,14 +162,13 @@ export const toolActions = [
         
         return {
           success: true,
-          data: comparison,
           message: `Successfully compared positions between agents ${agentId1} and ${agentId2}`,
+          data: comparison,
           timestamp: Date.now()
         };
       } catch (error) {
         return {
           success: false,
-          error: (error as Error).message,
           message: `Failed to compare agent positions: ${(error as Error).message}`,
           timestamp: Date.now()
         };
@@ -199,18 +194,17 @@ export const toolActions = [
         
         return {
           success: true,
+          message: `Successfully ranked ${rankedAgents.length} agents by He3 balance`,
           data: {
             rankedAgents,
             count: rankedAgents.length,
             timestamp: new Date().toISOString()
           },
-          message: `Successfully ranked ${rankedAgents.length} agents by He3 balance`,
           timestamp: Date.now()
         };
       } catch (error) {
         return {
           success: false,
-          error: (error as Error).message,
           message: `Failed to rank agents by He3: ${(error as Error).message}`,
           timestamp: Date.now()
         };
