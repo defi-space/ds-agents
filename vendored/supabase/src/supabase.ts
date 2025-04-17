@@ -47,6 +47,32 @@ export class SupabaseMemoryStore implements MemoryStore {
   }
 
   /**
+   * Handle BigInt serialization by converting to a special format
+   * @param value - Value to serialize
+   * @returns Serializable value
+   */
+  private serializeBigInt<T>(value: T): any {
+    return JSON.parse(JSON.stringify(value, (_, v) => 
+      typeof v === 'bigint' ? { __type: 'bigint', value: v.toString() } : v
+    ));
+  }
+
+  /**
+   * Handle BigInt deserialization by converting from special format
+   * @param value - Value to deserialize
+   * @returns Deserialized value
+   */
+  private deserializeBigInt<T>(value: any): T {
+    if (!value) return value as T;
+    
+    return JSON.parse(JSON.stringify(value), (_, v) => 
+      v && typeof v === 'object' && v.__type === 'bigint' 
+        ? BigInt(v.value) 
+        : v
+    ) as T;
+  }
+
+  /**
    * Initialize the Supabase connection and ensure the table exists
    */
   async initialize(): Promise<void> {
@@ -86,7 +112,7 @@ export class SupabaseMemoryStore implements MemoryStore {
       throw error;
     }
     
-    return data?.value as T || null;
+    return this.deserializeBigInt<T>(data?.value) || null;
   }
 
   /**
@@ -95,12 +121,14 @@ export class SupabaseMemoryStore implements MemoryStore {
    * @param value - Value to store
    */
   async set<T>(key: string, value: T): Promise<void> {
+    const serializedValue = this.serializeBigInt(value);
+    
     const { error } = await this.client
       .from(this.tableName)
       .upsert(
         { 
           key, 
-          value, 
+          value: serializedValue, 
           updated_at: new Date().toISOString() 
         },
         { 
