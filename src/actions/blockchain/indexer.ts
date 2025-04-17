@@ -1,9 +1,9 @@
 import { action } from "@daydreamsai/core";
 import { z } from "zod";
 import { executeQuery } from "../../utils/graphql";
-import { normalizeAddress, getAgentAddress } from "../../utils/starknet";
+import { normalizeAddress, getCurrentAgentId } from "../../utils/starknet";
 import {
-  GET_POOL_INFO,
+  GET_PAIR_INFO,
   GET_FARM_INFO,
   GET_ALL_FARMS,
   GET_AGENT_LIQUIDITY_POSITIONS,
@@ -16,35 +16,35 @@ import {
 
 export const indexerActions = [
   action({
-    name: "getPoolInfo",
-    description: "Retrieves detailed information about a specific liquidity pool",
-    instructions: "Use this action when an agent needs comprehensive data about a liquidity pool including reserves, volume, and fees",
+    name: "getPairInfo",
+    description: "Retrieves detailed information about a specific liquidity pair",
+    instructions: "Use this action when an agent needs comprehensive data about a liquidity pair including reserves, volume, and fees",
     schema: z.object({
-      poolAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Pool contract address (must be a valid hex address starting with 0x)")
+      pairAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Pair contract address (must be a valid hex address starting with 0x)")
     }),
     handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!args.poolAddress) {
+        if (!args.pairAddress) {
           return {
             success: false,
-            error: "Pool address is required",
-            message: "Cannot retrieve pool information: pool address is missing",
+            error: "Pair address is required",
+            message: "Cannot retrieve pair information: pair address is missing",
             timestamp: Date.now()
           };
         }
         
-        const normalizedAddress = normalizeAddress(args.poolAddress);
+        const normalizedAddress = normalizeAddress(args.pairAddress);
         
-        const result = await executeQuery(GET_POOL_INFO, {
+        const result = await executeQuery(GET_PAIR_INFO, {
           address: normalizedAddress
         });
         
-        if (!result || !result.pool) {
+        if (!result || !result.pair) {
           return {
             success: false,
-            error: "Pool not found",
-            message: `No pool information found for address ${args.poolAddress}`,
+            error: "Pair not found",
+            message: `No pair information found for address ${args.pairAddress}`,
             timestamp: Date.now()
           };
         }
@@ -52,23 +52,23 @@ export const indexerActions = [
         return {
           success: true,
           data: result,
-          message: `Successfully retrieved information for pool at ${args.poolAddress}`,
+          message: `Successfully retrieved information for pair at ${args.pairAddress}`,
           timestamp: Date.now()
         };
       } catch (error) {
-        console.error('Failed to get pool info:', error);
+        console.error('Failed to get pair info:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to get pool info",
-          message: `Failed to retrieve pool information: ${(error as Error).message || "Unknown error"}`,
+          error: (error as Error).message || "Failed to get pair info",
+          message: `Failed to retrieve pair information: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };
       }
     },
     retry: 3,
     onError: async (error, ctx, agent) => {
-      console.error(`Pool info query failed:`, error);
-      ctx.emit("poolInfoError", { action: ctx.call.name, error: error.message });
+      console.error(`Pair info query failed:`, error);
+      ctx.emit("pairInfoError", { action: ctx.call.name, error: error.message });
     }
   }),
 
@@ -140,7 +140,7 @@ export const indexerActions = [
       try {
         const result = await executeQuery(GET_ALL_FARMS, {});
         
-        if (!result || !result.farms || !Array.isArray(result.farms)) {
+        if (!result || !result.farm || !Array.isArray(result.farm)) {
           return {
             success: false,
             error: "No farms data returned",
@@ -152,7 +152,7 @@ export const indexerActions = [
         return {
           success: true,
           data: result,
-          message: `Successfully retrieved information for ${result.farms.length} farms`,
+          message: `Successfully retrieved information for ${result.farm.length} farms`,
           timestamp: Date.now()
         };
       } catch (error) {
@@ -197,10 +197,10 @@ export const indexerActions = [
           agentAddress: normalizedAddress
         });
         
-        if (!result || !result.liquidityPositions || !Array.isArray(result.liquidityPositions)) {
+        if (!result || !result.liquidityPosition || !Array.isArray(result.liquidityPosition)) {
           return {
             success: true,
-            data: { liquidityPositions: [] },
+            data: { liquidityPosition: [] },
             message: `No liquidity positions found for user ${args.userAddress}`,
             timestamp: Date.now()
           };
@@ -209,7 +209,7 @@ export const indexerActions = [
         return {
           success: true,
           data: result,
-          message: `Successfully retrieved ${result.liquidityPositions.length} liquidity positions for user ${args.userAddress}`,
+          message: `Successfully retrieved ${result.liquidityPosition.length} liquidity positions for user ${args.userAddress}`,
           timestamp: Date.now()
         };
       } catch (error) {
@@ -254,10 +254,10 @@ export const indexerActions = [
           agentAddress: normalizedAddress
         });
         
-        if (!result || !result.stakePositions || !Array.isArray(result.stakePositions)) {
+        if (!result || !result.agentStake || !Array.isArray(result.agentStake)) {
           return {
             success: true,
-            data: { stakePositions: [] },
+            data: { agentStake: [] },
             message: `No stake positions found for user ${args.userAddress}`,
             timestamp: Date.now()
           };
@@ -266,15 +266,15 @@ export const indexerActions = [
         return {
           success: true,
           data: result,
-          message: `Successfully retrieved ${result.stakePositions.length} stake positions for user ${args.userAddress}`,
+          message: `Successfully retrieved ${result.agentStake.length} stake positions for user ${args.userAddress}`,
           timestamp: Date.now()
         };
       } catch (error) {
-        console.error('Failed to get user stake positions:', error);
+        console.error('Failed to get agent stake positions:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to get user stake positions",
-          message: `Failed to retrieve user stake positions: ${(error as Error).message || "Unknown error"}`,
+          error: (error as Error).message || "Failed to get agent stake positions",
+          message: `Failed to retrieve agent stake positions: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };
       }
@@ -287,7 +287,7 @@ export const indexerActions = [
   }),
 
   action({
-    name: "getfarmIndexByLpToken",
+    name: "getFarmIndexByLpToken",
     description: "Retrieves the farm index for a given LP token address",
     instructions: "Use this action when an agent needs to find which farm corresponds to a specific LP token",
     schema: z.object({
@@ -382,7 +382,7 @@ export const indexerActions = [
           };
         }
         
-        const isActive = !result.gameSession.is_suspended && !result.gameSession.is_over;
+        const isActive = !result.gameSession.gameSuspended && !result.gameSession.gameOver;
         
         return {
           success: true,
@@ -392,7 +392,7 @@ export const indexerActions = [
           },
           message: isActive 
             ? `Game session at ${args.sessionAddress} is active` 
-            : `Game session at ${args.sessionAddress} is not active (${result.gameSession.is_suspended ? 'suspended' : 'over'})`,
+            : `Game session at ${args.sessionAddress} is not active (${result.gameSession.gameSuspended ? 'suspended' : 'over'})`,
           timestamp: Date.now()
         };
       } catch (error) {
@@ -437,7 +437,7 @@ export const indexerActions = [
           address: normalizedAddress
         });
         
-        if (!result?.gameSession || !result.gameSession.session_index) {
+        if (!result?.gameSession || !result.gameSession.gameSessionIndex) {
           return {
             success: false,
             error: "Game session index not found",
@@ -450,9 +450,9 @@ export const indexerActions = [
           success: true,
           data: {
             sessionAddress: args.sessionAddress,
-            sessionIndex: result.gameSession.session_index
+            sessionIndex: result.gameSession.gameSessionIndex
           },
-          message: `Game session at ${args.sessionAddress} has index ${result.gameSession.session_index}`,
+          message: `Game session at ${args.sessionAddress} has index ${result.gameSession.gameSessionIndex}`,
           timestamp: Date.now()
         };
       } catch (error) {
@@ -500,7 +500,7 @@ export const indexerActions = [
           limit: limit
         });
         
-        if (!result || !result.userGameStake || !Array.isArray(result.userGameStake)) {
+        if (!result || !result.userStake || !Array.isArray(result.userStake)) {
           return {
             success: false,
             error: "No agent data returned",
@@ -510,15 +510,14 @@ export const indexerActions = [
         }
         
         // Get current agent address for comparison
-        const agentAddress = await getAgentAddress();
-        const normalizedAgentAddress = agentAddress ? normalizeAddress(agentAddress) : null;
+        const agentId = await getCurrentAgentId();
         
         // Add rank and check if current agent is among top stakers
-        const topAgents = result.userGameStake.map((stake: any, index: number) => ({
+        const topAgents = result.userStake.map((stake: any, index: number) => ({
           ...stake,
           rank: index + 1,
-          isCurrentAgent: normalizedAgentAddress ? 
-            normalizeAddress(stake.user_address) === normalizedAgentAddress : false
+          isCurrentAgent: agentId ? 
+            stake.agentIndex === agentId : false
         }));
         
         const currentAgentInList = topAgents.find((agent: any) => agent.isCurrentAgent);

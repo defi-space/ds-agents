@@ -154,7 +154,7 @@ export const gameActions = [
         const gameSession = sessionResult.gameSession;
         
         // Check if game is already over
-        if (gameSession.is_over) {
+        if (gameSession.gameOver) {
           return {
             success: false,
             error: "Game is already over",
@@ -164,7 +164,7 @@ export const gameActions = [
         }
         
         // Check if game is suspended
-        if (gameSession.is_suspended) {
+        if (gameSession.gameSuspended) {
           return {
             success: false,
             error: "Game is suspended",
@@ -176,7 +176,7 @@ export const gameActions = [
         // Check if the agent has enough He3 tokens to win
         const he3Address = getContractAddress('resources', 'helium3');
         const he3Balance = await getTokenBalance(he3Address, agentAddress);
-        const winThreshold = gameSession.token_win_condition_threshold;
+        const winThreshold = gameSession.tokenWinConditionThreshold;
         
         if (BigInt(he3Balance) < BigInt(winThreshold)) {
           return {

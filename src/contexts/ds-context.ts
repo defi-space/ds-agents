@@ -1,16 +1,5 @@
 import { getContractAddress } from "../utils/contracts";
-import { getCurrentAgentId } from "../utils/starknet";
-
-// Helper function to safely get the agent address
-const getAgentAddress = () => {
-  try {
-    const agentId = getCurrentAgentId();
-    return getContractAddress('agents', agentId);
-  } catch (error) {
-    console.warn("Warning: Could not get agent address. Using placeholder until agent ID is set.");
-    return "[Agent address will be set when agent starts]";
-  }
-};
+import { getAgentAddress } from "../utils/starknet";
 
 export const DS_CONTEXT = `
 

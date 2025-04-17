@@ -7,28 +7,25 @@ import { GET_AGENT_LIQUIDITY_POSITIONS, GET_AGENT_STAKE_POSITIONS } from "./quer
 export interface LiquidityPosition {
   id: string;
   pairAddress: string;
-  userAddress: string;
+  agentAddress: string;
   liquidity: string;
   depositsToken0: string;
   depositsToken1: string;
   withdrawalsToken0: string;
   withdrawalsToken1: string;
-  usdValue: string;
-  apyEarned: string;
   pair?: {
     token0Address: string;
     token1Address: string;
     reserve0: string;
     reserve1: string;
     totalSupply: string;
-    tvlUsd: string;
   };
 }
 
 export interface StakePosition {
   id: string;
   farmAddress: string;
-  userAddress: string;
+  agentAddress: string;
   stakedAmount: string;
   rewards: string;
   penaltyEndTime: string;
@@ -199,7 +196,7 @@ export function analyzePathPreference(
     }
     
     // Score based on stake positions
-    const stakes = stakePositions?.userStake || [];
+    const stakes = stakePositions?.agentStake || [];
     for (const stake of stakes) {
       const farmAddress = stake.farmAddress;
       
@@ -306,7 +303,7 @@ export function analyzeLiquidityStrategy(liquidityPositions: any): string {
  */
 export function analyzeStakingStrategy(stakePositions: any): string {
   try {
-    const stakes = stakePositions?.userStake || [];
+    const stakes = stakePositions?.agentStake || [];
     
     if (stakes.length === 0) {
       return "No Staking Positions";
@@ -387,7 +384,7 @@ export function determineOverallStrategy(
     const he3BalanceValue = safeBigIntConversion(he3Balance);
     
     // Define thresholds for game stages
-    const endGameThreshold = 800000000000000000000000n;
+    const endGameThreshold = 700000000000000000000000n;
     const lateGameThreshold = 500000000000000000000000n;
     
     // Check if close to winning
@@ -444,7 +441,7 @@ export function suggestCounterStrategies(
     const strategies: string[] = [];
     
     // Define thresholds for game stages
-    const endGameThreshold = 800000000000000000000000n;
+    const endGameThreshold = 700000000000000000000000n;
     const lateGameThreshold = 500000000000000000000000n;
     
     // Convert He3 balance to BigInt safely

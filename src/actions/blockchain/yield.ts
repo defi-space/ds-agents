@@ -13,8 +13,8 @@ interface PendingRewards {
 
 export const yieldActions = [
   action({
-    name: "depositTofarm",
-    description: "Deposits LP tokens into a farming farm for yield farming",
+    name: "depositToFarm",
+    description: "Deposits LP tokens into a farm for yield farming",
     instructions: "Use this action when an agent wants to stake LP tokens in a farm to earn rewards",
     schema: z.object({
         farmIndex: z.string().describe("Unique farm identifier in the FarmRouter contract (numeric index as string)"),
@@ -138,8 +138,8 @@ export const yieldActions = [
   }),
 
   action({
-    name: "withdrawFromfarm",
-    description: "Withdraws LP tokens from a farming farm",
+    name: "withdrawFromFarm",
+    description: "Withdraws LP tokens from a farm",
     instructions: "Use this action when an agent wants to withdraw some of their staked LP tokens from a farm",
     schema: z.object({
       farmIndex: z.string().describe("Unique farm identifier in the FarmRouter contract (numeric index as string)"),
@@ -218,8 +218,8 @@ export const yieldActions = [
   }),
 
   action({
-    name: "exitfarm",
-    description: "Withdraws all LP tokens and rewards from a nuclear farm",
+    name: "exitFarm",
+    description: "Withdraws all LP tokens and rewards from a farm",
     instructions: "Use this action when an agent wants to completely exit a farm, withdrawing all LP tokens and harvesting all rewards",
     schema: z.object({
       farmIndex: z.string().describe("Unique farm identifier in the FarmRouter contract (numeric index as string)")
@@ -512,7 +512,7 @@ export const yieldActions = [
   }),
 
   action({
-    name: "getfarmLpToken",
+    name: "getFarmLpToken",
     description: "Retrieves the LP token address accepted by a specific farm",
     instructions: "Use this action when an agent needs to know which LP token to approve before depositing to a farm",
     schema: z.object({
@@ -658,7 +658,7 @@ export const yieldActions = [
   }),
 
   action({
-    name: "getfarmTotalDeposited",
+    name: "getFarmTotalDeposited",
     description: "Gets the total amount of LP tokens deposited in a farm",
     instructions: "Use this action when an agent needs to know the total amount of LP tokens staked by all agents in a farm",
     schema: z.object({
@@ -725,7 +725,7 @@ export const yieldActions = [
   }),
   
   action({
-    name: "getfarmAddress",
+    name: "getFarmAddress",
     description: "Retrieves the contract address of a specific farm",
     instructions: "Use this action when an agent needs to get the contract address of a farm for direct interaction",
     schema: z.object({
@@ -792,7 +792,7 @@ export const yieldActions = [
   }),
 
   action({
-    name: "getfarmRewardTokens",
+    name: "getFarmRewardTokens",
     description: "Gets the list of reward tokens available from a specific farm",
     instructions: "Use this action when an agent needs to know which reward tokens they can earn from a farm",
     schema: z.object({

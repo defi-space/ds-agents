@@ -2,18 +2,17 @@ import { action } from "@daydreamsai/core";
 import { z } from "zod";
 import { uint256 } from "starknet";
 import { DS_CONTEXT } from '../contexts/ds-context';
-import { executeQuery } from "../utils/graphql";
-import { normalizeAddress, getCurrentAgentId } from "../utils/starknet";
-import { GET_AGENT_LIQUIDITY_POSITIONS, GET_AGENT_STAKE_POSITIONS } from "../utils/queries";
+import { getCurrentAgentId } from "../utils/starknet";
 import { 
   getAgentResourceBalances, 
   compareAgentPositions, 
   rankAgentsByHe3 
 } from "../utils/competition";
+import { getContractAddress } from "src/utils/contracts";
 
 export const toolActions = [
   action({
-    name: "getDeFiSpaceContext",
+    name: "getDefiSpaceContext",
     description: "Retrieves configuration data for the defi.space ecosystem",
     instructions: "Use this action when an agent needs to understand the game rules, contract addresses, and protocol parameters",
     schema: z.object({
@@ -76,113 +75,7 @@ export const toolActions = [
       ctx.emit("conversionError", { action: ctx.call.name, error: error.message });
     }
   }),
-  
-  action({
-    name: "queryAgentLiquidityPositions",
-    description: "Retrieves all liquidity positions for a specific agent address",
-    instructions: "Use this action when an agent needs to know which liquidity pools they have positions in and their values",
-    schema: z.object({
-      address: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Agent's Starknet address (must be a valid hex address starting with 0x)")
-    }),
-    async handler(args, ctx, agent) {
-      try {
-        // Normalize the address to ensure it's in the correct format
-        const normalizedAddress = normalizeAddress(args.address);
-        
-        const result = await executeQuery(GET_AGENT_LIQUIDITY_POSITIONS, {
-          agentAddress: normalizedAddress
-        });
-        
-        if (!result || !result.liquidityPositions) {
-          return {
-            success: true,
-            data: {
-              positions: [],
-              count: 0
-            },
-            message: `No liquidity positions found for address ${normalizedAddress}`,
-            timestamp: Date.now()
-          };
-        }
-        
-        return {
-          success: true,
-          data: {
-            positions: result.liquidityPositions,
-            count: result.liquidityPositions.length
-          },
-          message: `Found ${result.liquidityPositions.length} liquidity positions for address ${normalizedAddress}`,
-          timestamp: Date.now()
-        };
-      } catch (error) {
-        return {
-          success: false,
-          error: (error as Error).message,
-          message: `Failed to query liquidity positions: ${(error as Error).message}`,
-          timestamp: Date.now()
-        };
-      }
-    },
-    retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Liquidity positions query failed:`, error);
-      ctx.emit("liquidityQueryError", { action: ctx.call.name, error: error.message });
-    }
-  }),
-  
-  action({
-    name: "queryAgentStakePositions",
-    description: "Retrieves all staking positions for a specific agent address",
-    instructions: "Use this action when an agent needs to know which farms they have staked in and their reward status",
-    schema: z.object({
-      address: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Agent's Starknet address (must be a valid hex address starting with 0x)")
-    }),
-    async handler(args, ctx, agent) {
-      try {
-        // Normalize the address to ensure it's in the correct format
-        const normalizedAddress = normalizeAddress(args.address);
-        
-        const result = await executeQuery(GET_AGENT_STAKE_POSITIONS, {
-          agentAddress: normalizedAddress
-        });
-        
-        if (!result || !result.stakePositions) {
-          return {
-            success: true,
-            data: {
-              positions: [],
-              count: 0
-            },
-            message: `No stake positions found for address ${normalizedAddress}`,
-            timestamp: Date.now()
-          };
-        }
-        
-        return {
-          success: true,
-          data: {
-            positions: result.stakePositions,
-            count: result.stakePositions.length
-          },
-          message: `Found ${result.stakePositions.length} stake positions for address ${normalizedAddress}`,
-          timestamp: Date.now()
-        };
-      } catch (error) {
-        return {
-          success: false,
-          error: (error as Error).message,
-          message: `Failed to query stake positions: ${(error as Error).message}`,
-          timestamp: Date.now()
-        };
-      }
-    },
-    retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Stake positions query failed:`, error);
-      ctx.emit("stakeQueryError", { action: ctx.call.name, error: error.message });
-    }
-  }),
-  
+
   action({
     name: "getAgentResourceBalances",
     description: "Retrieves all token balances for a specified agent",
@@ -202,8 +95,10 @@ export const toolActions = [
             timestamp: Date.now()
           };
         }
-        
-        const balances = await getAgentResourceBalances(agentId);
+
+        const agentAddress = getContractAddress('agents', agentId);
+
+        const balances = await getAgentResourceBalances(agentAddress);
         
         if (!balances || Object.keys(balances).length === 0) {
           return {
@@ -264,8 +159,10 @@ export const toolActions = [
             timestamp: Date.now()
           };
         }
-        
-        const comparison = await compareAgentPositions(agentId1, agentId2);
+        const agentAddress1 = getContractAddress('agents', agentId1);
+        const agentAddress2 = getContractAddress('agents', agentId2);
+
+        const comparison = await compareAgentPositions(agentAddress1, agentAddress2);
         
         return {
           success: true,

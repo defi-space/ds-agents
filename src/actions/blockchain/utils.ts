@@ -33,15 +33,12 @@ interface LiquidityPosition {
   depositsToken1: string;
   withdrawalsToken0: string;
   withdrawalsToken1: string;
-  usdValue: string;
-  apyEarned: string;
   pairInfo: {
     token0Address: string;
     token1Address: string;
     reserve0: string;
     reserve1: string;
     totalSupply: string;
-    tvlUsd: string;
   } | null;
 }
 
@@ -402,9 +399,9 @@ export const utilsActions = [
         });
         
         // Get pending rewards for each staking position
-        const stakingPositionsWithRewards = stakePositions?.userStake && Array.isArray(stakePositions.userStake) 
+        const stakingPositionsWithRewards = stakePositions?.agentStake && Array.isArray(stakePositions.agentStake) 
           ? await Promise.all(
-              stakePositions.userStake.map(async (stake: any) => {
+              stakePositions.agentStake.map(async (stake: any) => {
                 // Get the farm address from the stake
                 const farmAddress = stake.farmAddress;
                 
@@ -516,15 +513,12 @@ export const utilsActions = [
               depositsToken1: pos.depositsToken1,
               withdrawalsToken0: pos.withdrawalsToken0,
               withdrawalsToken1: pos.withdrawalsToken1,
-              usdValue: pos.usdValue,
-              apyEarned: pos.apyEarned,
               pairInfo: pos.pair ? {
                 token0Address: pos.pair.token0Address,
                 token1Address: pos.pair.token1Address,
                 reserve0: pos.pair.reserve0,
                 reserve1: pos.pair.reserve1,
                 totalSupply: pos.pair.totalSupply,
-                tvlUsd: pos.pair.tvlUsd
               } : null
             }))
           : [];
@@ -545,8 +539,6 @@ export const utilsActions = [
             target: "7,000,000",
             progressPercentage: helium3Amount / 7000000 * 100
           },
-          liquidityValue: formattedLiquidityPositions.reduce((total: number, pos: LiquidityPosition) => 
-            total + (pos.usdValue ? parseFloat(pos.usdValue) : 0), 0),
           activeStakes: stakingPositionsWithRewards.length
         };
 
