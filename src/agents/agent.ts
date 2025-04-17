@@ -1,4 +1,4 @@
-import { createOpenAI } from '@ai-sdk/openai';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import {
   createDreams,
   createContainer,
@@ -6,10 +6,9 @@ import {
 } from "@daydreamsai/core";
 import { createSupabaseMemoryStore } from "@daydreamsai/supabase";
 import { createChromaVectorStore } from "@daydreamsai/chromadb";
-import { goalContexts } from "../contexts/goal-context";
+import { goalContext } from "../contexts/goal-context";
 import { autonomousCli, cli } from "../extensions";
 import { actions } from "../actions";
-import { outputs } from "../outputs";
 import { setCurrentAgentId } from "../utils/starknet";
 import dotenv from 'dotenv';
 
@@ -18,7 +17,7 @@ import {
   validateAgentNumber, 
   getAgentId, 
   isManualMode,
-  getOpenaiApiKey,
+  getGoogleApiKey,
   getStarknetConfig,
   getChromaDbUrl,
   getSupabaseConfig
@@ -32,7 +31,7 @@ dotenv.config();
  */
 export interface AgentConfig {
   id: string;
-  openaiApiKey?: string;
+  googleApiKey?: string;
   starknetConfig?: {
     rpcUrl: string;
     address: string;
@@ -51,9 +50,9 @@ export interface AgentConfig {
  * @returns The created agent instance
  */
 export async function createAgent(config: AgentConfig) {
-  // Get OpenAI API key - prioritize the agent-specific key
+  // Get Google API key - prioritize the agent-specific key
   const agentNumber = parseInt(config.id.split('-')[1], 10);
-  const openaiApiKey = config.openaiApiKey || getOpenaiApiKey(config.id, agentNumber);
+  const googleApiKey = config.googleApiKey || getGoogleApiKey(config.id, agentNumber);
   
   // Store Starknet configuration if provided
   if (config.starknetConfig) {
@@ -62,12 +61,12 @@ export async function createAgent(config: AgentConfig) {
 
   let memoryStore;
   
-  // Initialize OpenAI model
+  // Initialize Google model
   try {
-    const openai = createOpenAI({
-      apiKey: openaiApiKey,
+    const google = createGoogleGenerativeAI({
+      apiKey: googleApiKey,
     });
-    const model = openai("gpt-4.1-nano");
+    const model = google("gemini-2.0-flash");
     
     // Create a unique collection name for this agent's vector store
     const collectionName = `${config.id.replace(/-/g, '_')}_collection`;
@@ -82,7 +81,7 @@ export async function createAgent(config: AgentConfig) {
       memoryStore = await createSupabaseMemoryStore({
         url: supabaseOptions.url,
         apiKey: supabaseOptions.apiKey,
-        tableName: supabaseOptions.tableName || collectionName
+        tableName: supabaseOptions.tableName || collectionName,
       });
     } catch (supabaseError) {
       const errorMessage = supabaseError instanceof Error 
@@ -104,9 +103,8 @@ export async function createAgent(config: AgentConfig) {
       },
       exportTrainingData: true,
       trainingDataPath: `./grpo/group-training-data-${config.id}.jsonl`,
-      context: goalContexts,
+      context: goalContext,
       actions,
-      outputs,
     };
 
     // Create the agent
@@ -139,7 +137,7 @@ export async function createAndStartAgent(agentNumber: number) {
   // Create agent configuration
   const config = {
     id: AGENT_ID,
-    openaiApiKey: process.env[`AGENT${agentNumber}_API_KEY`] || process.env.OPENAI_API_KEY,
+    googleApiKey: process.env[`AGENT${agentNumber}_API_KEY`] || process.env.GOOGLE_API_KEY,
     starknetConfig: getStarknetConfig(agentNumber),
     supabaseConfig: getSupabaseConfig()
   };

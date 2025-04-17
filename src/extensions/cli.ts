@@ -47,6 +47,18 @@ const readlineService = service({
       })
     );
   },
+  
+  // Add boot phase to initialize the readline service
+  async boot(container) {
+    const rl = container.resolve<readline.Interface>("readline");
+    // Configure readline with custom handling
+    rl.on('SIGINT', () => {
+      console.log(chalk.yellow('\nCaught interrupt signal. Exiting gracefully...'));
+      process.exit(0);
+    });
+    
+    console.log('CLI readline service initialized');
+  }
 });
 
 const getTimestamp = () => {
@@ -65,12 +77,21 @@ export const cli = extension({
         user: z.string(),
         text: z.string(),
       }),
-      format: ({ user, text }) =>
-        formatMsg({
+      format: (inputRef) => {
+        if (!inputRef || !inputRef.data) {
+          return formatMsg({
+            role: "user",
+            content: "",
+            user: "unknown",
+          });
+        }
+        
+        return formatMsg({
           role: "user",
-          content: text,
-          user,
-        }),
+          content: inputRef.data.text,
+          user: inputRef.data.user,
+        });
+      },
       async subscribe(send, { container }) {
         const rl = container.resolve<readline.Interface>("readline");
         const controller = new AbortController();
@@ -120,19 +141,52 @@ export const cli = extension({
         message: z.string().describe("The message to send"),
       }),
       handler(content, ctx, agent) {
-        console.log(`${getTimestamp()} ${styles.agentLabel}: ${content.message}\n`);
+        // If content is a string, convert it to the expected format
+        const message = typeof content === 'string' ? content : content.message;
+        
+        console.log(`${getTimestamp()} ${styles.agentLabel}: ${message}\n`);
         console.log(styles.separator + '\n');
         
         return {
-          data: content,
+          data: { message },
           timestamp: Date.now(),
         };
       },
-      format: ({ data }) =>
-        formatMsg({
+      format: (outputRef) => {
+        if (!outputRef) {
+          return formatMsg({
+            role: "assistant",
+            content: "",
+          });
+        }
+        
+        // Handle both array and single output case
+        const ref = Array.isArray(outputRef) ? outputRef[0] : outputRef;
+        
+        // Extract the content - either from data.message or from outputRef directly
+        let message = "";
+        if (ref && ref.data) {
+          message = typeof ref.data === 'object' && ref.data.message ? ref.data.message : String(ref.data);
+        }
+        
+        return formatMsg({
           role: "assistant",
-          content: data.message,
-        }),
+          content: message,
+        });
+      },
     }),
   },
+  
+  // Add install function for one-time setup
+  async install(agent) {
+    console.log(chalk.cyan('Installing CLI extension...'));
+    
+    // Register cleanup handler
+    process.on('exit', () => {
+      console.log(chalk.yellow('\nShutting down CLI extension...'));
+      // Any cleanup needed when the process exits
+    });
+    
+    // No return value needed (void)
+  }
 });

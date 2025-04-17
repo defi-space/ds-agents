@@ -2,23 +2,23 @@ import { action } from "@daydreamsai/core";
 import { z } from "zod";
 import { uint256 } from "starknet";
 import { DS_CONTEXT } from '../contexts/ds-context';
-import { executeQuery } from "../utils/graphql";
-import { normalizeAddress, getCurrentAgentId } from "../utils/starknet";
-import { GET_AGENT_LIQUIDITY_POSITIONS, GET_AGENT_STAKE_POSITIONS } from "../utils/queries";
+import { getCurrentAgentId } from "../utils/starknet";
 import { 
   getAgentResourceBalances, 
   compareAgentPositions, 
   rankAgentsByHe3 
 } from "../utils/competition";
+import { getContractAddress } from "src/utils/contracts";
 
 export const toolActions = [
   action({
-    name: "getDeFiSpaceContext",
-    description: "Retrieves the complete context and configuration for the defi.space ecosystem. Returns comprehensive information including game mechanics, winning conditions, all relevant smart contract addresses (AMM, reactors, tokens), account details, and protocol parameters. Essential for understanding the protocol's rules and available interactions. Example: getDeFiSpaceContext()",
+    name: "getDefiSpaceContext",
+    description: "Retrieves configuration data for the defi.space ecosystem",
+    instructions: "Use this action when an agent needs to understand the game rules, contract addresses, and protocol parameters",
     schema: z.object({
-      message: z.string().describe("Ignore this field, it is not needed").default("None"), 
+      message: z.string().describe("Not used - can be ignored").default("None"), 
     }),
-    handler(call, ctx, agent) {
+    handler(args, ctx, agent) {
       return {
         success: true,
         data: DS_CONTEXT,
@@ -26,18 +26,24 @@ export const toolActions = [
         timestamp: Date.now(),
       };
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Context retrieval failed:`, error);
+      ctx.emit("contextRetrievalError", { action: ctx.call.name, error: error.message });
+    }
   }),
   
   action({
     name: "convertUint256ToDecimal",
-    description: "Converts a Starknet uint256 number representation (consisting of low and high parts) into standard decimal and hexadecimal formats. Handles the full range of uint256 values. Returns both decimal string and hexadecimal representations. Example: convertUint256ToDecimal({ low: '1000', high: '0' })",
+    description: "Converts a Starknet uint256 value to standard number formats",
+    instructions: "Use this action when an agent needs to convert blockchain uint256 values to readable decimal numbers",
     schema: z.object({
-      low: z.string().describe("The lower 128 bits of the uint256 number in string format"),
-      high: z.string().describe("The upper 128 bits of the uint256 number in string format")
+      low: z.string().describe("Lower 128 bits of the uint256 number as a string"),
+      high: z.string().describe("Upper 128 bits of the uint256 number as a string")
     }),
-    async handler(call, ctx, agent) {
+    async handler(args, ctx, agent) {
       try {
-        const { low, high } = call.data;
+        const { low, high } = args;
         
         // Create a Uint256 object from the low and high parts
         const u256Value = uint256.uint256ToBN({
@@ -63,111 +69,23 @@ export const toolActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Uint256 conversion failed:`, error);
+      ctx.emit("conversionError", { action: ctx.call.name, error: error.message });
+    }
   }),
-  
-  action({
-    name: "queryAgentLiquidityPositions",
-    description: "Queries the blockchain indexer to retrieve all liquidity positions for a specific user address. Returns detailed information about each position including pool addresses, token amounts, and LP token balances. Example: queryAgentLiquidityPositions({ address: '0x123...' })",
-    schema: z.object({
-      address: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The user's Starknet address (in hex format)")
-    }),
-    async handler(call, ctx, agent) {
-      try {
-        // Normalize the address to ensure it's in the correct format
-        const normalizedAddress = normalizeAddress(call.data.address);
-        
-        const result = await executeQuery(GET_AGENT_LIQUIDITY_POSITIONS, {
-          agentAddress: normalizedAddress
-        });
-        
-        if (!result || !result.liquidityPositions) {
-          return {
-            success: true,
-            data: {
-              positions: [],
-              count: 0
-            },
-            message: `No liquidity positions found for address ${normalizedAddress}`,
-            timestamp: Date.now()
-          };
-        }
-        
-        return {
-          success: true,
-          data: {
-            positions: result.liquidityPositions,
-            count: result.liquidityPositions.length
-          },
-          message: `Found ${result.liquidityPositions.length} liquidity positions for address ${normalizedAddress}`,
-          timestamp: Date.now()
-        };
-      } catch (error) {
-        return {
-          success: false,
-          error: (error as Error).message,
-          message: `Failed to query liquidity positions: ${(error as Error).message}`,
-          timestamp: Date.now()
-        };
-      }
-    },
-  }),
-  
-  action({
-    name: "queryAgentStakePositions",
-    description: "Queries the blockchain indexer to retrieve all staking positions for a specific Agent address. Returns detailed information about each position including reactor addresses, token amounts, and reward data. Example: queryAgentStakePositions({ address: '0x123...' })",
-    schema: z.object({
-      address: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The user's Starknet address (in hex format)")
-    }),
-    async handler(call, ctx, agent) {
-      try {
-        // Normalize the address to ensure it's in the correct format
-        const normalizedAddress = normalizeAddress(call.data.address);
-        
-        const result = await executeQuery(GET_AGENT_STAKE_POSITIONS, {
-          agentAddress: normalizedAddress
-        });
-        
-        if (!result || !result.stakePositions) {
-          return {
-            success: true,
-            data: {
-              positions: [],
-              count: 0
-            },
-            message: `No stake positions found for address ${normalizedAddress}`,
-            timestamp: Date.now()
-          };
-        }
-        
-        return {
-          success: true,
-          data: {
-            positions: result.stakePositions,
-            count: result.stakePositions.length
-          },
-          message: `Found ${result.stakePositions.length} stake positions for address ${normalizedAddress}`,
-          timestamp: Date.now()
-        };
-      } catch (error) {
-        return {
-          success: false,
-          error: (error as Error).message,
-          message: `Failed to query stake positions: ${(error as Error).message}`,
-          timestamp: Date.now()
-        };
-      }
-    },
-  }),
-  
+
   action({
     name: "getAgentResourceBalances",
-    description: "Retrieves all token balances for a specific agent or the current agent if no ID is provided. Returns detailed balance information including token addresses, symbols, and amounts in both raw and decimal formats. Example: getAgentResourceBalances({ agentId: 'agent1' })",
+    description: "Retrieves all token balances for a specified agent",
+    instructions: "Use this action when an agent needs to check their token balances or monitor another agent's resources",
     schema: z.object({
-      agentId: z.string().describe("The agent ID to query (optional, defaults to current agent)").optional()
+      agentId: z.string().describe("Agent ID to query (defaults to current agent if not provided)").optional()
     }),
-    async handler(call, ctx, agent) {
+    async handler(args, ctx, agent) {
       try {
-        const agentId = call.data.agentId || getCurrentAgentId();
+        const agentId = args.agentId || getCurrentAgentId();
         
         if (!agentId) {
           return {
@@ -177,8 +95,10 @@ export const toolActions = [
             timestamp: Date.now()
           };
         }
-        
-        const balances = await getAgentResourceBalances(agentId);
+
+        const agentAddress = getContractAddress('agents', agentId);
+
+        const balances = await getAgentResourceBalances(agentAddress);
         
         if (!balances || Object.keys(balances).length === 0) {
           return {
@@ -212,18 +132,24 @@ export const toolActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Resource balances query failed:`, error);
+      ctx.emit("balancesQueryError", { action: ctx.call.name, error: error.message });
+    }
   }),
   
   action({
     name: "compareAgentPositions",
-    description: "Compares the positions (liquidity and staking) between two agents to identify differences in strategy. Returns a detailed comparison including unique positions for each agent and common positions with different amounts. Example: compareAgentPositions({ agentId1: 'agent1', agentId2: 'agent2' })",
+    description: "Compares the strategies and positions between two agents",
+    instructions: "Use this action when an agent needs to analyze differences in strategy with another agent to learn or develop counter-strategies",
     schema: z.object({
-      agentId1: z.string().describe("First agent ID to compare"),
-      agentId2: z.string().describe("Second agent ID to compare")
+      agentId1: z.string().describe("First agent ID to include in the comparison"),
+      agentId2: z.string().describe("Second agent ID to include in the comparison")
     }),
-    async handler(call, ctx, agent) {
+    async handler(args, ctx, agent) {
       try {
-        const { agentId1, agentId2 } = call.data;
+        const { agentId1, agentId2 } = args;
         
         if (agentId1 === agentId2) {
           return {
@@ -233,8 +159,10 @@ export const toolActions = [
             timestamp: Date.now()
           };
         }
-        
-        const comparison = await compareAgentPositions(agentId1, agentId2);
+        const agentAddress1 = getContractAddress('agents', agentId1);
+        const agentAddress2 = getContractAddress('agents', agentId2);
+
+        const comparison = await compareAgentPositions(agentAddress1, agentAddress2);
         
         return {
           success: true,
@@ -251,15 +179,21 @@ export const toolActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Position comparison failed:`, error);
+      ctx.emit("positionComparisonError", { action: ctx.call.name, error: error.message });
+    }
   }),
   
   action({
     name: "rankAgentsByHe3",
-    description: "Retrieves a ranked list of all agents based on their He3 token balance. Returns agents sorted from highest to lowest balance with detailed information about each agent. Example: rankAgentsByHe3()",
+    description: "Retrieves a ranked list of all agents based on He3 token balance",
+    instructions: "Use this action when an agent needs to understand the competitive landscape and identify leading agents",
     schema: z.object({
-      message: z.string().describe("Ignore this field, it is not needed").default("None"), 
+      message: z.string().describe("Not used - can be ignored").default("None"), 
     }),
-    async handler(call, ctx, agent) {
+    async handler(args, ctx, agent) {
       try {
         const rankedAgents = await rankAgentsByHe3();
         
@@ -282,5 +216,10 @@ export const toolActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Agent ranking failed:`, error);
+      ctx.emit("agentRankingError", { action: ctx.call.name, error: error.message });
+    }
   }),
 ]; 

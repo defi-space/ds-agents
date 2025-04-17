@@ -6,23 +6,55 @@ import {
   type StreamTextResult,
   type ToolSet,
 } from "ai";
-import { parse, prompt, resultsPrompt, wrapStream } from "../prompts/main";
-import { task, type TaskContext } from "../task";
-import { formatContext, formatContexts } from "../formatters";
-import { defaultContextRender } from "../context";
+import { task } from "../task";
 import type {
-  ActionCall,
-  AgentContext,
+  Action,
+  ActionCallContext,
   AnyAction,
   AnyAgent,
   AnyContext,
-  ContextState,
-  InferContextMemory,
-  Log,
-  Output,
   WorkingMemory,
 } from "../types";
 import type { Logger } from "../logger";
+import { wrapStream } from "../streaming";
+
+type ModelConfig = {
+  assist?: boolean;
+  prefix?: string;
+  thinkTag?: string;
+};
+
+// TODO: move this
+export const modelsResponseConfig: Record<string, ModelConfig> = {
+  "o3-mini": {
+    assist: false,
+    prefix: "",
+  },
+  "claude-3-7-sonnet-20250219": {
+    // assist: true,
+    // prefix: "<thinking>",
+    // thinkTag: "<thinking>",
+  },
+  "qwen-qwq-32b": {
+    prefix: "",
+  },
+  "google/gemini-2.0-flash-001": {
+    // prefix: "",
+  },
+  "deepseek-r1-distill-llama-70b": {
+    prefix: "",
+    assist: false,
+  },
+};
+
+export const reasoningModels = [
+  "claude-3-7-sonnet-20250219",
+  "qwen-qwq-32b",
+  "deepseek-r1-distill-llama-70b",
+  "o3-mini",
+  "google/gemini-2.0-flash-001",
+  "google/gemini-2.0-flash-lite-preview-02-05:free",
+];
 
 /**
  * Prepares a stream response by handling the stream result and parsing it.
@@ -36,130 +68,66 @@ import type { Logger } from "../logger";
  * @returns An object containing the parsed response promise and wrapped text stream
  */
 function prepareStreamResponse({
+  model,
   stream,
-  logger,
-  contextId,
-  step,
-  task: { callId, debug },
+  isReasoningModel,
 }: {
-  contextId: string;
-  step: string;
+  model: LanguageModelV1;
   stream: StreamTextResult<ToolSet, never>;
-  logger: Logger;
-  task: TaskContext;
+  isReasoningModel: boolean;
 }) {
-  const response = new Promise<ReturnType<typeof parse>>(
-    async (resolve, reject) => {
-      try {
-        const result = await stream.text;
-        const text = "<think>" + result + "</response>";
-
-        debug(contextId, [step, callId], text);
-
-        logger.debug("agent:response", text, {
-          contextId,
-          callId,
-        });
-
-        resolve(parse(text));
-      } catch (error) {
-        reject(error);
-      }
-    }
-  );
-
+  const prefix =
+    modelsResponseConfig[model.modelId]?.prefix ??
+    (isReasoningModel
+      ? (modelsResponseConfig[model.modelId]?.thinkTag ?? "<think>")
+      : "<response>");
+  const suffix = "</response>";
   return {
-    response,
-    stream: wrapStream(stream.textStream, "<think>", "</response>"),
+    getTextResponse: async () => {
+      const result = await stream.text;
+      const text = prefix + result + suffix;
+      return text;
+    },
+    stream: wrapStream(stream.textStream, prefix, suffix),
   };
 }
 
-/**
- * Task that generates a response from the agent based on the current context and working memory.
- *
- * @param options - Configuration options
- * @param options.agent - The agent instance
- * @param options.contexts - Array of context states
- * @param options.contextId - The ID of the current context
- * @param options.workingMemory - The working memory state
- * @param options.outputs - Available outputs
- * @param options.actions - Available actions
- * @param options.logger - The logger instance
- * @param options.model - The language model to use
- * @param taskContext - The task context containing callId and debug function
- * @returns The prepared stream response with parsed result and text stream
- */
+type GenerateOptions = {
+  prompt: string;
+  workingMemory: WorkingMemory;
+  logger: Logger;
+  model: LanguageModelV1;
+  onError: (error: unknown) => void;
+  abortSignal?: AbortSignal;
+};
+
 export const runGenerate = task(
   "agent:run:generate",
   async (
-    {
-      contexts,
-      workingMemory,
-      outputs,
-      actions,
-      logger,
-      model,
-      contextId,
-    }: {
-      agent: AnyAgent;
-      contexts: ContextState<AnyContext>[];
-      contextId: string;
-      workingMemory: WorkingMemory;
-      outputs: Output[];
-      actions: AnyAction[];
-      logger: Logger;
-      model: LanguageModelV1;
-    },
-    { callId, debug }: TaskContext
+    { prompt, workingMemory, model, onError, abortSignal }: GenerateOptions,
+    { callId, debug }
   ) => {
-    debug(
-      contextId,
-      ["workingMemory", callId],
-      JSON.stringify(workingMemory, (key, value) => {
-        // Convert BigInt to string with 'n' suffix to indicate it was a BigInt
-        if (typeof value === 'bigint') {
-          return value.toString() + 'n';
-        }
-        return value;
-      }, 2)
-    );
+    const isReasoningModel = reasoningModels.includes(model.modelId);
 
-    const mainContext = contexts.find((ctx) => ctx.id === contextId)!;
-
-    const system = prompt({
-      context: formatContexts(contextId, contexts, workingMemory),
-      outputs,
-      actions,
-      updates: formatContext({
-        type: mainContext.context.type,
-        key: mainContext.key,
-        content: defaultContextRender({
-          memory: {
-            inputs: workingMemory.inputs.filter((i) => i.processed !== true),
-            results: workingMemory.results.filter((i) => i.processed !== true),
-          },
-        }),
-      }),
-    });
-    debug(contextId, ["prompt", callId], system);
-
-    logger.debug("agent:system", system);
-
-    const messages = [
+    const messages: CoreMessage[] = [
       {
         role: "user",
         content: [
           {
             type: "text",
-            text: system,
+            text: prompt,
           },
         ],
       },
-      {
+    ];
+
+    if (modelsResponseConfig[model.modelId]?.assist !== false)
+      messages.push({
         role: "assistant",
-        content: "<think>",
-      },
-    ] as CoreMessage[];
+        content: isReasoningModel
+          ? (modelsResponseConfig[model.modelId]?.thinkTag ?? "<think>")
+          : "<response>",
+      });
 
     if (workingMemory.currentImage) {
       messages[0].content = [
@@ -170,168 +138,32 @@ export const runGenerate = task(
         },
       ] as CoreMessage["content"];
     }
+
+    try {
     const stream = streamText({
       model,
       messages,
-      stopSequences: ["</response>"],
+      stopSequences: ["\n</response>"],
       temperature: 0.6,
-      experimental_transform: smoothStream({
-        chunking: "word",
-      }),
-      onError: (error) => {
-        console.error(error);
+      abortSignal,
+        // experimental_transform: smoothStream({
+        //   chunking: "word",
+        // }),
+      onError: (event) => {
+          console.log({ event });
+        onError(event.error);
       },
     });
-
-    // Clear the current image after using it
-    workingMemory.currentImage = undefined;
 
     return prepareStreamResponse({
-      step: "response",
-      contextId,
-      logger,
-      stream,
-      task: { callId, debug },
-    });
-  }
-);
-
-/**
- * Task that generates results based on the agent's actions and working memory.
- *
- * @param options - Configuration options
- * @param options.agent - The agent instance
- * @param options.contexts - Array of context states
- * @param options.contextId - The ID of the current context
- * @param options.workingMemory - The working memory state
- * @param options.outputs - Available outputs
- * @param options.actions - Available actions
- * @param options.logger - The logger instance
- * @param options.model - The language model to use
- * @param options.chain - Array of logs representing the action chain
- * @param taskContext - The task context containing callId and debug function
- * @returns The prepared stream response with parsed result and text stream
- */
-export const runGenerateResults = task(
-  "agent:run:generate-results",
-  async (
-    {
-      contexts,
-      workingMemory,
-      outputs,
-      actions,
-      logger,
       model,
-      contextId,
-      chain,
-    }: {
-      agent: AnyAgent;
-      contexts: ContextState<AnyContext>[];
-      contextId: string;
-      workingMemory: WorkingMemory;
-      outputs: Output[];
-      actions: AnyAction[];
-      logger: Logger;
-      model: LanguageModelV1;
-      chain: Log[];
-    },
-    { callId, debug }: TaskContext
-  ) => {
-    debug(
-      contextId,
-      ["workingMemory", callId],
-      JSON.stringify(workingMemory, (key, value) => {
-        // Convert BigInt to string with 'n' suffix to indicate it was a BigInt
-        if (typeof value === 'bigint') {
-          return value.toString() + 'n';
-        }
-        return value;
-      }, 2)
-    );
-
-    const mainContext = contexts.find((ctx) => ctx.id === contextId)!;
-
-    const system = resultsPrompt({
-      context: formatContexts(contextId, contexts, workingMemory),
-      outputs,
-      actions,
-      updates: formatContext({
-        type: mainContext.context.type,
-        key: mainContext.key,
-        content: defaultContextRender({
-          memory: {
-            inputs: workingMemory.inputs.filter((i) => i.processed !== true),
-          },
-        }),
-      }),
-      logs: chain
-        .filter((i) =>
-          i.ref === "action_result" ? i.processed === true : true
-        )
-        .slice(-30),
-      results: workingMemory.results.filter((i) => i.processed !== true),
+      stream,
+      isReasoningModel,
     });
-
-    console.log("marking as processed");
-    workingMemory.results.forEach((i) => {
-      i.processed = true;
-    });
-
-    debug(contextId, ["prompt-results", callId], system);
-
-    logger.debug("agent:system", system, {
-      contextId,
-      callId,
-    });
-
-    const messages = [
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: system,
-          },
-        ],
-      },
-      {
-        role: "assistant",
-        content: "<think>",
-      },
-    ] as CoreMessage[];
-
-    if (workingMemory.currentImage) {
-      messages[0].content = [
-        ...messages[0].content,
-        {
-          type: "image",
-          image: workingMemory.currentImage,
-        },
-      ] as CoreMessage["content"];
+    } catch (error) {
+      console.log({ error });
+      throw error;
     }
-    const stream = streamText({
-      model,
-      messages: messages,
-      stopSequences: ["</response>"],
-      temperature: 0.6,
-      experimental_transform: smoothStream({
-        chunking: "word",
-      }),
-      onError: (error) => {
-        console.error(error);
-      },
-    });
-
-    // Clear the current image after using it
-    workingMemory.currentImage = undefined;
-
-    return prepareStreamResponse({
-      step: "results-response",
-      contextId,
-      logger,
-      stream,
-      task: { callId, debug },
-    });
   }
 );
 
@@ -352,37 +184,36 @@ export const runAction = task(
   async <TContext extends AnyContext>({
     ctx,
     action,
-    call,
     agent,
     logger,
   }: {
-    ctx: AgentContext<InferContextMemory<TContext>, TContext> & {
-      actionMemory: unknown;
-      agentMemory?: unknown;
-    };
+    ctx: ActionCallContext<any, TContext>;
     action: AnyAction;
-    call: ActionCall;
     agent: AnyAgent;
     logger: Logger;
   }) => {
+    logger.info(
+      "agent:action_call:" + ctx.call.id,
+      ctx.call.name,
+      JSON.stringify(ctx.call.data)
+    );
+
     try {
-      logger.info(
-        "agent:action_call:" + call.id,
-        call.name,
-        JSON.stringify(call.data, (key, value) => {
-          // Convert BigInt to string with 'n' suffix to indicate it was a BigInt
-          if (typeof value === 'bigint') {
-            return value.toString() + 'n';
-          }
-          return value;
-        })
-      );
-      const result = await action.handler(call, ctx, agent);
-      logger.debug("agent:action_result:" + call.id, call.name, result);
+      const result =
+        action.schema === undefined
+          ? await Promise.try((action as Action<undefined>).handler, ctx, agent)
+          : await Promise.try(action.handler as any, ctx.call.data, ctx, agent);
+
+      logger.debug("agent:action_result:" + ctx.call.id, ctx.call.name, result);
       return result;
     } catch (error) {
       logger.error("agent:action", "ACTION_FAILED", { error });
-      throw error;
+
+      if (action.onError) {
+        await Promise.try(action.onError, error, ctx, agent);
+      } else {
+        throw error;
+      }
     }
   }
 );

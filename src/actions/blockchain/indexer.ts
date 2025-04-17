@@ -1,9 +1,9 @@
 import { action } from "@daydreamsai/core";
 import { z } from "zod";
 import { executeQuery } from "../../utils/graphql";
-import { normalizeAddress, getAgentAddress } from "../../utils/starknet";
+import { normalizeAddress, getCurrentAgentId } from "../../utils/starknet";
 import {
-  GET_POOL_INFO,
+  GET_PAIR_INFO,
   GET_FARM_INFO,
   GET_ALL_FARMS,
   GET_AGENT_LIQUIDITY_POSITIONS,
@@ -16,34 +16,35 @@ import {
 
 export const indexerActions = [
   action({
-    name: "getPoolInfo",
-    description: "Retrieves comprehensive information about a specific liquidity pool from the blockchain indexer. Returns detailed data including total liquidity, volume, fees, token reserves, APR/APY metrics, and recent trading activity. Example: getPoolInfo({ poolAddress: '0x123abc...' })",
+    name: "getPairInfo",
+    description: "Retrieves detailed information about a specific liquidity pair",
+    instructions: "Use this action when an agent needs comprehensive data about a liquidity pair including reserves, volume, and fees",
     schema: z.object({
-      poolAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The Starknet address of the liquidity pool to query information for (in hex format)")
+      pairAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Pair contract address (must be a valid hex address starting with 0x)")
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!call.data.poolAddress) {
+        if (!args.pairAddress) {
           return {
             success: false,
-            error: "Pool address is required",
-            message: "Cannot retrieve pool information: pool address is missing",
+            error: "Pair address is required",
+            message: "Cannot retrieve pair information: pair address is missing",
             timestamp: Date.now()
           };
         }
         
-        const normalizedAddress = normalizeAddress(call.data.poolAddress);
+        const normalizedAddress = normalizeAddress(args.pairAddress);
         
-        const result = await executeQuery(GET_POOL_INFO, {
+        const result = await executeQuery(GET_PAIR_INFO, {
           address: normalizedAddress
         });
         
-        if (!result || !result.pool) {
+        if (!result || !result.pair) {
           return {
             success: false,
-            error: "Pool not found",
-            message: `No pool information found for address ${call.data.poolAddress}`,
+            error: "Pair not found",
+            message: `No pair information found for address ${args.pairAddress}`,
             timestamp: Date.now()
           };
         }
@@ -51,50 +52,56 @@ export const indexerActions = [
         return {
           success: true,
           data: result,
-          message: `Successfully retrieved information for pool at ${call.data.poolAddress}`,
+          message: `Successfully retrieved information for pair at ${args.pairAddress}`,
           timestamp: Date.now()
         };
       } catch (error) {
-        console.error('Failed to get pool info:', error);
+        console.error('Failed to get pair info:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to get pool info",
-          message: `Failed to retrieve pool information: ${(error as Error).message || "Unknown error"}`,
+          error: (error as Error).message || "Failed to get pair info",
+          message: `Failed to retrieve pair information: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Pair info query failed:`, error);
+      ctx.emit("pairInfoError", { action: ctx.call.name, error: error.message });
+    }
   }),
 
   action({
-    name: "getReactorInfo",
-    description: "Fetches detailed information about a specific nuclear reactor from the blockchain indexer. Returns comprehensive data including reactor type, operational status, power output, and efficiency metrics. Example: getReactorInfo({ reactorAddress: '0x456def...' })",
+    name: "getFarmInfo",
+    description: "Fetches detailed information about a specific farming farm",
+    instructions: "Use this action when an agent needs data about a farm including its rewards, staked amounts, and other metrics",
     schema: z.object({
-      reactorAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The Starknet address of the nuclear reactor smart contract to query (in hex format)")
+      farmAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Farm contract address (must be a valid hex address starting with 0x)")
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!call.data.reactorAddress) {
+        if (!args.farmAddress) {
           return {
             success: false,
-            error: "Reactor address is required",
-            message: "Cannot retrieve reactor information: reactor address is missing",
+            error: "Farm address is required",
+            message: "Cannot retrieve farm information: farm address is missing",
             timestamp: Date.now()
           };
         }
         
-        const normalizedAddress = normalizeAddress(call.data.reactorAddress);
+        const normalizedAddress = normalizeAddress(args.farmAddress);
         
         const result = await executeQuery(GET_FARM_INFO, {
           address: normalizedAddress
         });
         
-        if (!result || !result.reactor) {
+        if (!result || !result.farm) {
           return {
             success: false,
-            error: "Reactor not found",
-            message: `No reactor information found for address ${call.data.reactorAddress}`,
+            error: "Farm not found",
+            message: `No farm information found for address ${args.farmAddress}`,
             timestamp: Date.now()
           };
         }
@@ -102,36 +109,42 @@ export const indexerActions = [
         return {
           success: true,
           data: result,
-          message: `Successfully retrieved information for reactor at ${call.data.reactorAddress}`,
+          message: `Successfully retrieved information for farm at ${args.farmAddress}`,
           timestamp: Date.now()
         };
       } catch (error) {
-        console.error('Failed to get reactor info:', error);
+        console.error('Failed to get farm info:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to get reactor info",
-          message: `Failed to retrieve reactor information: ${(error as Error).message || "Unknown error"}`,
+          error: (error as Error).message || "Failed to get farm info",
+          message: `Failed to retrieve farm information: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Farm info query failed:`, error);
+      ctx.emit("farmInfoError", { action: ctx.call.name, error: error.message });
+    }
   }),
 
   action({
-    name: "getAllReactors",
-    description: "Retrieves a comprehensive list of all registered nuclear reactors in the network with their current operational data. Returns an array of reactor information including types, operational status, and efficiency metrics. Example: getAllReactors()",
+    name: "getAllfarms",
+    description: "Retrieves a list of all registered farming farms in the network",
+    instructions: "Use this action when an agent needs to discover all available farms and their data",
     schema: z.object({
-      message: z.string().describe("Ignore this field, it is not needed").default("None"),
+      message: z.string().describe("Not used - can be ignored").default("None"),
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         const result = await executeQuery(GET_ALL_FARMS, {});
         
-        if (!result || !result.farms || !Array.isArray(result.farms)) {
+        if (!result || !result.farm || !Array.isArray(result.farm)) {
           return {
             success: false,
-            error: "No reactors data returned",
-            message: "Failed to retrieve reactors list: no reactors data returned from query",
+            error: "No farms data returned",
+            message: "Failed to retrieve farms list: no farms data returned from query",
             timestamp: Date.now()
           };
         }
@@ -139,31 +152,37 @@ export const indexerActions = [
         return {
           success: true,
           data: result,
-          message: `Successfully retrieved information for ${result.reactors.length} reactors`,
+          message: `Successfully retrieved information for ${result.farm.length} farms`,
           timestamp: Date.now()
         };
       } catch (error) {
-        console.error('Failed to get all reactors:', error);
+        console.error('Failed to get all farms:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to get all reactors",
-          message: `Failed to retrieve reactor list: ${(error as Error).message || "Unknown error"}`,
+          error: (error as Error).message || "Failed to get all farms",
+          message: `Failed to retrieve farm list: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Get all farms query failed:`, error);
+      ctx.emit("getAllfarmsError", { action: ctx.call.name, error: error.message });
+    }
   }),
 
   action({
     name: "getAgentLiquidityPositions",
-    description: "Fetches all active liquidity positions for a specific user across all pools from the blockchain indexer. Returns detailed information including pool shares, token amounts, and current value. Example: getAgentLiquidityPositions({ agentAddress: '0x789ghi...' })",
+    description: "Fetches all active liquidity positions for a specific agent across all pools",
+    instructions: "Use this action when an agent needs to view its own or another agent's liquidity positions and pool shares",
     schema: z.object({
-      userAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The Starknet address of the user whose liquidity positions are being queried (in hex format)")
+      userAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Agent wallet address to query liquidity positions for (must be a valid hex address starting with 0x)")
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!call.data.userAddress) {
+        if (!args.userAddress) {
           return {
             success: false,
             error: "Agent address is required",
@@ -172,17 +191,17 @@ export const indexerActions = [
           };
         }
         
-        const normalizedAddress = normalizeAddress(call.data.userAddress);
+        const normalizedAddress = normalizeAddress(args.userAddress);
         
         const result = await executeQuery(GET_AGENT_LIQUIDITY_POSITIONS, {
           agentAddress: normalizedAddress
         });
         
-        if (!result || !result.liquidityPositions || !Array.isArray(result.liquidityPositions)) {
+        if (!result || !result.liquidityPosition || !Array.isArray(result.liquidityPosition)) {
           return {
             success: true,
-            data: { liquidityPositions: [] },
-            message: `No liquidity positions found for user ${call.data.userAddress}`,
+            data: { liquidityPosition: [] },
+            message: `No liquidity positions found for user ${args.userAddress}`,
             timestamp: Date.now()
           };
         }
@@ -190,7 +209,7 @@ export const indexerActions = [
         return {
           success: true,
           data: result,
-          message: `Successfully retrieved ${result.liquidityPositions.length} liquidity positions for user ${call.data.userAddress}`,
+          message: `Successfully retrieved ${result.liquidityPosition.length} liquidity positions for user ${args.userAddress}`,
           timestamp: Date.now()
         };
       } catch (error) {
@@ -203,18 +222,24 @@ export const indexerActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Liquidity positions query failed:`, error);
+      ctx.emit("liquidityPositionsError", { action: ctx.call.name, error: error.message });
+    }
   }),
 
   action({
     name: "getAgentStakePositions",
-    description: "Retrieves all active staking positions for a specific user from the blockchain indexer. Returns comprehensive data including staked amounts, earned rewards, and lock periods. Example: getAgentStakePositions({ agentAddress: '0xabc123...' })",
+    description: "Retrieves all active staking positions for a specific agent",
+    instructions: "Use this action when an agent needs to view its own or another agent's staked amounts and earned rewards",
     schema: z.object({
-      userAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The Starknet address of the user whose staking positions are being queried (in hex format)")
+      userAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Agent wallet address to query staking positions for (must be a valid hex address starting with 0x)")
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!call.data.userAddress) {
+        if (!args.userAddress) {
           return {
             success: false,
             error: "Agent address is required",
@@ -223,17 +248,17 @@ export const indexerActions = [
           };
         }
         
-        const normalizedAddress = normalizeAddress(call.data.userAddress);
+        const normalizedAddress = normalizeAddress(args.userAddress);
         
         const result = await executeQuery(GET_AGENT_STAKE_POSITIONS, {
           agentAddress: normalizedAddress
         });
         
-        if (!result || !result.stakePositions || !Array.isArray(result.stakePositions)) {
+        if (!result || !result.agentStake || !Array.isArray(result.agentStake)) {
           return {
             success: true,
-            data: { stakePositions: [] },
-            message: `No stake positions found for user ${call.data.userAddress}`,
+            data: { agentStake: [] },
+            message: `No stake positions found for user ${args.userAddress}`,
             timestamp: Date.now()
           };
         }
@@ -241,40 +266,46 @@ export const indexerActions = [
         return {
           success: true,
           data: result,
-          message: `Successfully retrieved ${result.stakePositions.length} stake positions for user ${call.data.userAddress}`,
+          message: `Successfully retrieved ${result.agentStake.length} stake positions for user ${args.userAddress}`,
           timestamp: Date.now()
         };
       } catch (error) {
-        console.error('Failed to get user stake positions:', error);
+        console.error('Failed to get agent stake positions:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to get user stake positions",
-          message: `Failed to retrieve user stake positions: ${(error as Error).message || "Unknown error"}`,
+          error: (error as Error).message || "Failed to get agent stake positions",
+          message: `Failed to retrieve agent stake positions: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Stake positions query failed:`, error);
+      ctx.emit("stakePositionsError", { action: ctx.call.name, error: error.message });
+    }
   }),
 
   action({
-    name: "getReactorIndexByLpToken",
-    description: "Retrieves the reactor index for a given LP token address. This is a simple lookup that maps LP tokens to their corresponding reactor index in the system. Example: getReactorIndexByLpToken({ lpTokenAddress: '0xdef456...' })",
+    name: "getFarmIndexByLpToken",
+    description: "Retrieves the farm index for a given LP token address",
+    instructions: "Use this action when an agent needs to find which farm corresponds to a specific LP token",
     schema: z.object({
-      lpTokenAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The Starknet address of the LP token to find the corresponding reactor index for (in hex format)")
+      lpTokenAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("LP token contract address (must be a valid hex address starting with 0x)")
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!call.data.lpTokenAddress) {
+        if (!args.lpTokenAddress) {
           return {
             success: false,
             error: "LP token address is required",
-            message: "Cannot retrieve reactor index: LP token address is missing",
+            message: "Cannot retrieve farm index: LP token address is missing",
             timestamp: Date.now()
           };
         }
         
-        const normalizedAddress = normalizeAddress(call.data.lpTokenAddress);
+        const normalizedAddress = normalizeAddress(args.lpTokenAddress);
         
         const result = await executeQuery(GET_FARM_INDEX_BY_LP_TOKEN, {
           lpTokenAddress: normalizedAddress
@@ -286,7 +317,7 @@ export const indexerActions = [
           return {
             success: false,
             error: "Farm not found for LP token",
-            message: `No farm found for LP token address ${call.data.lpTokenAddress}`,
+            message: `No farm found for LP token address ${args.lpTokenAddress}`,
             timestamp: Date.now()
           };
         }
@@ -294,34 +325,40 @@ export const indexerActions = [
         return {
           success: true,
           data: {
-            lpTokenAddress: call.data.lpTokenAddress,
+            lpTokenAddress: args.lpTokenAddress,
             farmIndex
           },
-          message: `LP token ${call.data.lpTokenAddress} corresponds to farm index ${farmIndex}`,
+          message: `LP token ${args.lpTokenAddress} corresponds to farm index ${farmIndex}`,
           timestamp: Date.now()
         };
       } catch (error) {
-        console.error('Failed to get reactor index by LP token:', error);
+        console.error('Failed to get farm index by LP token:', error);
         return {
           success: false,
-          error: (error as Error).message || "Failed to get reactor index by LP token",
-          message: `Failed to retrieve reactor index for LP token: ${(error as Error).message || "Unknown error"}`,
+          error: (error as Error).message || "Failed to get farm index by LP token",
+          message: `Failed to retrieve farm index for LP token: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Farm index lookup failed:`, error);
+      ctx.emit("farmIndexLookupError", { action: ctx.call.name, error: error.message });
+    }
   }),
 
   action({
     name: "getGameSessionStatus",
-    description: "Checks if a game session is active by verifying that it's not suspended or already over. Returns essential game session status information. Example: getGameSessionStatus({ sessionAddress: '0x123abc...' })",
+    description: "Checks if a game session is active, suspended, or already over",
+    instructions: "Use this action when an agent needs to verify the current status of a game session before taking actions",
     schema: z.object({
-      sessionAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The Starknet address of the game session to query information for (in hex format)")
+      sessionAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Game session contract address (must be a valid hex address starting with 0x)")
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!call.data.sessionAddress) {
+        if (!args.sessionAddress) {
           return {
             success: false,
             error: "Game session address is required",
@@ -330,7 +367,7 @@ export const indexerActions = [
           };
         }
         
-        const normalizedAddress = normalizeAddress(call.data.sessionAddress);
+        const normalizedAddress = normalizeAddress(args.sessionAddress);
         
         const result = await executeQuery(GET_GAME_SESSION_STATUS, {
           address: normalizedAddress
@@ -340,12 +377,12 @@ export const indexerActions = [
           return {
             success: false,
             error: "Game session not found",
-            message: `No game session found for address ${call.data.sessionAddress}`,
+            message: `No game session found for address ${args.sessionAddress}`,
             timestamp: Date.now()
           };
         }
         
-        const isActive = !result.gameSession.is_suspended && !result.gameSession.is_over;
+        const isActive = !result.gameSession.gameSuspended && !result.gameSession.gameOver;
         
         return {
           success: true,
@@ -354,8 +391,8 @@ export const indexerActions = [
             isActive
           },
           message: isActive 
-            ? `Game session at ${call.data.sessionAddress} is active` 
-            : `Game session at ${call.data.sessionAddress} is not active (${result.gameSession.is_suspended ? 'suspended' : 'over'})`,
+            ? `Game session at ${args.sessionAddress} is active` 
+            : `Game session at ${args.sessionAddress} is not active (${result.gameSession.gameSuspended ? 'suspended' : 'over'})`,
           timestamp: Date.now()
         };
       } catch (error) {
@@ -368,18 +405,24 @@ export const indexerActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Game session status query failed:`, error);
+      ctx.emit("gameSessionStatusError", { action: ctx.call.name, error: error.message });
+    }
   }),
 
   action({
     name: "getGameSessionIndexByAddress",
-    description: "Retrieves the session index for a specific game session address. Example: getGameSessionIndexByAddress({ sessionAddress: '0x123abc...' })",
+    description: "Retrieves the session index for a specific game session address",
+    instructions: "Use this action when an agent needs to find the numerical index of a game session from its contract address",
     schema: z.object({
-      sessionAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The Starknet address of the game session to query index for (in hex format)")
+      sessionAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Game session contract address (must be a valid hex address starting with 0x)")
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!call.data.sessionAddress) {
+        if (!args.sessionAddress) {
           return {
             success: false,
             error: "Game session address is required",
@@ -388,17 +431,17 @@ export const indexerActions = [
           };
         }
         
-        const normalizedAddress = normalizeAddress(call.data.sessionAddress);
+        const normalizedAddress = normalizeAddress(args.sessionAddress);
         
         const result = await executeQuery(GET_GAME_SESSION_INDEX_BY_ADDRESS, {
           address: normalizedAddress
         });
         
-        if (!result?.gameSession || !result.gameSession.session_index) {
+        if (!result?.gameSession || !result.gameSession.gameSessionIndex) {
           return {
             success: false,
             error: "Game session index not found",
-            message: `No game session index found for address ${call.data.sessionAddress}`,
+            message: `No game session index found for address ${args.sessionAddress}`,
             timestamp: Date.now()
           };
         }
@@ -406,10 +449,10 @@ export const indexerActions = [
         return {
           success: true,
           data: {
-            sessionAddress: call.data.sessionAddress,
-            sessionIndex: result.gameSession.session_index
+            sessionAddress: args.sessionAddress,
+            sessionIndex: result.gameSession.gameSessionIndex
           },
-          message: `Game session at ${call.data.sessionAddress} has index ${result.gameSession.session_index}`,
+          message: `Game session at ${args.sessionAddress} has index ${result.gameSession.gameSessionIndex}`,
           timestamp: Date.now()
         };
       } catch (error) {
@@ -422,19 +465,25 @@ export const indexerActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Game session index lookup failed:`, error);
+      ctx.emit("gameSessionIndexError", { action: ctx.call.name, error: error.message });
+    }
   }),
 
   action({
     name: "getMostStakedAgents",
-    description: "Retrieves the agents with the highest stakes in a game session, with a configurable limit. Example: getMostStakedAgents({ sessionAddress: '0x123abc...', limit: 10 })",
+    description: "Retrieves the agents with the highest stakes in a game session",
+    instructions: "Use this action when an agent needs to identify the leading agents in a game session based on their stake amounts",
     schema: z.object({
-      sessionAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The Starknet address of the game session to query for (in hex format)"),
-      limit: z.number().int().min(1).max(50).optional().describe("Maximum number of agents to return. Defaults to 5")
+      sessionAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Game session contract address (must be a valid hex address starting with 0x)"),
+      limit: z.number().int().min(1).max(50).optional().describe("Maximum number of agents to return (default: 5, max: 50)")
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!call.data.sessionAddress) {
+        if (!args.sessionAddress) {
           return {
             success: false,
             error: "Session address is required",
@@ -443,15 +492,15 @@ export const indexerActions = [
           };
         }
         
-        const sessionAddress = normalizeAddress(call.data.sessionAddress);
-        const limit = call.data.limit || 5;
+        const sessionAddress = normalizeAddress(args.sessionAddress);
+        const limit = args.limit || 5;
         
         const result = await executeQuery(GET_MOST_STAKED_AGENTS, {
           sessionAddress: sessionAddress,
           limit: limit
         });
         
-        if (!result || !result.userGameStake || !Array.isArray(result.userGameStake)) {
+        if (!result || !result.userStake || !Array.isArray(result.userStake)) {
           return {
             success: false,
             error: "No agent data returned",
@@ -461,15 +510,14 @@ export const indexerActions = [
         }
         
         // Get current agent address for comparison
-        const agentAddress = await getAgentAddress();
-        const normalizedAgentAddress = agentAddress ? normalizeAddress(agentAddress) : null;
+        const agentId = await getCurrentAgentId();
         
         // Add rank and check if current agent is among top stakers
-        const topAgents = result.userGameStake.map((stake: any, index: number) => ({
+        const topAgents = result.userStake.map((stake: any, index: number) => ({
           ...stake,
           rank: index + 1,
-          isCurrentAgent: normalizedAgentAddress ? 
-            normalizeAddress(stake.user_address) === normalizedAgentAddress : false
+          isCurrentAgent: agentId ? 
+            stake.agentIndex === agentId : false
         }));
         
         const currentAgentInList = topAgents.find((agent: any) => agent.isCurrentAgent);
@@ -495,5 +543,10 @@ export const indexerActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Get most staked agents query failed:`, error);
+      ctx.emit("mostStakedAgentsError", { action: ctx.call.name, error: error.message });
+    }
   }),
 ]; 

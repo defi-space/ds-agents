@@ -1,18 +1,16 @@
 {
-  "name": "@daydreamsai/hyperliquid",
-  "version": "0.2.14",
+  "name": "@daydreamsai/mcp",
+  "version": "0.3.0",
   "type": "module",
-  "main": "dist/index.js",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",
-      "import": {
-        "development": "./src/index.ts",
-        "default": "./dist/index.js"
-      }
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
     }
   },
   "devDependencies": {
@@ -29,7 +27,7 @@
   },
   "dependencies": {
     "@daydreamsai/core": "workspace:*",
-    "hyperliquid": "^1.6.2",
+    "@modelcontextprotocol/sdk": "^1.6.1",
     "zod": "^3.24.2"
   }
 }

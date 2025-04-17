@@ -26,7 +26,7 @@ This project allows running multiple agents simultaneously, each with its own co
 - [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/) for running ChromaDB
 - MongoDB Atlas account for database storage
 - Starknet RPC access
-- OpenAI API keys for each agent
+- Google API keys for each agent
 
 ## Setup
 
@@ -56,7 +56,7 @@ This project allows running multiple agents simultaneously, each with its own co
 ## Environment Configuration
 
 The `.env` file contains configuration for all agents. Each agent must have its own:
-- OpenAI API key
+- Google API key
 - Starknet wallet address
 - Starknet private key
 
@@ -71,12 +71,12 @@ Example:
 # Agent 1 Configuration
 AGENT1_PRIVATE_KEY="your-private-key"
 AGENT1_ADDRESS="your-wallet-address"
-AGENT1_API_KEY="your-openai-api-key"
+AGENT1_API_KEY="your-google-api-key"
 
 # Agent 2 Configuration
 AGENT2_PRIVATE_KEY="your-private-key"
 AGENT2_ADDRESS="your-wallet-address"
-AGENT2_API_KEY="your-openai-api-key"
+AGENT2_API_KEY="your-google-api-key"
 
 # ... more agent configurations ...
 
@@ -86,8 +86,8 @@ STARKNET_RPC_URL="your-starknet-rpc-url"
 # GraphQL Indexer
 INDEXER_URL="http://your-indexer-url:8080/v1/graphql"
 
-# OpenAI API Key used for embedding in single agent mode
-OPENAI_API_KEY="your-openai-api-key"
+# Google API Key used for embedding in single agent mode
+GOOGLE_API_KEY="your-google-api-key"
 ```
 
 > **Important**: Each agent must have its own configuration. The system validates that proper credentials are provided for each agent at startup.

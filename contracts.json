@@ -7,7 +7,7 @@
   },
   "core": {
     "router": "0x1cc757e6f8f2c81f9577bb12838a413a771feeee89fad890266008ab21c2473",
-    "conduit": "0x353d2efecd1f1cadb04d3b377442fcf907d911da42f164b3824e1266cc9a4",
+    "farmRouter": "0x353d2efecd1f1cadb04d3b377442fcf907d911da42f164b3824e1266cc9a4",
     "faucet": "0x57a7e8920c8af182be1fe7293e299f1b6c24a1223be081913a8b26aaf79d731",
     "gameFactory": "0x5b03bc53a8a73a23adb10657ce719a5f8a329944be20093a8f1b8f670de98c4"
   },
@@ -32,7 +32,7 @@
     "grapheneYttrium": "0x54ad5369f2f49109602d839f217e284a9e99144022ebf4667a839cc9813bc40",
     "wdHelium3": "0x231b43e0638b9b9752bfb785ca176ef2746094afb36bc3e621f790a2d205299"
   },
-  "reactors": {
+  "farms": {
     "grp": "0x681dbefbbc0b3dbf2df40f36ae5c56843fc6e618dcf671a79fa919083e9c65f",
     "gph": "0x2b9e24a6f2beaeb127864a494f91846060c2440c10b8d30f6f7303d127d4558",
     "dy": "0x1f89e732297ce9d5f57b385ac2ac133c52f6e1de867db9edd59a3d72e9b81f6",

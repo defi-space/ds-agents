@@ -10,16 +10,17 @@ export const ammActions = [
   // Router Operations - Price Calculations
   action({
     name: "getAmountOut",
-    description: "Calculates the exact output amount for a token swap given an input amount using the AMM's constant product formula (x * y = k). Example: getAmountOut({ tokenIn: '0x123...', tokenOut: '0x456...', amountIn: '1000000000000000000' })",
+    description: "Calculates the exact output amount for a token swap given an input amount using the AMM's constant product formula (x * y = k).",
+    instructions: "Use this action when an agent needs to know how much of a token they will receive for a specific amount of another token.",
     schema: z.object({
-      tokenIn: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The address of the token you want to swap from (in hex format)"),
-      tokenOut: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The address of the token you want to receive (in hex format)"),
-      amountIn: z.string().describe("Input amount in token base units (as string to prevent precision issues)"),
+      tokenIn: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Token contract address to swap from (must be a valid hex address starting with 0x)"),
+      tokenOut: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Token contract address to receive (must be a valid hex address starting with 0x)"),
+      amountIn: z.string().describe("Amount of input tokens as a string in base units (e.g., '1000000000000000000' for 1 token with 18 decimals)"),
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (call.data.tokenIn === call.data.tokenOut) {
+        if (args.tokenIn === args.tokenOut) {
           return {
             success: false,
             error: "Token addresses must be different",
@@ -28,7 +29,7 @@ export const ammActions = [
           };
         }
         
-        const { tokenIn, tokenOut, amountIn } = call.data;
+        const { tokenIn, tokenOut, amountIn } = args;
         
         // Get contract addresses
         const routerAddress = getContractAddress('core', 'router');
@@ -59,7 +60,7 @@ export const ammActions = [
           return {
             success: false,
             error: "Liquidity pair not found",
-            message: `Cannot calculate amount out: no liquidity pair exists for ${tokenIn} and ${tokenOut}`,
+            message: `Cannot calculate amount out: no liquidity pair exists for ${tokenIn} and ${tokenOut}. Please check context to get available pairs.`,
             timestamp: Date.now()
           };
         }
@@ -118,17 +119,23 @@ export const ammActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Action ${ctx.call.name} failed:`, error);
+      ctx.emit("actionError", { action: ctx.call.name, error: error.message });
+    }
   }),
 
   action({
     name: "quote",
-    description: "Provides a price quote for exchanging tokens based on the current reserves in the liquidity pool. Calculates the equivalent amount of token B you would receive for a given amount of token A, taking into account the current ratio of reserves. This is a pure calculation that doesn't account for fees or slippage, useful for price estimation purposes.",
+    description: "Provides a price quote for exchanging tokens based on current pool reserves without considering fees or slippage.",
+    instructions: "Use this action when an agent needs a simple price estimate for token exchange based on current market conditions.",
     schema: z.object({
-      tokenIn: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The address of the token you want to swap from (in hex format)"),
-      tokenOut: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The address of the token you want to receive (in hex format)"),
-      amountIn: z.string().describe("Input amount (MUST be in token base units)"),
+      tokenIn: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Token contract address to swap from (must be a valid hex address starting with 0x)"),
+      tokenOut: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Token contract address to receive (must be a valid hex address starting with 0x)"),
+      amountIn: z.string().describe("Amount of input tokens as a string in base units (e.g., '1000000000000000000' for 1 token with 18 decimals)"),
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         const routerAddress = getContractAddress('core', 'router');
 
@@ -141,8 +148,17 @@ export const ammActions = [
         const pairAddress = toHex(await starknetChain.read({
           contractAddress: factoryAddress,
           entrypoint: "get_pair",
-          calldata: [call.data.tokenIn, call.data.tokenOut]
+          calldata: [args.tokenIn, args.tokenOut]
         }));
+
+        if (pairAddress === "0x0" || pairAddress === "0x00") {
+          return {
+            success: false,
+            error: "Liquidity pair not found",
+            message: `Cannot calculate quote: no liquidity pair exists for ${args.tokenIn} and ${args.tokenOut}. Please check context to get available pairs.`,
+            timestamp: Date.now(),
+          };
+        }
 
         const reserves = await starknetChain.read({
           contractAddress: pairAddress,
@@ -155,7 +171,7 @@ export const ammActions = [
           contractAddress: routerAddress,
           entrypoint: "quote",
           calldata: [
-            ...toUint256WithSpread(call.data.amountIn),
+            ...toUint256WithSpread(args.amountIn),
             ...toUint256WithSpread(reserveIn.toString()),
             ...toUint256WithSpread(reserveOut.toString())
           ]
@@ -174,36 +190,65 @@ export const ammActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Action ${ctx.call.name} failed:`, error);
+      ctx.emit("actionError", { action: ctx.call.name, error: error.message });
+    }
   }),
 
   action({
     name: "swapExactTokensForTokens",
-    description: "Execute a token swap with an exact input amount for a minimum output amount. Automatically finds the best route between the input and output tokens, handling multi-hop swaps if needed. Includes slippage protection through amountOutMin parameter and deadline for transaction validity. Automatically handles token approvals and executes the swap in a single transaction.",
+    description: "Executes a token swap with exact input amount, handling approvals and execution in a single transaction.",
+    instructions: "Use this action when an agent needs to swap a specific amount of one token for another. The system automatically handles approvals and finds the best exchange rate.",
     schema: z.object({
-      tokenIn: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The address of the token you want to swap from (in hex format)"),
-      tokenOut: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("The address of the token you want to receive (in hex format)"),
-      amountIn: z.string().describe("Exact amount of input tokens to be swapped (in token base units)"),
+      tokenIn: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Token contract address to swap from (must be a valid hex address starting with 0x)"),
+      tokenOut: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Token contract address to receive (must be a valid hex address starting with 0x)"),
+      amountIn: z.string().describe("Exact amount of tokens to swap as a string in base units (e.g., '1000000000000000000' for 1 token with 18 decimals)"),
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         // Construct the path array - for now using direct path, TODO: implement path finding
-        const path = [call.data.tokenIn, call.data.tokenOut];
+        const path = [args.tokenIn, args.tokenOut];
         const routerAddress = getContractAddress('core', 'router');
         const agentAddress = await getAgentAddress();
         
-        // Create approve call for input token
+        // Get factory address
+        const factoryAddress = toHex(await starknetChain.read({
+          contractAddress: routerAddress,
+          entrypoint: "factory",
+          calldata: []
+        }));
+        
+        // Check if pair exists
+        const pairAddress = toHex(await starknetChain.read({
+          contractAddress: factoryAddress,
+          entrypoint: "get_pair",
+          calldata: [args.tokenIn, args.tokenOut]
+        }));
+        
+        if (pairAddress === "0x0" || pairAddress === "0x00") {
+          return {
+            success: false,
+            error: "Liquidity pair not found",
+            message: `Cannot execute swap: no liquidity pair exists for ${args.tokenIn} and ${args.tokenOut}. Please check context to get available pairs.`,
+            timestamp: Date.now()
+          };
+        }
+        
+        // Create approve args for input token
         const approveCall = getApproveCall(
-          call.data.tokenIn,
+          args.tokenIn,
           routerAddress,
-          call.data.amountIn
+          args.amountIn
         );
         
-        // Create swap call
+        // Create swap args
         const swapCall = {
           contractAddress: routerAddress,
           entrypoint: "swap_exact_tokens_for_tokens",
           calldata: [
-            ...toUint256WithSpread(call.data.amountIn),
+            ...toUint256WithSpread(args.amountIn),
             ...toUint256WithSpread("0"),
             path.length.toString(),
             ...path,
@@ -240,31 +285,62 @@ export const ammActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Swap ${ctx.call.name} failed:`, error);
+      ctx.emit("swapError", { action: ctx.call.name, error: error.message });
+    }
   }),
 
   action({
     name: "addLiquidity",
-    description: "Add liquidity to an AMM pool by depositing a pair of tokens. Handles first-time pool creation and manages existing pools. Includes approval transactions for both tokens, executes all necessary transactions in a single multicall for gas efficiency.",
+    description: "Adds liquidity to an AMM pool by depositing a pair of tokens with optimal ratios calculated automatically.",
+    instructions: "Use this action when an agent wants to provide liquidity to a trading pair. The system calculates the optimal token amounts and handles all approvals.",
     schema: z.object({
-      tokenA: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Address of the first token in the pair (in hex format)"),
-      tokenB: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Address of the second token in the pair (in hex format)"),
-      amountADesired: z.string().describe("Desired amount of first token to add (MUST be in token base units)"),
+      tokenA: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("First token contract address in the liquidity pair (must be a valid hex address starting with 0x)"),
+      tokenB: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Second token contract address in the liquidity pair (must be a valid hex address starting with 0x)"),
+      amountADesired: z.string().describe("Desired amount of first token to contribute as a string in base units (e.g., '1000000000000000000' for 1 token with 18 decimals)"),
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         const routerAddress = getContractAddress('core', 'router');
         const agentAddress = await getAgentAddress();
+        
+        // Get factory address and check if pair exists
+        const factoryAddress = toHex(await starknetChain.read({
+          contractAddress: routerAddress,
+          entrypoint: "factory",
+          calldata: []
+        }));
+        
+        // Check if pair exists
+        const pairAddress = toHex(await starknetChain.read({
+          contractAddress: factoryAddress,
+          entrypoint: "get_pair",
+          calldata: [args.tokenA, args.tokenB]
+        }));
+        
         const optimalAmounts = await calculateOptimalLiquidity({
             contractAddress: routerAddress,
-            tokenA: call.data.tokenA,
-            tokenB: call.data.tokenB,
-            amountA: call.data.amountADesired
+            tokenA: args.tokenA,
+            tokenB: args.tokenB,
+            amountA: args.amountADesired
         });
-      
+        
+        // If this is not the first liquidity provision, check if pair exists
+        if (!optimalAmounts.isFirstProvision && (pairAddress === "0x0" || pairAddress === "0x00")) {
+          return {
+            success: false,
+            error: "Liquidity pair not found",
+            message: `Cannot add liquidity: no liquidity pair exists for ${args.tokenA} and ${args.tokenB}. Please check context to get available pairs.`,
+            timestamp: Date.now()
+          };
+        }
+        
         const amountA = optimalAmounts.amountA;
         const amountB = optimalAmounts.amountB;
-        const balanceA = await getTokenBalance(call.data.tokenA, agentAddress);
-        const balanceB = await getTokenBalance(call.data.tokenB, agentAddress);
+        const balanceA = await getTokenBalance(args.tokenA, agentAddress);
+        const balanceB = await getTokenBalance(args.tokenB, agentAddress);
         if (balanceA < BigInt(amountA)) {
           return {
             success: false,
@@ -285,22 +361,22 @@ export const ammActions = [
         }
         // Create approve calls for both tokens
         const approveCallA = getApproveCall(
-          call.data.tokenA,
+          args.tokenA,
           routerAddress,
           amountA
         );
         const approveCallB = getApproveCall(
-          call.data.tokenB,
+          args.tokenB,
           routerAddress,
           amountB
         );
-        // Create add liquidity call
+        // Create add liquidity args
         const addLiquidityCall = {
           contractAddress: routerAddress,
           entrypoint: "add_liquidity",
           calldata: [
-            call.data.tokenA,
-            call.data.tokenB,
+            args.tokenA,
+            args.tokenB,
             ...toUint256WithSpread(amountA),
             ...toUint256WithSpread(amountB),
             ...toUint256WithSpread("0"),
@@ -343,17 +419,23 @@ export const ammActions = [
         };
       }
     },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Add liquidity failed:`, error);
+      ctx.emit("addLiquidityError", { action: ctx.call.name, error: error.message });
+    },
   }),
 
   action({
     name: "removeLiquidity",
-    description: "Remove liquidity from an AMM pool by burning LP tokens. Withdraws both tokens from the pool proportionally to the amount of LP tokens burned. Includes slippage protection through minimum amount parameters, handles token approvals, and executes the removal in a single transaction. Returns full transaction details including the amounts of tokens received.",
+    description: "Removes liquidity from an AMM pool by burning LP tokens and withdrawing the underlying assets.",
+    instructions: "Use this action when an agent needs to withdraw their liquidity from a pool to get back both tokens.",
     schema: z.object({
-      tokenA: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Address of the first token to receive (in hex format)"),
-      tokenB: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Address of the second token to receive (in hex format) "),
-      liquidity: z.string().describe("Amount of LP tokens to burn for withdrawing liquidity (in token base units)"),
+      tokenA: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("First token contract address to receive back (must be a valid hex address starting with 0x)"),
+      tokenB: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Second token contract address to receive back (must be a valid hex address starting with 0x)"),
+      liquidity: z.string().describe("Amount of LP tokens to burn as a string in base units (e.g., '1000000000000000000' for 1 LP token with 18 decimals)"),
     }),
-    handler: async (call, ctx, agent) => {
+    handler: async (args, ctx, agent) => {
       try {
         const routerAddress = getContractAddress('core', 'router');
         const agentAddress = await getAgentAddress();
@@ -361,23 +443,33 @@ export const ammActions = [
         const pairAddress = toHex(await starknetChain.read({
           contractAddress: routerAddress,
           entrypoint: "get_pair_address",
-          calldata: [call.data.tokenA, call.data.tokenB]
+          calldata: [args.tokenA, args.tokenB]
         }));
-        // Create approve call for LP token
+
+        if (pairAddress === "0x0" || pairAddress === "0x00") {
+          return {
+            success: false,
+            error: "Liquidity pair not found",
+            message: `Cannot remove liquidity: no liquidity pair exists for ${args.tokenA} and ${args.tokenB}. Please check context to get available pairs.`,
+            timestamp: Date.now()
+          };
+        }
+        
+        // Create approve args for LP token
         const approveCall = getApproveCall(
           pairAddress,
           routerAddress,
-          call.data.liquidity
+          args.liquidity
         );
 
-        // Create remove liquidity call
+        // Create remove liquidity args
         const removeLiquidityCall = {
           contractAddress: routerAddress,
           entrypoint: "remove_liquidity",
           calldata: [
-            call.data.tokenA,
-            call.data.tokenB,
-            ...toUint256WithSpread(call.data.liquidity),
+            args.tokenA,
+            args.tokenB,
+            ...toUint256WithSpread(args.liquidity),
             ...toUint256WithSpread("0"),
             ...toUint256WithSpread("0"),
             agentAddress,
@@ -412,6 +504,11 @@ export const ammActions = [
           timestamp: Date.now(),
         };
       }
+    },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Remove liquidity failed:`, error);
+      ctx.emit("removeLiquidityError", { action: ctx.call.name, error: error.message });
     },
   }),
 ]; 

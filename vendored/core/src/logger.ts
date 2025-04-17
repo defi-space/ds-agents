@@ -26,7 +26,8 @@ export class Logger {
 
   error(context: string, message: string, data?: any) {
     this.log(LogLevel.ERROR, context, message, data);
-    console.error(data);
+
+    if (data) console.error(data);
   }
 
   warn(context: string, message: string, data?: any) {
@@ -82,6 +83,7 @@ export class Logger {
 
     if (entry.data) {
       parts.push(JSON.stringify(entry.data, (key, value) => {
+        // Convert BigInt to string for serialization
         if (typeof value === 'bigint') {
           return value.toString() + 'n';
         }

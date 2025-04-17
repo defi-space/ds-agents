@@ -1,8 +1,8 @@
 import { gql } from 'graphql-request';
 
 // AMM Queries
-export const GET_POOL_INFO = gql`
-  query GetPoolInfo($address: String!) {
+export const GET_PAIR_INFO = gql`
+  query GetPairInfo($address: String!) {
     pair(where: { address: { _eq: $address } }) {
       address
       factoryAddress
@@ -140,7 +140,7 @@ export const GET_GAME_SESSION_STATUS = gql`
 export const GET_GAME_SESSION_INDEX_BY_ADDRESS = gql`
   query GetGameSessionIndexByAddress($address: String!) {
     gameSession(where: { address: { _eq: $address } }) {
-      sessionIndex
+      gameSessionIndex
     }
   }
 `;
