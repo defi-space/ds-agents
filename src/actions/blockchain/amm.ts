@@ -60,7 +60,7 @@ export const ammActions = [
           return {
             success: false,
             error: "Liquidity pair not found",
-            message: `Cannot calculate amount out: no liquidity pair exists for ${tokenIn} and ${tokenOut}`,
+            message: `Cannot calculate amount out: no liquidity pair exists for ${tokenIn} and ${tokenOut}. Please check context to get available pairs.`,
             timestamp: Date.now()
           };
         }
@@ -150,6 +150,15 @@ export const ammActions = [
           entrypoint: "get_pair",
           calldata: [args.tokenIn, args.tokenOut]
         }));
+
+        if (pairAddress === "0x0" || pairAddress === "0x00") {
+          return {
+            success: false,
+            error: "Liquidity pair not found",
+            message: `Cannot calculate quote: no liquidity pair exists for ${args.tokenIn} and ${args.tokenOut}. Please check context to get available pairs.`,
+            timestamp: Date.now(),
+          };
+        }
 
         const reserves = await starknetChain.read({
           contractAddress: pairAddress,
@@ -296,13 +305,38 @@ export const ammActions = [
       try {
         const routerAddress = getContractAddress('core', 'router');
         const agentAddress = await getAgentAddress();
+        
+        // Get factory address and check if pair exists
+        const factoryAddress = toHex(await starknetChain.read({
+          contractAddress: routerAddress,
+          entrypoint: "factory",
+          calldata: []
+        }));
+        
+        // Check if pair exists
+        const pairAddress = toHex(await starknetChain.read({
+          contractAddress: factoryAddress,
+          entrypoint: "get_pair",
+          calldata: [args.tokenA, args.tokenB]
+        }));
+        
         const optimalAmounts = await calculateOptimalLiquidity({
             contractAddress: routerAddress,
             tokenA: args.tokenA,
             tokenB: args.tokenB,
             amountA: args.amountADesired
         });
-      
+        
+        // If this is not the first liquidity provision, check if pair exists
+        if (!optimalAmounts.isFirstProvision && (pairAddress === "0x0" || pairAddress === "0x00")) {
+          return {
+            success: false,
+            error: "Liquidity pair not found",
+            message: `Cannot add liquidity: no liquidity pair exists for ${args.tokenA} and ${args.tokenB}. Please check context to get available pairs.`,
+            timestamp: Date.now()
+          };
+        }
+        
         const amountA = optimalAmounts.amountA;
         const amountB = optimalAmounts.amountB;
         const balanceA = await getTokenBalance(args.tokenA, agentAddress);
@@ -411,6 +445,16 @@ export const ammActions = [
           entrypoint: "get_pair_address",
           calldata: [args.tokenA, args.tokenB]
         }));
+
+        if (pairAddress === "0x0" || pairAddress === "0x00") {
+          return {
+            success: false,
+            error: "Liquidity pair not found",
+            message: `Cannot remove liquidity: no liquidity pair exists for ${args.tokenA} and ${args.tokenB}. Please check context to get available pairs.`,
+            timestamp: Date.now()
+          };
+        }
+        
         // Create approve args for LP token
         const approveCall = getApproveCall(
           pairAddress,
