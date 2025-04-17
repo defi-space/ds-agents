@@ -37,7 +37,7 @@ export class SupabaseMemoryStore implements MemoryStore {
     // Sanitize table name to make it PostgreSQL compatible
     const rawTableName = options.tableName || "conversations";
     this.tableName = this.sanitizeTableName(rawTableName);
-    this.timeoutMs = options.timeoutMs || 30000;
+    this.timeoutMs = options.timeoutMs || 60000;
     this.maxRetries = options.maxRetries || 3;
     
     this.client = createClient(options.url, options.apiKey);
