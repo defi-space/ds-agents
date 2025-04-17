@@ -12,6 +12,8 @@ import {
   getCompetitiveIntelligence, 
   analyzeCompetitorStrategies, 
   rankAgentsByHe3,
+  generateStrategyInspiration,
+  suggestCounterStrategies
 } from "../utils/competition";
 
 export const goalActions = [
@@ -444,6 +446,93 @@ export const goalActions = [
     onError: async (error, ctx, agent) => {
       console.error(`Strategy analysis failed:`, error);
       ctx.emit("strategyAnalysisError", { action: ctx.call.name, error: error.message });
+    }
+  }),
+  
+  action({
+    name: "generateStrategyInspiration",
+    description: "Generates creative strategy inspiration based on competitive analysis",
+    instructions: "Use this action when an agent needs to think creatively about strategy options",
+    schema: z.object({
+      agentId: z.string().describe("Agent ID to analyze (defaults to all competitors if not provided)").optional()
+    }),
+    handler: async (args, ctx, agent) => {
+      try {
+        // Get competitive intelligence
+        const competitiveIntelligence = await getCompetitiveIntelligence();
+        
+        // Get target agent (or pick the leading agent if not specified)
+        let targetAgentId = args.agentId;
+        
+        if (!targetAgentId) {
+          // Get ranked agents and use the leading one
+          const rankedAgents = await rankAgentsByHe3();
+          if (rankedAgents.length > 0) {
+            targetAgentId = rankedAgents[0].agentId;
+          }
+        }
+        
+        // If we still don't have a target, use the first available agent
+        if (!targetAgentId && Object.keys(competitiveIntelligence).length > 0) {
+          targetAgentId = Object.keys(competitiveIntelligence)[0];
+        }
+        
+        if (!targetAgentId) {
+          return {
+            success: false,
+            error: "No target agent found for analysis",
+            message: "Failed to generate strategy inspiration: no target agent found",
+            timestamp: Date.now()
+          };
+        }
+        
+        // Get agent data
+        const targetAgentData = competitiveIntelligence[targetAgentId];
+        
+        if (!targetAgentData) {
+          return {
+            success: false,
+            error: `Agent data not found for ID: ${targetAgentId}`,
+            message: `Failed to generate strategy inspiration: agent data not found for ID ${targetAgentId}`,
+            timestamp: Date.now()
+          };
+        }
+        
+        // Generate counter-strategies analysis
+        const competitorAnalysis = suggestCounterStrategies(
+          targetAgentData.resourceBalances,
+          targetAgentData.liquidityPositions,
+          targetAgentData.stakePositions,
+          targetAgentData.he3Balance
+        );
+        
+        // Generate creative strategy inspiration based on the analysis
+        const strategyInspiration = generateStrategyInspiration(competitorAnalysis);
+        
+        return {
+          success: true,
+          data: {
+            targetAgentId,
+            strategyInspiration,
+            timestamp: new Date().toISOString()
+          },
+          message: `Generated creative strategy inspiration based on analysis of agent ${targetAgentId}`,
+          timestamp: Date.now()
+        };
+      } catch (error) {
+        console.error('Failed to generate strategy inspiration:', error);
+        return {
+          success: false,
+          error: (error as Error).message || "Failed to generate strategy inspiration",
+          message: `Failed to generate strategy inspiration: ${(error as Error).message}`,
+          timestamp: Date.now()
+        };
+      }
+    },
+    retry: 3,
+    onError: async (error, ctx, agent) => {
+      console.error(`Strategy inspiration generation failed:`, error);
+      ctx.emit("strategyInspirationError", { action: ctx.call.name, error: error.message });
     }
   }),
 ]; 
