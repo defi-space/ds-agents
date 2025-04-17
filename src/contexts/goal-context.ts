@@ -1,17 +1,13 @@
 import { context, render, action } from "@daydreamsai/core";
 import { z } from "zod";
-import { goalPlanningSchema, goalSchema } from "../schema/goal-schema";
-
-// Import outputs
-import { goalManagerOutput } from "../outputs/goal-manager";
-
-export type GoalTerm = "long_term" | "medium_term" | "short_term";
-
-export type Goal = z.infer<typeof goalPlanningSchema>;
-export type SingleGoal = z.infer<typeof goalSchema>;
+import { 
+  type GoalsStructure, 
+  type SingleGoal,
+} from "../schema/goal-schema";
+import { goalActions } from "../actions/goals";
 
 export interface GoalMemory {
-  goal: Goal | null;
+  goals: GoalsStructure | null;
   tasks: string[];
   currentTask: string | null;
   history: string[];
@@ -140,11 +136,11 @@ const taskManagementAction = action({
     let relatedGoal: SingleGoal | null = null;
     
     // If we have goals, try to associate this task with a relevant goal
-    if (agentMemory.goal) {
+    if (agentMemory.goals) {
       const allGoals: SingleGoal[] = [
-        ...(agentMemory.goal.short_term || []),
-        ...(agentMemory.goal.medium_term || []),
-        ...(agentMemory.goal.long_term || [])
+        ...(agentMemory.goals.short_term || []),
+        ...(agentMemory.goals.medium_term || []),
+        ...(agentMemory.goals.long_term || [])
       ];
       
       // Look for a goal that might be related to this task
@@ -248,8 +244,8 @@ const taskManagementAction = action({
   }
 });
 
-// Define basic context actions (without the goalActions that would cause a circular reference)
-const contextActions = [updateStatusAction, taskManagementAction];
+// Combine all actions for the context
+const allActions = [...goalActions, updateStatusAction, taskManagementAction];
 
 export const goalContext = context({
   // Required: A unique identifier for this type of context
@@ -296,7 +292,7 @@ export const goalContext = context({
     const initialTaskList = params.options.initialTaskList || [];
     
     // Create initial goal structure if initialGoalText is provided
-    let goalPlan = null;
+    let goalPlan: GoalsStructure | null = null;
     if (initialGoalText) {
       goalPlan = {
         long_term: [{
@@ -310,13 +306,12 @@ export const goalContext = context({
           tasks: []
         }],
         medium_term: [],
-        short_term: [],
-        history: ["Initial goal created"]
+        short_term: []
       };
     }
     
     const initialMemory: GoalMemory = {
-      goal: goalPlan,
+      goals: goalPlan,
       tasks: initialTaskList,
       currentTask: initialTaskList.length > 0 ? initialTaskList[0] : null,
       history: initialGoalText ? ["Initial goal and tasks created"] : [],
@@ -334,15 +329,15 @@ export const goalContext = context({
     const lastUpdatedTime = new Date(memory.lastUpdated).toISOString();
     
     // Prepare display values with proper string fallbacks
-    const goalDisplay = memory.goal 
-      ? JSON.stringify(memory.goal, null, 2) 
-      : "No goals defined yet. Use the 'create-goal' action to define goals.";
+    const goalDisplay = memory.goals 
+      ? JSON.stringify(memory.goals, null, 2) 
+      : "No goals defined yet. Use actions like 'addTask' or 'setGoalPlan' to define goals.";
     
     const tasksDisplay = memory.tasks.length > 0 
-      ? memory.tasks.join("\n") 
+      ? memory.tasks.map((t: string) => `- ${t}`).join("\n")
       : "No tasks defined yet.";
     
-    const currentTaskDisplay = memory.currentTask || "No task currently being executed.";
+    const currentTaskDisplay = memory.currentTask || "None";
     
     // Only show the last 10 history items to keep context window manageable
     const historyItems = memory.history.slice(-10);
@@ -414,10 +409,5 @@ Last Analyzed: ${memory.lastCompetitiveAnalysis}`;
   },
   
   // Connect the combined actions to the context
-  actions: contextActions,
-  
-  // Connect the imported outputs to the context
-  outputs: {
-    goalManager: goalManagerOutput
-  },
+  actions: allActions,
 });

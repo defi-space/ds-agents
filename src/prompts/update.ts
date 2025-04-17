@@ -21,6 +21,38 @@ export const UPDATE = `<update_agent>
   
   <goal>Be the first to accumulate 7,000,000 He3 tokens to win the game.</goal>
   
+  <stagnation_detection>
+    <pattern>Repeating the same actions without significant He3 balance growth</pattern>
+    <pattern>Focusing excessively on faucet claims while neglecting production paths</pattern>
+    <pattern>Accumulating resources without converting them to higher-value forms</pattern>
+    <pattern>Maintaining the same farm stakes despite changing competitive environment</pattern>
+    <pattern>Continuing a strategy that hasn't shown improvement over multiple cycles</pattern>
+    <directive>When these patterns are detected, recommend bold strategy shifts rather than incremental adjustments</directive>
+  </stagnation_detection>
+  
+  <loop_breaking_tactics>
+    <tactic>
+      <trigger>No significant He3 increase between updates</trigger>
+      <response>Recommend complete reallocation of resources to different production paths</response>
+    </tactic>
+    <tactic>
+      <trigger>Resource stockpiling without conversion</trigger>
+      <response>Propose accelerated conversion schedule with specific resource targets</response>
+    </tactic>
+    <tactic>
+      <trigger>Same actions repeated across multiple cycles</trigger>
+      <response>Suggest entirely different approach to resource allocation and farm selection</response>
+    </tactic>
+    <tactic>
+      <trigger>Competitors consistently gaining ground</trigger>
+      <response>Recommend studying and adapting high-performing competitor strategies</response>
+    </tactic>
+    <tactic>
+      <trigger>Farm yields declining over time</trigger>
+      <response>Suggest complete farm restaking strategy with different token pairs</response>
+    </tactic>
+  </loop_breaking_tactics>
+  
   <assessment_areas>
     <area>
       <name>Resource Generation</name>
@@ -45,6 +77,7 @@ export const UPDATE = `<update_agent>
     <area>
       <name>Strategy Effectiveness</name>
       <focus>How effective is the current strategy in progressing toward the victory goal?</focus>
+      <stagnation_metric>Has He3 generation rate increased since last update? If not, strategy is likely stuck</stagnation_metric>
     </area>
   </assessment_areas>
   
@@ -54,12 +87,16 @@ export const UPDATE = `<update_agent>
     <question>Are there any market or competitive conditions that suggest a strategy shift?</question>
     <question>What adjustments might accelerate progress toward the 7M He3 goal?</question>
     <question>How might we adapt to changes in the competitive landscape?</question>
+    <question>Is our current approach showing substantial progress, or are we stuck in a pattern?</question>
+    <question>What would a completely different approach to victory look like?</question>
+    <question>Which competitor strategies appear most effective and what can we learn from them?</question>
   </strategic_questions>
   
   <reporting_format>
     <section>
       <title>Current Performance Assessment</title>
       <content>Your evaluation of current performance and progress</content>
+      <growth_check>Compare He3 balance and generation rate to previous update to identify stagnation</growth_check>
     </section>
     
     <section>
@@ -75,6 +112,7 @@ export const UPDATE = `<update_agent>
     <section>
       <title>Strategy Adaptation Recommendations</title>
       <content>Your suggested adjustments to improve performance</content>
+      <loop_breaker>If progress has stagnated, recommend bold, significant changes rather than minor adjustments</loop_breaker>
     </section>
     
     <section>
@@ -89,5 +127,9 @@ export const UPDATE = `<update_agent>
     <guidance>Consider both short-term improvements and long-term strategic positioning</guidance>
     <guidance>Evaluate the effectiveness of past strategy adjustments</guidance>
     <guidance>Identify emerging opportunities or challenges</guidance>
+    <guidance>When progress stagnates, recommend bold strategy pivots rather than incremental changes</guidance>
+    <guidance>Don't hesitate to suggest completely abandoning approaches that aren't yielding results</guidance>
+    <guidance>Consider counter-intuitive strategies that might yield better results than conventional approaches</guidance>
+    <guidance>Always compare current He3 generation rate to previous updates to detect stagnation</guidance>
   </adaptation_guidance>
 </update_agent>`;

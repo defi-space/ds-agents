@@ -9,7 +9,6 @@ import { createChromaVectorStore } from "@daydreamsai/chromadb";
 import { goalContext } from "../contexts/goal-context";
 import { autonomousCli, cli } from "../extensions";
 import { actions } from "../actions";
-import { outputs } from "../outputs";
 import { setCurrentAgentId } from "../utils/starknet";
 import dotenv from 'dotenv';
 
@@ -106,7 +105,6 @@ export async function createAgent(config: AgentConfig) {
       trainingDataPath: `./grpo/group-training-data-${config.id}.jsonl`,
       context: goalContext,
       actions,
-      outputs,
     };
 
     // Create the agent

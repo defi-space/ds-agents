@@ -204,6 +204,29 @@ export const ammActions = [
         const routerAddress = getContractAddress('core', 'router');
         const agentAddress = await getAgentAddress();
         
+        // Get factory address
+        const factoryAddress = toHex(await starknetChain.read({
+          contractAddress: routerAddress,
+          entrypoint: "factory",
+          calldata: []
+        }));
+        
+        // Check if pair exists
+        const pairAddress = toHex(await starknetChain.read({
+          contractAddress: factoryAddress,
+          entrypoint: "get_pair",
+          calldata: [args.tokenIn, args.tokenOut]
+        }));
+        
+        if (pairAddress === "0x0" || pairAddress === "0x00") {
+          return {
+            success: false,
+            error: "Liquidity pair not found",
+            message: `Cannot execute swap: no liquidity pair exists for ${args.tokenIn} and ${args.tokenOut}. Please check context to get available pairs.`,
+            timestamp: Date.now()
+          };
+        }
+        
         // Create approve args for input token
         const approveCall = getApproveCall(
           args.tokenIn,

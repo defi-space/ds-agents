@@ -1,11 +1,15 @@
 import { action } from "@daydreamsai/core";
 import { z } from "zod";
 import { 
-  type SingleGoal, 
-  type GoalMemory,
-  type GoalTerm 
+  type GoalMemory
 } from "../contexts/goal-context";
-import { goalPlanningSchema, goalSchema } from "../schema/goal-schema";
+import { 
+  goalPlanningSchema, 
+  goalSchema, 
+  type SingleGoal,
+  type GoalTerm,
+  type GoalsStructure
+} from "../schema/goal-schema";
 import { getCategoryAddresses } from "../utils/contracts";
 import { getCurrentAgentId } from "../utils/starknet";
 import { 
@@ -39,12 +43,11 @@ export const goalActions = [
       const agentMemory = ctx.memory as GoalMemory;
       
       // Initialize goal structure if it doesn't exist
-      if (!agentMemory.goal) {
-        agentMemory.goal = {
+      if (!agentMemory.goals) {
+        agentMemory.goals = {
           long_term: [],
           medium_term: [],
-          short_term: [],
-          history: []
+          short_term: []
         };
       }
 
@@ -60,7 +63,7 @@ export const goalActions = [
       };
 
       const term = args.term as GoalTerm;
-      agentMemory.goal[term].push(newTask);
+      agentMemory.goals[term].push(newTask);
       
       // Initialize history array if it doesn't exist
       agentMemory.history = agentMemory.history || [];
@@ -75,7 +78,7 @@ export const goalActions = [
           task: newTask,
           term: term,
           goalState: {
-            taskCount: agentMemory.goal[term].length,
+            taskCount: agentMemory.goals[term].length,
             status: agentMemory.status
           }
         },
@@ -111,8 +114,15 @@ export const goalActions = [
       const agentMemory = ctx.memory as GoalMemory;
       const oldHistory = agentMemory.history || [];
       
-      // Set the new goal structure
-      agentMemory.goal = args.goal;
+      // Set the new goal structure - need to convert from goalPlanningSchema to GoalStructure format
+      const newGoals: GoalsStructure = {
+        long_term: args.goal.long_term || [],
+        medium_term: args.goal.medium_term || [],
+        short_term: args.goal.short_term || []
+      };
+      
+      // Update the goals
+      agentMemory.goals = newGoals;
       
       // Preserve history if requested
       if (args.preserveHistory) {
@@ -129,7 +139,7 @@ export const goalActions = [
       return {
         success: true,
         data: {
-          newGoal: args.goal,
+          newGoals,
         },
         message: "Successfully updated the complete goal plan",
         timestamp: Date.now()
@@ -140,7 +150,7 @@ export const goalActions = [
         return `Failed to set goal plan: ${result.data?.error || "Unknown error"}`;
       }
       
-      const goalData = result.data.data?.newGoal;
+      const goalData = result.data.data?.newGoals;
       if (!goalData) return "Goal plan updated.";
       
       const longTermCount = goalData.long_term?.length || 0;
@@ -176,7 +186,7 @@ export const goalActions = [
       
       const agentMemory = ctx.memory as GoalMemory;
       
-      if (!agentMemory.goal) {
+      if (!agentMemory.goals) {
         return { 
           success: false,
           error: "No goals initialized",
@@ -191,18 +201,18 @@ export const goalActions = [
       let updatedTerm = null;
 
       for (const term of terms) {
-        const goalIndex = agentMemory.goal[term].findIndex(
+        const goalIndex = agentMemory.goals[term].findIndex(
           (g: SingleGoal) => g.id === args.goal.id
         );
 
         if (goalIndex !== -1) {
-          const oldGoal = agentMemory.goal[term][goalIndex];
+          const oldGoal = agentMemory.goals[term][goalIndex];
           updatedGoal = {
             ...oldGoal,
             ...args.goal
           };
           
-          agentMemory.goal[term][goalIndex] = updatedGoal;
+          agentMemory.goals[term][goalIndex] = updatedGoal;
           
           // Initialize history array if it doesn't exist
           agentMemory.history = agentMemory.history || [];
@@ -263,7 +273,7 @@ export const goalActions = [
       
       const agentMemory = ctx.memory as GoalMemory;
       
-      if (!agentMemory.goal) {
+      if (!agentMemory.goals) {
         return { 
           success: false, 
           error: "No goals initialized",
@@ -278,13 +288,13 @@ export const goalActions = [
       let deletedTerm = null;
 
       for (const term of terms) {
-        const goalIndex = agentMemory.goal[term].findIndex(
+        const goalIndex = agentMemory.goals[term].findIndex(
           (g: SingleGoal) => g.id === args.goalId
         );
 
         if (goalIndex !== -1) {
-          deletedGoal = agentMemory.goal[term][goalIndex];
-          agentMemory.goal[term].splice(goalIndex, 1);
+          deletedGoal = agentMemory.goals[term][goalIndex];
+          agentMemory.goals[term].splice(goalIndex, 1);
           
           // Initialize history array if it doesn't exist
           agentMemory.history = agentMemory.history || [];
