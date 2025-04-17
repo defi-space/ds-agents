@@ -17,14 +17,14 @@ This project allows running multiple agents simultaneously, each with its own co
 - Support for both autonomous and manual (interactive) modes
 - Color-coded console output for easy agent identification
 - Chromadb vector storage for agent memory persistence
-- MongoDB Atlas for persistent agent memory storage
+- Supabase for persistent agent memory storage
 - Phala Network TEE integration for enhanced security and privacy
 
 ## Prerequisites
 
 - [Bun](https://bun.sh/) (v1.0.0 or higher)
 - [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/) for running ChromaDB
-- MongoDB Atlas account for database storage
+- Supabase account for database storage
 - Starknet RPC access
 - Google API keys for each agent
 
@@ -46,7 +46,7 @@ This project allows running multiple agents simultaneously, each with its own co
    cp .env.example .env
    ```
 
-4. Edit the `.env` file with your API keys, wallet addresses, private keys, and MongoDB Atlas credentials.
+4. Edit the `.env` file with your API keys, wallet addresses, private keys, and Supabase credentials.
 
 5. Start the required services:
    ```bash
@@ -60,10 +60,11 @@ The `.env` file contains configuration for all agents. Each agent must have its 
 - Starknet wallet address
 - Starknet private key
 
-You must also configure MongoDB Atlas:
+You must also configure Supabase:
 ```
-# MongoDB Atlas Configuration
-MONGODB_ATLAS_URI="mongodb+srv://username:password@your-cluster.mongodb.net/?retryWrites=true&w=majority"
+# Supabase Configuration
+SUPABASE_URL="https://your-project-id.supabase.co"
+SUPABASE_API_KEY="your-supabase-api-key"
 ```
 
 Example:
@@ -163,7 +164,7 @@ Each agent:
 
 Each agent has its own isolated memory that is not shared with other agents:
 
-- **Memory Store**: Each agent has its own MongoDB Atlas collection for conversation data
+- **Memory Store**: Each agent has its own Supabase table for conversation data
 - **Vector Store**: Each agent has its own ChromaDB collection with a unique name based on the agent ID
 
 This memory isolation ensures that:
@@ -398,17 +399,18 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-# MongoDB Atlas Configuration
+# Supabase Configuration
 
-To use MongoDB Atlas instead of local MongoDB:
+To use Supabase for database storage:
 
-1. Create an Atlas account and cluster at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
-2. Get your connection string from the Atlas dashboard
-3. Add it to your `.env` file:
+1. Create a Supabase account and project at [Supabase](https://supabase.com)
+2. Get your project URL and API key from the Supabase dashboard
+3. Add them to your `.env` file:
 
 ```
-# MongoDB Atlas Configuration
-MONGODB_ATLAS_URI="mongodb+srv://username:password@your-cluster.mongodb.net/?retryWrites=true&w=majority"
+# Supabase Configuration
+SUPABASE_URL="https://your-project-id.supabase.co"
+SUPABASE_API_KEY="your-supabase-api-key"
 ```
 
-The full connection string should be directly added to your environment variables. Be sure to replace `username`, `password`, and the cluster address with your actual MongoDB Atlas credentials.
+The URL and API key should be directly added to your environment variables. Be sure to use the correct project URL and API key from your Supabase dashboard.
