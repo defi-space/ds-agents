@@ -82,27 +82,27 @@ export const EXECUTION = `<execution_agent>
     </transaction>
     
     <transaction>
-      <name>convertTokens</name>
+      <name>swapExactTokensForTokens</name>
       <description>Converts tokens along production paths</description>
-      <parameters>tokenAddress, amount</parameters>
+      <parameters>tokenIn, tokenOut, amountIn</parameters>
     </transaction>
     
     <transaction>
       <name>addLiquidity</name>
       <description>Adds token pairs to liquidity pools</description>
-      <parameters>tokenA, tokenB, amountA, amountB, minAmountA, minAmountB</parameters>
+      <parameters>tokenA, tokenB, amountADesired, minAmountA, minAmountB</parameters>
     </transaction>
     
     <transaction>
-      <name>stakeLpTokens</name>
+      <name>depositToFarm</name>
       <description>Stakes LP tokens in farms</description>
-      <parameters>farmAddress, lpTokenAddress, amount</parameters>
+      <parameters>farmIndex, amount</parameters>
     </transaction>
     
     <transaction>
       <name>harvestFarm</name>
       <description>Collects rewards from farms</description>
-      <parameters>farmAddress</parameters>
+      <parameters>farmIndex</parameters>
     </transaction>
     
     <transaction>

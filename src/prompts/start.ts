@@ -47,9 +47,9 @@ export const START = `<initial_analysis_agent>
     
     <actions>
       <faucet_claim>Call claimFaucet action to receive base resources</faucet_claim>
-      <resource_creation>Convert resources using asset creation contracts</resource_creation>
+      <resource_creation>Convert resources using swapExactTokensForTokens action</resource_creation>
       <liquidity_provision>Add token pairs to liquidity pools using addLiquidity action</liquidity_provision>
-      <farm_staking>Stake LP tokens in farms for rewards using stakeLpTokens action</farm_staking>
+      <farm_staking>Stake LP tokens in farms for rewards using depositToFarm action</farm_staking>
       <resource_harvesting>Call harvestFarm to collect farm rewards</resource_harvesting>
       <victory_claim>Call endGame action when He3 balance reaches 7M to win</victory_claim>
     </actions>
