@@ -230,6 +230,15 @@ export const ammActions = [
             timestamp: Date.now()
           };
         }
+
+        const balance = await getTokenBalance(args.tokenIn, agentAddress);
+        if (BigInt(args.amountIn) > balance) {
+          return {
+            success: false,
+            message: `Cannot execute swap: insufficient balance for ${args.tokenIn}. amountIn: ${args.amountIn}, balance: ${balance}`,
+            timestamp: Date.now()
+          };
+        }
         
         // Create approve args for input token
         const approveCall = getApproveCall(
@@ -337,14 +346,14 @@ export const ammActions = [
         if (balanceA < BigInt(amountA)) {
           return {
             success: false,
-            message: 'Insufficient balance for token A, consider decreasing amountADesired',
+            message: `Insufficient balance for token A, consider decreasing amountADesired. amountADesired: ${amountA}, balance: ${balanceA}`,
             timestamp: Date.now(),
           };
         }
         if (balanceB < BigInt(amountB)) {
           return {
             success: false,
-            message: 'Insufficient balance for token B, consider decreasing amountADesired',
+            message: `Insufficient balance for token B, consider decreasing amountADesired. amountB: ${amountB}, amountBDesired: ${args.amountADesired}, balance: ${balanceB}`,
             timestamp: Date.now(),
           };
         }
@@ -436,7 +445,16 @@ export const ammActions = [
             timestamp: Date.now()
           };
         }
-        
+
+        const balance = await getTokenBalance(pairAddress, agentAddress);
+        if (BigInt(args.liquidity) > balance) {
+          return {
+            success: false,
+            message: `Cannot remove liquidity: insufficient balance for ${args.tokenA}. liquidity: ${args.liquidity}, balance: ${balance}`,
+            timestamp: Date.now()
+          };
+        }
+
         // Create approve args for LP token
         const approveCall = getApproveCall(
           pairAddress,

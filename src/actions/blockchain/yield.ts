@@ -1,6 +1,6 @@
 import { action } from "@daydreamsai/core";
 import { z } from "zod";
-import { convertU256ToDecimal, starknetChain, toHex } from "../../utils/starknet";
+import { convertU256ToDecimal, getTokenBalance, starknetChain, toHex } from "../../utils/starknet";
 import { toUint256WithSpread } from "../../utils/starknet";
 import { executeMultiCall, getApproveCall } from '../../utils/starknet';
 import { getContractAddress } from "src/utils/contracts";
@@ -59,18 +59,13 @@ export const yieldActions = [
           ]
         }));
 
-        // Validate amount is a valid integer string
-        try {
-          BigInt(args.amount); // Check if it can be parsed as BigInt
-          if (!/^\d+$/.test(args.amount)) { // Check if it only contains digits
-            throw new Error("Amount must be a string containing only digits.");
-          }
-        } catch (validationError) {
-          console.error('Invalid amount format:', args.amount, validationError);
+        const agentAddress = await getAgentAddress();
+        const balance = await getTokenBalance(lpToken, agentAddress);
+        if (BigInt(args.amount) > balance) {
           return {
             success: false,
-            message: `Amount must be a valid integer string in base units. Received: ${args.amount}`,
-            timestamp: Date.now(),
+            message: `Cannot deposit: insufficient balance for LP token. amount: ${args.amount}, balance: ${balance}`,
+            timestamp: Date.now()
           };
         }
 
@@ -156,6 +151,25 @@ export const yieldActions = [
             success: false,
             message: "Cannot withdraw: FarmRouter contract address not found in configuration",
             timestamp: Date.now(),
+          };
+        }
+
+        const agentAddress = await getAgentAddress();
+        const rawBalance = await starknetChain.read({
+          contractAddress: farmRouterAddress,
+          entrypoint: "balance_of",
+          calldata: [
+            ...toUint256WithSpread(args.farmIndex),
+            agentAddress
+          ]
+        });
+
+        const balance = convertU256ToDecimal(rawBalance[0], rawBalance[1]).toString();
+        if (BigInt(args.amount) > BigInt(balance)) {
+          return {
+            success: false,
+            message: `Cannot withdraw: insufficient balance for LP token. amount: ${args.amount}, balance: ${balance}`,
+            timestamp: Date.now()
           };
         }
         
