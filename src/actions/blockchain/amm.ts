@@ -346,14 +346,14 @@ export const ammActions = [
         if (balanceA < BigInt(amountA)) {
           return {
             success: false,
-            message: `Insufficient balance for token A, consider decreasing amountADesired. amountADesired: ${amountA}, balance: ${balanceA}`,
+            message: `Insufficient balance for token A, consider decreasing amountADesired. amountA: ${amountA}, balance: ${balanceA}`,
             timestamp: Date.now(),
           };
         }
         if (balanceB < BigInt(amountB)) {
           return {
             success: false,
-            message: `Insufficient balance for token B, consider decreasing amountADesired. amountB: ${amountB}, amountBDesired: ${args.amountADesired}, balance: ${balanceB}`,
+            message: `Insufficient balance for token B, consider decreasing amountADesired. amountB: ${amountB}, balance: ${balanceB}`,
             timestamp: Date.now(),
           };
         }
