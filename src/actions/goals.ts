@@ -451,68 +451,54 @@ export const goalActions = [
   
   action({
     name: "generateStrategyInspiration",
-    description: "Generates creative strategy inspiration based on competitive analysis",
-    instructions: "Use this action when an agent needs to think creatively about strategy options",
+    description: "Generates creative strategy inspiration based on competitive analysis of all agents",
+    instructions: "Use this action when an agent needs to think creatively about strategy options based on all competitors",
     schema: z.object({
-      agentId: z.string().describe("Agent ID to analyze (defaults to all competitors if not provided)").optional()
+      message: z.string().describe("Not used - can be ignored").default("None"),
     }),
     handler: async (args, ctx, agent) => {
       try {
         // Get competitive intelligence
         const competitiveIntelligence = await getCompetitiveIntelligence();
+        const currentAgentId = getCurrentAgentId();
         
-        // Get target agent (or pick the leading agent if not specified)
-        let targetAgentId = args.agentId;
+        // Filter out current agent and analyze all competitors
+        const competitors = Object.entries(competitiveIntelligence)
+          .filter(([agentId]) => agentId !== currentAgentId);
         
-        if (!targetAgentId) {
-          // Get ranked agents and use the leading one
-          const rankedAgents = await rankAgentsByHe3();
-          if (rankedAgents.length > 0) {
-            targetAgentId = rankedAgents[0].agentId;
-          }
-        }
-        
-        // If we still don't have a target, use the first available agent
-        if (!targetAgentId && Object.keys(competitiveIntelligence).length > 0) {
-          targetAgentId = Object.keys(competitiveIntelligence)[0];
-        }
-        
-        if (!targetAgentId) {
+        if (competitors.length === 0) {
           return {
             success: false,
-            message: "Failed to generate strategy inspiration: no target agent found",
+            message: "Failed to generate strategy inspiration: no competitors found",
             timestamp: Date.now()
           };
         }
-        
-        // Get agent data
-        const targetAgentData = competitiveIntelligence[targetAgentId];
-        
-        if (!targetAgentData) {
+
+        // Analyze each competitor
+        const strategicAnalysis = competitors.map(([agentId, agentData]) => {
+          // Generate counter-strategies analysis for each competitor
+          const competitorAnalysis = suggestCounterStrategies(
+            agentData.resourceBalances,
+            agentData.liquidityPositions,
+            agentData.stakePositions,
+            agentData.he3Balance
+          );
+
+          // Generate creative strategy inspiration based on the analysis
+          const inspiration = generateStrategyInspiration(competitorAnalysis);
+
           return {
-            success: false,
-            message: `Failed to generate strategy inspiration: agent data not found for ID ${targetAgentId}`,
-            timestamp: Date.now()
+            agentId,
+            analysis: competitorAnalysis,
+            inspiration
           };
-        }
-        
-        // Generate counter-strategies analysis
-        const competitorAnalysis = suggestCounterStrategies(
-          targetAgentData.resourceBalances,
-          targetAgentData.liquidityPositions,
-          targetAgentData.stakePositions,
-          targetAgentData.he3Balance
-        );
-        
-        // Generate creative strategy inspiration based on the analysis
-        const strategyInspiration = generateStrategyInspiration(competitorAnalysis);
-        
+        });
+
         return {
           success: true,
-          message: `Generated creative strategy inspiration based on analysis of agent ${targetAgentId}`,
+          message: `Generated creative strategy inspiration based on analysis of ${strategicAnalysis.length} competitors`,
           data: {
-            targetAgentId,
-            strategyInspiration,
+            strategicAnalysis,
             timestamp: new Date().toISOString()
           },
           timestamp: Date.now()

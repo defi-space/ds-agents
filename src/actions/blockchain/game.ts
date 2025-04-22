@@ -11,20 +11,19 @@ export const gameActions = [
     description: "Retrieves the list of agent addresses and their staked amounts in a game session",
     instructions: "Use this action when an agent needs to check which agents are registered in a game session and their stake amounts",
     schema: z.object({
-      sessionAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Game session contract address (must be a valid hex address starting with 0x)")
+      message: z.string().describe("Not used - can be ignored").default("None"),
     }),
     handler: async (args, ctx, agent) => {
       try {
-        // Input validation
-        if (!args.sessionAddress) {
+        const sessionAddress = getContractAddress('gameSession', 'current');
+        if (!sessionAddress) {
           return {
             success: false,
-            message: "Cannot retrieve game agents: session address is missing",
+            message: "Cannot retrieve game agents: session address is missing.",
             timestamp: Date.now()
           };
         }
 
-        const sessionAddress = args.sessionAddress;
         const currentAgentAddress = await getAgentAddress();
         
         if (!currentAgentAddress) {
@@ -107,12 +106,12 @@ export const gameActions = [
     description: "Ends the current game session if the agent has reached the winning threshold of He3 tokens",
     instructions: "Use this action when an agent has accumulated enough He3 tokens to win and wants to end the game session",
     schema: z.object({
-      sessionAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Game session contract address (must be a valid hex address starting with 0x)")
+      message: z.string().describe("Not used - can be ignored").default("None"),
     }),
     handler: async (args, ctx, agent) => {
       try {
-        // Input validation
-        if (!args.sessionAddress) {
+        const sessionAddress = getContractAddress('gameSession', 'current');
+        if (!sessionAddress) {
           return {
             success: false,
             message: "Cannot end game: session address is missing",
@@ -120,7 +119,6 @@ export const gameActions = [
           };
         }
 
-        const sessionAddress = args.sessionAddress;
         const agentAddress = await getAgentAddress();
         
         if (!agentAddress) {
@@ -131,7 +129,6 @@ export const gameActions = [
           };
         }
         
-        // Get the game session info to verify it's active
         const sessionResult = await executeQuery(GET_GAME_SESSION_STATUS, {
           address: normalizeAddress(sessionAddress)
         });
@@ -155,7 +152,6 @@ export const gameActions = [
           };
         }
         
-        // Check if game is suspended
         if (gameSession.gameSuspended) {
           return {
             success: false,
@@ -164,7 +160,6 @@ export const gameActions = [
           };
         }
         
-        // Check if the agent has enough He3 tokens to win
         const he3Address = getContractAddress('resources', 'helium3');
         const he3Balance = await getTokenBalance(he3Address, agentAddress);
         const winThreshold = gameSession.tokenWinConditionThreshold;
@@ -182,7 +177,6 @@ export const gameActions = [
           };
         }
         
-        // End the game by calling the smart contract
         const chain = getStarknetChain();
         const result = await chain.write({
           contractAddress: sessionAddress,

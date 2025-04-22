@@ -13,6 +13,7 @@ import {
   GET_GAME_SESSION_INDEX_BY_ADDRESS,
   GET_MOST_STAKED_AGENTS
 } from "../../utils/queries";
+import { getContractAddress } from "src/utils/contracts";
 
 export const indexerActions = [
   action({
@@ -42,7 +43,7 @@ export const indexerActions = [
         if (!result || !result.pair) {
           return {
             success: false,
-            message: `No pair information found for address ${args.pairAddress}`,
+            message: `No pair information found for address ${args.pairAddress}. Please check context to get available pairs.`,
             timestamp: Date.now()
           };
         }
@@ -96,7 +97,7 @@ export const indexerActions = [
         if (!result || !result.farm) {
           return {
             success: false,
-            message: `No farm information found for address ${args.farmAddress}`,
+            message: `No farm information found for address ${args.farmAddress}. Check the available farms in the Context`,
             timestamp: Date.now()
           };
         }
@@ -303,7 +304,7 @@ export const indexerActions = [
         if (farmIndex === null) {
           return {
             success: false,
-            message: `No farm found for LP token address ${args.lpTokenAddress}`,
+            message: `No farm found for LP token address ${args.lpTokenAddress}. Please check context to get available LP tokens.`,
             timestamp: Date.now()
           };
         }
@@ -338,12 +339,12 @@ export const indexerActions = [
     description: "Checks if a game session is active, suspended, or already over",
     instructions: "Use this action when an agent needs to verify the current status of a game session before taking actions",
     schema: z.object({
-      sessionAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Game session contract address (must be a valid hex address starting with 0x)")
+      message: z.string().describe("Not used - can be ignored").default("None"),
     }),
     handler: async (args, ctx, agent) => {
       try {
-        // Input validation
-        if (!args.sessionAddress) {
+        const sessionAddress = getContractAddress('gameSession', 'current');
+        if (!sessionAddress) {
           return {
             success: false,
             message: "Cannot retrieve game session status: address is missing",
@@ -351,7 +352,7 @@ export const indexerActions = [
           };
         }
         
-        const normalizedAddress = normalizeAddress(args.sessionAddress);
+        const normalizedAddress = normalizeAddress(sessionAddress);
         
         const result = await executeQuery(GET_GAME_SESSION_STATUS, {
           address: normalizedAddress
@@ -360,7 +361,7 @@ export const indexerActions = [
         if (!result || !result.gameSession) {
           return {
             success: false,
-            message: `No game session found for address ${args.sessionAddress}`,
+            message: `No game session found for address ${sessionAddress}.`,
             timestamp: Date.now()
           };
         }
@@ -370,8 +371,8 @@ export const indexerActions = [
         return {
           success: true,
           message: isActive 
-            ? `Game session at ${args.sessionAddress} is active` 
-            : `Game session at ${args.sessionAddress} is not active (${result.gameSession.gameSuspended ? 'suspended' : 'over'})`,
+            ? `Game session at ${sessionAddress} is active` 
+            : `Game session at ${sessionAddress} is not active (${result.gameSession.gameSuspended ? 'suspended' : 'over'})`,
           data: {
             ...result.gameSession,
             isActive
@@ -399,12 +400,12 @@ export const indexerActions = [
     description: "Retrieves the session index for a specific game session address",
     instructions: "Use this action when an agent needs to find the numerical index of a game session from its contract address",
     schema: z.object({
-      sessionAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Game session contract address (must be a valid hex address starting with 0x)")
+      message: z.string().describe("Not used - can be ignored").default("None"),
     }),
     handler: async (args, ctx, agent) => {
       try {
-        // Input validation
-        if (!args.sessionAddress) {
+        const sessionAddress = getContractAddress('gameSession', 'current');
+        if (!sessionAddress) {
           return {
             success: false,
             message: "Cannot retrieve game session index: address is missing",
@@ -412,7 +413,7 @@ export const indexerActions = [
           };
         }
         
-        const normalizedAddress = normalizeAddress(args.sessionAddress);
+        const normalizedAddress = normalizeAddress(sessionAddress);
         
         const result = await executeQuery(GET_GAME_SESSION_INDEX_BY_ADDRESS, {
           address: normalizedAddress
@@ -421,16 +422,16 @@ export const indexerActions = [
         if (!result?.gameSession || !result.gameSession.gameSessionIndex) {
           return {
             success: false,
-            message: `No game session index found for address ${args.sessionAddress}`,
+            message: `No game session index found for address ${sessionAddress}.`,
             timestamp: Date.now()
           };
         }
         
         return {
           success: true,
-          message: `Game session at ${args.sessionAddress} has index ${result.gameSession.gameSessionIndex}`,
+          message: `Game session at ${sessionAddress} has index ${result.gameSession.gameSessionIndex}`,
           data: {
-            sessionAddress: args.sessionAddress,
+            sessionAddress: sessionAddress,
             sessionIndex: result.gameSession.gameSessionIndex
           },
           timestamp: Date.now()
@@ -456,13 +457,12 @@ export const indexerActions = [
     description: "Retrieves the agents with the highest stakes in a game session",
     instructions: "Use this action when an agent needs to identify the leading agents in a game session based on their stake amounts",
     schema: z.object({
-      sessionAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Game session contract address (must be a valid hex address starting with 0x)"),
-      limit: z.number().int().min(1).max(50).optional().describe("Maximum number of agents to return (default: 5, max: 50)")
+      message: z.string().describe("Not used - can be ignored").default("None"),
     }),
     handler: async (args, ctx, agent) => {
       try {
-        // Input validation
-        if (!args.sessionAddress) {
+        const sessionAddress = getContractAddress('gameSession', 'current');
+        if (!sessionAddress) {
           return {
             success: false,
             message: "Cannot retrieve most staked agents: session address is missing",
@@ -470,12 +470,11 @@ export const indexerActions = [
           };
         }
         
-        const sessionAddress = normalizeAddress(args.sessionAddress);
-        const limit = args.limit || 5;
+        const normalizedAddress = normalizeAddress(sessionAddress);
         
         const result = await executeQuery(GET_MOST_STAKED_AGENTS, {
-          sessionAddress: sessionAddress,
-          limit: limit
+          sessionAddress: normalizedAddress,
+          limit: 5
         });
         
         if (!result || !result.userStake || !Array.isArray(result.userStake)) {
@@ -487,7 +486,7 @@ export const indexerActions = [
         }
         
         // Get current agent address for comparison
-        const agentId = await getCurrentAgentId();
+        const agentId =  getCurrentAgentId();
         
         // Add rank and check if current agent is among top stakers
         const topAgents = result.userStake.map((stake: any, index: number) => ({

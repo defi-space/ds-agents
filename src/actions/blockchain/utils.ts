@@ -25,23 +25,6 @@ interface TokenAddresses {
   };
 }
 
-// Define interface for liquidity position
-interface LiquidityPosition {
-  pairAddress: string;
-  liquidity: string;
-  depositsToken0: string;
-  depositsToken1: string;
-  withdrawalsToken0: string;
-  withdrawalsToken1: string;
-  pairInfo: {
-    token0Address: string;
-    token1Address: string;
-    reserve0: string;
-    reserve1: string;
-    totalSupply: string;
-  } | null;
-}
-
 // Define interface for formatted token value
 interface FormattedTokenValue {
   balance: string;
