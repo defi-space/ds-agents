@@ -22,20 +22,22 @@ This is your unique identifier on the network
 1. Resource Structure:
    A. Base Resources (Claimable from Faucet):
       - wattDollar (wD): Primary currency, used in all liquidity pairs
-      - Carbon (C): Raw material for Graphene path
-      - Neodymium (Nd): Raw material for Yttrium path
+      - Carbon (C): Raw material for Graphene production
+      - Neodymium (Nd): Raw material for Yttrium production
 
    B. Intermediate Resources:
-      Graphene Path:
+      Required Component 1 - Graphene Production:
       - LP token from Carbon (C) / wD pair deposited in GRP Farm generates Graphite (GRP)
       - LP token from Graphite (GRP) / wD pair deposited in GPH Farm generates Graphene (GPH)
       
-      Yttrium Path:
+      Required Component 2 - Yttrium Production:
       - LP token from Neodymium (Nd) / wD pair deposited in Dy Farm generates Dysprosium (Dy) 
       - LP token from Dysprosium (Dy) / wD pair deposited in Y Farm generates Yttrium (Y)
 
    C. Final Resources:
-      - LP token from Graphene (GPH) / Yttrium (Y) pair deposited in He3 Farm generates Helium-3 (He3)
+      - He3 Production (Requires Both Components):
+        * Graphene (GPH) and Yttrium (Y) must be combined in a liquidity pair
+        * LP token from GPH/Y pair deposited in He3 Farm generates Helium-3 (He3)
       - He3 can be:
         * Paired with wD, LP token from He3 / wD pair deposited in He3 Farm generates more wD
         * Deposited in an other He3 Farm to earn more He3
@@ -61,7 +63,8 @@ This is your unique identifier on the network
 3. Game Mechanics:
    A. Resource Progression:
       - All intermediate resources require wD for liquidity pairs
-      - Both GPH and Y paths must be developed to produce He3
+      - Both Graphene (GPH) and Yttrium (Y) production lines must be developed simultaneously
+      - He3 production is only possible by combining both GPH and Y in a liquidity pair
       - He3 production enables two acceleration mechanisms:
         * Earning more wD through wD-He3 lp token
         * Earning more He3 through He3 Single Stake
@@ -118,69 +121,75 @@ The following contracts are available on Starknet:
      - Contract Address: ${getContractAddress('resources', 'helium3')}
 </ds_resource_contract_addresses>
 
-<ds_lp_pair_addresses>
+<ds_available_lp_pair_addresses>
    - wD/C Pair (Graphite Path)
      - Contract Address: ${getContractAddress('lpPairs', 'wdCarbon')}
+     - Token0: ${getContractAddress('resources', 'wattDollar')}
+     - Token1: ${getContractAddress('resources', 'carbon')}
 
    - wD/GRP Pair (Graphene Path)
      - Contract Address: ${getContractAddress('lpPairs', 'wdGraphite')}
+     - Token0: ${getContractAddress('resources', 'wattDollar')}
+     - Token1: ${getContractAddress('resources', 'graphite')}
 
    - wD/Nd Pair (Dysprosium Path)
      - Contract Address: ${getContractAddress('lpPairs', 'wdNeodymium')}
+     - Token0: ${getContractAddress('resources', 'wattDollar')}
+     - Token1: ${getContractAddress('resources', 'neodymium')}
 
    - wD/Dy Pair (Yttrium Path)
      - Contract Address: ${getContractAddress('lpPairs', 'wdDysprosium')}
+     - Token0: ${getContractAddress('resources', 'wattDollar')}
+     - Token1: ${getContractAddress('resources', 'dysprosium')}
 
    - GPH/Y Pair (He3 Production)
      - Contract Address: ${getContractAddress('lpPairs', 'grapheneYttrium')}
+     - Token0: ${getContractAddress('resources', 'graphene')}
+     - Token1: ${getContractAddress('resources', 'yttrium')}
 
    - wD/He3 Pair (wD Production)
      - Contract Address: ${getContractAddress('lpPairs', 'wdHelium3')}
-</ds_lp_pair_addresses>
+     - Token0: ${getContractAddress('resources', 'wattDollar')}
+     - Token1: ${getContractAddress('resources', 'helium3')}
+</ds_available_lp_pair_addresses>
 
-<ds_farm_addresses>
+<ds_available_farm_addresses>
    - wD/C Farm (Graphite Production)
      - Contract Address: ${getContractAddress('farms', 'grp')}
      - LP Token: ${getContractAddress('lpPairs', 'wdCarbon')}
      - Reward Token: GRP
-     - Reward Amount: 10000000000000000000000000
 
    - wD/GRP Farm (Graphene Production)
      - Contract Address: ${getContractAddress('farms', 'gph')}
      - LP Token: ${getContractAddress('lpPairs', 'wdGraphite')}
      - Reward Token: GPH
-     - Reward Amount: 5000000000000000000000000
 
    - wD/Nd Farm (Dysprosium Production)
      - Contract Address: ${getContractAddress('farms', 'dy')}
      - LP Token: ${getContractAddress('lpPairs', 'wdNeodymium')}
      - Reward Token: Dy
-     - Reward Amount: 8000000000000000000000000
 
    - wD/Dy Farm (Yttrium Production)
      - Contract Address: ${getContractAddress('farms', 'y')}
      - LP Token: ${getContractAddress('lpPairs', 'wdDysprosium')}
      - Reward Token: Y
-     - Reward Amount: 4000000000000000000000000
 
    - GPH/Y Farm (He3 Production)
      - Contract Address: ${getContractAddress('farms', 'he3')}
      - LP Token: ${getContractAddress('lpPairs', 'grapheneYttrium')}
      - Reward Token: He3
-     - Reward Amount: 2000000000000000000000000
 
    - wD/He3 Farm (wD Production)
      - Contract Address: ${getContractAddress('farms', 'wdHe3')}
      - LP Token: ${getContractAddress('lpPairs', 'wdHelium3')}
      - Reward Token: wD
-     - Reward Amount: 1000000000000000000000000
 
    - He3 Single Stake Farm (He3 Production)
      - Contract Address: ${getContractAddress('farms', 'he3Stake')}
      - Stake Token: ${getContractAddress('resources', 'helium3')}
      - Reward Token: He3
-     - Reward Amount: 500000000000000000000000
-</ds_farm_addresses>
+
+</ds_available_farm_addresses>
 </ds_contract_addresses>
 
 5. Blockchain Error Handling
@@ -213,12 +222,6 @@ The following contracts are available on Starknet:
         * For liquidity: reduce the deposit amount
         * Consider leaving small buffer for gas fees
 
-   B. Approval Errors:
-      - Indicates insufficient token allowance
-      - Resolution:
-        * Ensure approval transaction is confirmed before proceeding
-        * May need to reset allowance if previous approval pending
-
 3. Best Practices:
    
    A. Transaction Management:
@@ -240,7 +243,6 @@ The following contracts are available on Starknet:
    - Distributes rewards to the winner and finalizes the session
    - Function signature: end_game()
    - Requirements:
-     * Agent must be registered in the game
      * Agent must have 7,000,000 He3 tokens in their wallet
      * Game must not be suspended or already over
 

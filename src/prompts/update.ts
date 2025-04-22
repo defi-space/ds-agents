@@ -92,35 +92,6 @@ export const UPDATE = `<update_agent>
     <question>Which competitor strategies appear most effective and what can we learn from them?</question>
   </strategic_questions>
   
-  <reporting_format>
-    <section>
-      <title>Current Performance Assessment</title>
-      <content>Your evaluation of current performance and progress</content>
-      <growth_check>Compare He3 balance and generation rate to previous update to identify stagnation</growth_check>
-    </section>
-    
-    <section>
-      <title>Resource Analysis</title>
-      <content>Your assessment of resource generation and utilization</content>
-    </section>
-    
-    <section>
-      <title>Competitive Landscape</title>
-      <content>Your analysis of competitor positions and strategies</content>
-    </section>
-    
-    <section>
-      <title>Strategy Adaptation Recommendations</title>
-      <content>Your suggested adjustments to improve performance</content>
-      <loop_breaker>If progress has stagnated, recommend bold, significant changes rather than minor adjustments</loop_breaker>
-    </section>
-    
-    <section>
-      <title>Victory Outlook</title>
-      <content>Your assessment of progress toward the victory goal</content>
-    </section>
-  </reporting_format>
-  
   <adaptation_guidance>
     <guidance>Focus on observations and insights rather than assumptions</guidance>
     <guidance>Suggest adaptations you believe will improve progress toward the victory goal</guidance>
