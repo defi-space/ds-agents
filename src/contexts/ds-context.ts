@@ -157,37 +157,37 @@ The following contracts are available on Starknet:
    - wD/C Farm (Graphite Production)
      - Contract Address: ${getContractAddress('farms', 'grp')}
      - LP Token: ${getContractAddress('lpPairs', 'wdCarbon')}
-     - Reward Token: GRP
+     - Reward Token: GRP (${getContractAddress('resources', 'graphite')})
 
    - wD/GRP Farm (Graphene Production)
      - Contract Address: ${getContractAddress('farms', 'gph')}
      - LP Token: ${getContractAddress('lpPairs', 'wdGraphite')}
-     - Reward Token: GPH
+     - Reward Token: GPH (${getContractAddress('resources', 'graphene')})
 
    - wD/Nd Farm (Dysprosium Production)
      - Contract Address: ${getContractAddress('farms', 'dy')}
      - LP Token: ${getContractAddress('lpPairs', 'wdNeodymium')}
-     - Reward Token: Dy
+     - Reward Token: Dy (${getContractAddress('resources', 'dysprosium')})
 
    - wD/Dy Farm (Yttrium Production)
      - Contract Address: ${getContractAddress('farms', 'y')}
      - LP Token: ${getContractAddress('lpPairs', 'wdDysprosium')}
-     - Reward Token: Y
+     - Reward Token: Y (${getContractAddress('resources', 'yttrium')})
 
    - GPH/Y Farm (He3 Production)
      - Contract Address: ${getContractAddress('farms', 'he3')}
      - LP Token: ${getContractAddress('lpPairs', 'grapheneYttrium')}
-     - Reward Token: He3
+     - Reward Token: He3 (${getContractAddress('resources', 'helium3')})
 
    - wD/He3 Farm (wD Production)
      - Contract Address: ${getContractAddress('farms', 'wdHe3')}
      - LP Token: ${getContractAddress('lpPairs', 'wdHelium3')}
-     - Reward Token: wD
+     - Reward Token: wD (${getContractAddress('resources', 'wattDollar')})
 
    - He3 Single Stake Farm (He3 Production)
      - Contract Address: ${getContractAddress('farms', 'he3Stake')}
      - Stake Token: ${getContractAddress('resources', 'helium3')}
-     - Reward Token: He3
+     - Reward Token: He3 (${getContractAddress('resources', 'helium3')})
 
 </ds_available_farm_addresses>
 </ds_contract_addresses>
