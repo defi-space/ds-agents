@@ -65,6 +65,15 @@ function getAgentApiKey(): string {
   return apiKey;
 }
 
+/**
+ * Helper function to safely serialize objects containing BigInt values
+ */
+function safeJSONStringify(obj: any): string {
+  return JSON.stringify(obj, (_, value) =>
+    typeof value === 'bigint' ? value.toString() : value
+  );
+}
+
 export const generateEpisodicMemory = async (
   agent: AnyAgent,
   thoughts: Thought[],
@@ -75,7 +84,6 @@ export const generateEpisodicMemory = async (
   thoughts: string;
   result: string;
 }> => {
-
   // Use the agent's vectorModel if provided, otherwise create a model with the agent-specific API key
   const model = agent.memory.vectorModel || (() => {
     try {
@@ -112,17 +120,17 @@ export const generateEpisodicMemory = async (
 
     ## Context
     <thoughts>
-    ${JSON.stringify(thoughts)}
+    ${safeJSONStringify(thoughts)}
     </thoughts>
 
     ## Actions Taken
     <actions>
-    ${JSON.stringify(actions)}
+    ${safeJSONStringify(actions)}
     </actions>
 
     ## Results & Outcomes
     <results>
-    ${JSON.stringify(results)}
+    ${safeJSONStringify(results)}
     </results>
     
     ## Instructions
