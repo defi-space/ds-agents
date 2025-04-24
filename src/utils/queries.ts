@@ -131,8 +131,6 @@ export const GET_GAME_SESSION_STATUS = gql`
       gameSuspended
       gameOver
       winningAgentIndex
-      gameSuspended
-      gameOver
     }
   }
 `;
@@ -158,58 +156,3 @@ export const GET_MOST_STAKED_AGENTS = gql`
     }
   }
 `;
-
-// Faucet Queries
-export const GET_FAUCET_INFO = gql`
-  query GetFaucetInfo($address: String!) {
-    faucet(where: { address: { _eq: $address } }) {
-      address
-      owner
-      claimInterval
-      gameSessionId
-      tokensList
-      createdAt
-      updatedAt
-      tokens {
-        address
-        amount
-        claimAmount
-      }
-    }
-  }
-`;
-
-export const GET_WHITELISTED_USER = gql`
-  query GetWhitelistedUser($userAddress: String!, $faucetAddress: String!) {
-    whitelistedUser(
-      where: { 
-        address: { _eq: $userAddress },
-        faucetAddress: { _eq: $faucetAddress }
-      }
-    ) {
-      address
-      faucetAddress
-      isWhitelisted
-      lastClaim
-      createdAt
-      updatedAt
-    }
-  }
-`;
-
-export const GET_USER_CLAIM_HISTORY = gql`
-  query GetUserClaimHistory($userAddress: String!) {
-    claimEvent(
-      where: { userAddress: { _eq: $userAddress } }
-      order_by: { createdAt: desc }
-    ) {
-      id
-      transactionHash
-      userAddress
-      tokenAddress
-      faucetAddress
-      amount
-      createdAt
-    }
-  }
-`; 
