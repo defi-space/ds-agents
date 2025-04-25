@@ -10,6 +10,18 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+# Add trap to restore .env from backup if script exits abnormally
+cleanup() {
+  if [ -f .env.backup ]; then
+    echo -e "${YELLOW}Restoring .env from backup...${NC}"
+    cp .env.backup .env
+    rm .env.backup
+  fi
+}
+
+# Set trap for script exit
+trap cleanup EXIT
+
 echo -e "${YELLOW}defi-space-agents - Phala TEE Deployment${NC}"
 echo "=================================================="
 echo -e "${GREEN}This script handles the Phala-specific deployment steps${NC}"
@@ -30,25 +42,17 @@ if [ ! -f .env ]; then
     fi
 fi
 
-# Pre-process .env file (standardize API key format)
-tmp_file=$(mktemp)
-while IFS= read -r line; do
-    if [[ $line =~ ^([A-Za-z0-9_]+_API_KEY)=(.*)$ ]]; then
-        key_name="${BASH_REMATCH[1]}"
-        value="${BASH_REMATCH[2]}"
-        value=$(echo "$value" | sed -E 's/^["'"'"'](.*)['"'"'"]$/\1/')
-        echo "$key_name=$value" >> "$tmp_file"
-    else
-        echo "$line" >> "$tmp_file"
-    fi
-done < .env
-mv "$tmp_file" .env
+# Make a backup of the original .env file before processing
+cp .env .env.backup
+
+# Instead of processing the .env file, we'll just check if the required keys exist
+echo -e "${GREEN}Checking for required environment variables...${NC}"
 
 # Verify environment variables
 echo -e "${GREEN}Verifying environment variables...${NC}"
 missing_vars=0
 for var in AGENT1_PRIVATE_KEY AGENT1_ADDRESS AGENT1_API_KEY AGENT2_PRIVATE_KEY AGENT2_ADDRESS AGENT2_API_KEY AGENT3_PRIVATE_KEY AGENT3_ADDRESS AGENT3_API_KEY AGENT4_PRIVATE_KEY AGENT4_ADDRESS AGENT4_API_KEY STARKNET_RPC_URL INDEXER_URL GOOGLE_API_KEY SUPABASE_URL SUPABASE_API_KEY; do
-    if ! grep -q "^$var=" .env || grep -q "^$var=\"\"" .env; then
+    if ! grep -q "^$var=" .env; then
         echo -e "${RED}$var is not set in .env file${NC}"
         missing_vars=$((missing_vars+1))
     fi
@@ -63,7 +67,6 @@ fi
 if ! grep -q "^PHALA_TEE=" .env; then
     echo -e "${GREEN}Setting up Phala TEE environment variables...${NC}"
     echo "PHALA_TEE=true" >> .env
-    echo "AGENT_COUNT=4" >> .env
 fi
 
 # Check if image reference exists in docker-compose.yml
@@ -83,8 +86,8 @@ fi
 # Check for PHALA_API_KEY in .env file first
 phala_api_key=""
 if grep -q "^PHALA_API_KEY=" .env; then
-    # Extract the value properly, excluding any comments
-    phala_api_key=$(grep "^PHALA_API_KEY=" .env | sed -E 's/^PHALA_API_KEY="?([^"#]*).*$/\1/' | tr -d "'" | tr -d ' ')
+    # Get the exact value without any processing/modification
+    phala_api_key=$(grep "^PHALA_API_KEY=" .env | cut -d= -f2- | sed 's/[[:space:]]*#.*$//')
     
     # Check if it's empty after parsing
     if [ -z "$phala_api_key" ]; then

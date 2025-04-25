@@ -40,7 +40,6 @@ services:
     environment:
       # Basic configuration
       - NODE_ENV=production
-      - AGENT_COUNT=${AGENT_COUNT:-4}
       - PHALA_TEE=${PHALA_TEE:-true}
       
       # Database configuration

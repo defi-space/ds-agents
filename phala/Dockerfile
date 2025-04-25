@@ -45,7 +45,6 @@ USER agent
 
 # Set environment variables for the Phala TEE
 ENV NODE_ENV=production \
-    AGENT_COUNT=4 \
     PHALA_TEE=true \
     PATH="/usr/local/bin:${PATH}"
 

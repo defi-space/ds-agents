@@ -38,7 +38,6 @@ services:
   #   env_file:
   #     - .env
   #   environment:
-  #     - AGENT_COUNT=4
   #     - CHROMA_HOST=${COMPOSE_PROJECT_NAME:-daydreams}_chroma
   #     - CHROMA_PORT=8000
   #   networks:
