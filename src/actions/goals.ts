@@ -1,14 +1,12 @@
 import { action } from "@daydreamsai/core";
 import { z } from "zod";
 import { 
-  type GoalMemory
-} from "../contexts/goal-context";
-import { 
   goalPlanningSchema, 
   goalSchema, 
   type SingleGoal,
   type GoalTerm,
-  type GoalsStructure
+  type GoalsStructure,
+  type GoalMemory
 } from "../schema/goal-schema";
 import { getCategoryAddresses } from "../utils/contracts";
 import { getCurrentAgentId } from "../utils/starknet";
@@ -342,7 +340,6 @@ export const goalActions = [
         // Get current agent's ID and address
         const currentAgentId = getCurrentAgentId();
         const agentAddresses = getCategoryAddresses('agents');
-        const currentAgentAddress = agentAddresses[currentAgentId];
         
         // Calculate competitive metrics
         const competitiveMetrics = {

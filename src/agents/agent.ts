@@ -6,7 +6,6 @@ import {
 } from "@daydreamsai/core";
 import { createSupabaseMemory } from "@daydreamsai/supabase";
 import { createChromaVectorStore } from "@daydreamsai/chromadb";
-import { goalContext } from "../contexts/goal-context";
 import { autonomousCli, cli } from "../extensions";
 import { actions } from "../actions";
 import { setCurrentAgentId } from "../utils/starknet";
@@ -106,7 +105,6 @@ export async function createAgent(config: AgentConfig) {
       },
       exportTrainingData: true,
       trainingDataPath: `./grpo/group-training-data-${config.id}.jsonl`,
-      context: goalContext,
       actions,
     };
 

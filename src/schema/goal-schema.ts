@@ -9,6 +9,15 @@ export interface GoalsStructure {
   [key: string]: SingleGoal[]; // Add index signature for GoalTerm access
 }
 
+export interface GoalMemory {
+  goals: GoalsStructure | null;
+  tasks: string[];
+  currentTask: string | null;
+  history: string[];
+  lastUpdated: number;
+  status: 'idle' | 'planning' | 'executing';
+}
+
 // Task schema - simplified and included directly in goalSchema
 const taskSchema = z.object({
   plan: z.string().optional().describe("Plan to achieve this task"),
