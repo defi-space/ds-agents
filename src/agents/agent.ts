@@ -4,7 +4,7 @@ import {
   createContainer,
   LogLevel,
 } from "@daydreamsai/core";
-import { createSupabaseMemoryStore } from "@daydreamsai/supabase";
+import { createSupabaseMemory } from "@daydreamsai/supabase";
 import { createChromaVectorStore } from "@daydreamsai/chromadb";
 import { goalContext } from "../contexts/goal-context";
 import { autonomousCli, cli } from "../extensions";
@@ -20,7 +20,8 @@ import {
   getGoogleApiKey,
   getStarknetConfig,
   getChromaDbUrl,
-  getSupabaseConfig
+  getSupabaseConfig,
+  getCollectionName
 } from './utils';
 
 // Load environment variables
@@ -68,21 +69,23 @@ export async function createAgent(config: AgentConfig) {
     });
     const model = google("gemini-2.0-flash");
     
-    // Create a unique collection name for this agent's vector store
-    const collectionName = `${config.id.replace(/-/g, '_')}_collection`;
-    
     // Get the service URLs
     const chromaDbUrl = getChromaDbUrl();
+    
+    // Get the collection name using the helper function
+    let collectionName = await getCollectionName(config.id);
     
     // Create the Supabase memory store
     try {
       const supabaseOptions = config.supabaseConfig || getSupabaseConfig();
       
-      memoryStore = await createSupabaseMemoryStore({
-        url: supabaseOptions.url,
-        apiKey: supabaseOptions.apiKey,
-        tableName: supabaseOptions.tableName || collectionName,
-      });
+      // Create the Supabase memory store with verbose logging enabled
+      // The enhanced createSupabaseMemory will handle table creation internally
+      memoryStore = createSupabaseMemory(
+        supabaseOptions.url,
+        supabaseOptions.apiKey,
+        collectionName,
+      );
     } catch (supabaseError) {
       const errorMessage = supabaseError instanceof Error 
         ? supabaseError.message 

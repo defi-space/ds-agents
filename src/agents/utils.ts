@@ -1,4 +1,8 @@
 import dotenv from 'dotenv';
+import { request, gql } from 'graphql-request';
+import { GET_GAME_SESSION_INFO } from '../utils/queries';
+import { executeQuery } from '../utils/graphql';
+import { getContractAddress } from '../utils/contracts';
 
 // Load environment variables
 dotenv.config();
@@ -180,7 +184,48 @@ export function getStarknetConfig(agentNumber: number): StarknetConfig {
 }
 
 /**
- * Helper function to get Supabase configuration from environment variables
+ * Generates a collection name in the format:
+ * f_{last 5 char of game factory address}_s_{gameSessionId}_a_{agentId}
+ * 
+ * @param agentId The ID of the agent
+ * @returns The formatted collection name string
+ * @throws Error if unable to fetch game session info
+ */
+export async function getCollectionName(agentId: string): Promise<string> {
+  try {
+    // Get the current game session address from contracts
+    const gameSessionAddress = getContractAddress('gameSession', 'current');
+    
+    // Query for game session info using the executeQuery pattern
+    const result = await executeQuery(GET_GAME_SESSION_INFO, {
+      address: gameSessionAddress
+    });
+    
+    // Extract the required information
+    if (!result?.gameSession?.[0]) {
+      throw new Error(`No game session found for address ${gameSessionAddress}`);
+    }
+    
+    const sessionInfo = result.gameSession[0];
+    const gameFactory = sessionInfo.gameFactory;
+    const gameSessionIndex = sessionInfo.gameSessionIndex;
+    
+    // Extract the last 5 characters of the factory address
+    const factoryShort = gameFactory.slice(-5);
+    
+    // Extract just the number from agentId (e.g., "agent-2" → "2")
+    const agentNumber = agentId.charAt(agentId.length - 1);
+    
+    // Format the collection name
+    return `f_${factoryShort}_s_${gameSessionIndex}_a_${agentNumber}`;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to get collection name: ${errorMessage}`);
+  }
+}
+
+/**
+ * Gets the Supabase configuration from environment variables
  * @returns Supabase configuration object
  * @throws Error if required config is missing
  */

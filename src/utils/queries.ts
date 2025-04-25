@@ -143,6 +143,15 @@ export const GET_GAME_SESSION_INDEX_BY_ADDRESS = gql`
   }
 `;
 
+export const GET_GAME_SESSION_INFO = gql`
+  query GetGameSessionInfo($address: String!) {
+    gameSession(where: { address: { _eq: $address } }) {
+      gameFactory
+      gameSessionIndex
+    }
+  }
+`;
+
 export const GET_MOST_STAKED_AGENTS = gql`
   query GetMostStakedAgents($sessionAddress: String!, $limit: Int = 5) {
     userStake(
