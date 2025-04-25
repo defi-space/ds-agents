@@ -183,6 +183,19 @@ async function ensureTableExists(
 }
 
 /**
+ * Handles BigInt values before JSON serialization
+ * @param key - Object key
+ * @param value - Value to serialize
+ * @returns The serializable value
+ */
+function replacerForBigInt(_key: string, value: any): any {
+  if (typeof value === 'bigint') {
+    return value.toString() + 'n'; // Append 'n' to identify it as a BigInt when deserializing
+  }
+  return value;
+}
+
+/**
  * Creates a Supabase-backed implementation of the MemoryStore interface
  *
  * @param config - Configuration for the Supabase memory store
@@ -226,6 +239,20 @@ export function createSupabaseMemoryStore(
           return null;
         }
 
+        // Convert processed BigInt strings back to actual BigInt values
+        if (data.value) {
+          const reviver = (_key: string, value: any) => {
+            if (typeof value === 'string' && /^\d+n$/.test(value)) {
+              return BigInt(value.slice(0, -1));
+            }
+            return value;
+          };
+          
+          // If data.value is already processed by Supabase as an object, handle its properties
+          const valueStr = typeof data.value === 'string' ? data.value : JSON.stringify(data.value);
+          return JSON.parse(valueStr, reviver);
+        }
+
         return data.value as T;
       } catch (e) {
         console.error(`[Supabase:${tableName}] Error retrieving data for key ${key}:`, e);
@@ -240,11 +267,14 @@ export function createSupabaseMemoryStore(
      */
     async set<T>(key: string, value: T): Promise<void> {
       try {
+        // Process value to handle BigInt before serialization
+        const processedValue = JSON.parse(JSON.stringify(value, replacerForBigInt));
+
         const { error } = await client
           .from(tableName)
           .upsert({
             key,
-            value,
+            value: processedValue,
             updated_at: new Date().toISOString(),
           });
           
@@ -263,19 +293,27 @@ export function createSupabaseMemoryStore(
           const tableCreated = await ensureTableExists(client, tableName, verbose);
           
           if (tableCreated) {
-            // Retry the operation
-            const { error: retryError } = await client
-              .from(tableName)
-              .upsert({
-                key,
-                value,
-                updated_at: new Date().toISOString(),
-              });
+            try {
+              // Process value again to ensure we're using the processed value in retry
+              const processedValueForRetry = JSON.parse(JSON.stringify(value, replacerForBigInt));
               
-            if (retryError) {
-              throw new Error(`Failed to set value after table creation: ${retryError.message}`);
+              // Retry the operation
+              const { error: retryError } = await client
+                .from(tableName)
+                .upsert({
+                  key,
+                  value: processedValueForRetry,
+                  updated_at: new Date().toISOString(),
+                });
+                
+              if (retryError) {
+                throw new Error(`Failed to set value after table creation: ${retryError.message}`);
+              }
+              return;
+            } catch (retryErr) {
+              const retryErrorMessage = retryErr instanceof Error ? retryErr.message : String(retryErr);
+              throw new Error(`Failed to set value during retry: ${retryErrorMessage}`);
             }
-            return;
           }
         }
         

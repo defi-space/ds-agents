@@ -6,7 +6,6 @@ export interface GoalsStructure {
   long_term: SingleGoal[];
   medium_term: SingleGoal[];
   short_term: SingleGoal[];
-  [key: string]: SingleGoal[]; // Add index signature for GoalTerm access
 }
 
 export interface GoalMemory {

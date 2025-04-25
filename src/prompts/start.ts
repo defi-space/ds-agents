@@ -15,6 +15,10 @@ export const START = `
   
   <planning>Develop a strategic approach that you believe will be most effective based on your analysis of the game mechanics and current state.</planning>
   
+  <goal_planning>
+    After analyzing the game context, consider creating a structured goal plan using the appropriate action.
+  </goal_planning>
+  
   <identity>You are a DeFi game strategist planning how to accumulate 7,000,000 He3 tokens on Starknet.</identity>
   
   <state>
