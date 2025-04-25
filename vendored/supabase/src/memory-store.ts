@@ -62,7 +62,7 @@ async function ensureTableExists(
   const createTableQuery = `
     CREATE TABLE IF NOT EXISTS ${tableName} (
       key TEXT PRIMARY KEY,
-      value TEXT NOT NULL,
+      value JSONB NOT NULL,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
       updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
     );
@@ -151,7 +151,7 @@ async function ensureTableExists(
       const testKey = `__test_key_${Date.now()}`;
       const { error } = await client.from(tableName).upsert({ 
         key: testKey, 
-        value: JSON.stringify({ test: true }),
+        value: { test: true },
         updated_at: new Date().toISOString() 
       });
       
@@ -226,7 +226,7 @@ export function createSupabaseMemoryStore(
           return null;
         }
 
-        return JSON.parse(data.value) as T;
+        return data.value as T;
       } catch (e) {
         console.error(`[Supabase:${tableName}] Error retrieving data for key ${key}:`, e);
         return null;
@@ -239,14 +239,12 @@ export function createSupabaseMemoryStore(
      * @param value - Value to store
      */
     async set<T>(key: string, value: T): Promise<void> {
-      const serializedValue = JSON.stringify(value);
-
       try {
         const { error } = await client
           .from(tableName)
           .upsert({
             key,
-            value: serializedValue,
+            value,
             updated_at: new Date().toISOString(),
           });
           
@@ -270,7 +268,7 @@ export function createSupabaseMemoryStore(
               .from(tableName)
               .upsert({
                 key,
-                value: serializedValue,
+                value,
                 updated_at: new Date().toISOString(),
               });
               

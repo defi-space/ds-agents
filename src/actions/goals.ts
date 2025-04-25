@@ -414,13 +414,6 @@ export const goalActions = [
         // Get competitive intelligence using the utility function
         const competitiveIntelligence = await getCompetitiveIntelligence();
         
-        // Update context with intelligence data
-        if (ctx.memory) {
-          const agentMemory = ctx.memory as GoalMemory;
-          agentMemory.competitiveIntelligence = competitiveIntelligence;
-          agentMemory.lastCompetitiveAnalysis = new Date().toISOString();
-        }
-        
         // Analyze strategies for each competitor
         const strategicAnalysis = await analyzeCompetitorStrategies(competitiveIntelligence);
         

@@ -33,7 +33,7 @@ BEGIN
   EXECUTE format('
     CREATE TABLE IF NOT EXISTS %I (
       key TEXT PRIMARY KEY,
-      value TEXT NOT NULL,
+      value JSONB NOT NULL,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
       updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
     )', table_name);
