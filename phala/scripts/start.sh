@@ -45,13 +45,11 @@ echo "Configuration:"
 echo "- Environment: ${NODE_ENV:-development}"
 echo "- ChromaDB: $CHROMA_HOST:$CHROMA_PORT"
 
-# Check for Supabase configuration
-if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_API_KEY" ]; then
-  echo "⚠️ WARNING: Supabase configuration is missing. Make sure SUPABASE_URL and SUPABASE_API_KEY are set."
+# Check for Firebase configuration
+if [ -z "$FIREBASE_PROJECT_ID" ] || [ -z "$FIREBASE_CLIENT_EMAIL" ] || [ -z "$FIREBASE_PRIVATE_KEY" ]; then
+  echo "⚠️ WARNING: Firebase configuration is missing. Make sure FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY are set."
 else
-  # Extract domain from URL for logging purposes only
-  SUPABASE_DOMAIN=$(echo $SUPABASE_URL | sed -E 's|^https?://([^/]+).*$|\1|')
-  echo "- Database: Supabase ($SUPABASE_DOMAIN)"
+  echo "- Database: Firebase ($FIREBASE_PROJECT_ID)"
 fi
 
 # Network diagnostics

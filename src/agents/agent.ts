@@ -3,8 +3,9 @@ import {
   createDreams,
   createContainer,
   LogLevel,
+  Logger,
 } from "@daydreamsai/core";
-import { createSupabaseMemory } from "@daydreamsai/supabase";
+import { createFirebaseMemoryStore } from "@daydreamsai/firebase";
 import { createChromaVectorStore } from "@daydreamsai/chromadb";
 import { autonomousCli, cli } from "../extensions";
 import { actions } from "../actions";
@@ -19,7 +20,7 @@ import {
   getGoogleApiKey,
   getStarknetConfig,
   getChromaDbUrl,
-  getSupabaseConfig,
+  getFirebaseConfig,
   getCollectionName
 } from './utils';
 
@@ -37,10 +38,10 @@ export interface AgentConfig {
     address: string;
     privateKey: string;
   };
-  supabaseConfig?: {
-    url: string;
-    apiKey: string;
-    tableName?: string;
+  firebaseConfig?: {
+    projectId: string;
+    clientEmail: string;
+    privateKey: string;
   };
 }
 
@@ -65,6 +66,7 @@ export async function createAgent(config: AgentConfig) {
   try {
     const google = createGoogleGenerativeAI({
       apiKey: googleApiKey,
+      baseURL: "https://generativelanguage.googleapis.com/v1",
     });
     const model = google("gemini-2.0-flash");
     
@@ -76,20 +78,25 @@ export async function createAgent(config: AgentConfig) {
     
     // Create the Supabase memory store
     try {
-      const supabaseOptions = config.supabaseConfig || getSupabaseConfig();
+      const firebaseOptions = config.firebaseConfig || getFirebaseConfig();
       
       // Create the Supabase memory store with verbose logging enabled
       // The enhanced createSupabaseMemory will handle table creation internally
-      memoryStore = createSupabaseMemory(
-        supabaseOptions.url,
-        supabaseOptions.apiKey,
-        collectionName,
+      memoryStore = await createFirebaseMemoryStore(
+        {
+          serviceAccount: {
+            projectId: firebaseOptions.projectId,
+            clientEmail: firebaseOptions.clientEmail,
+            privateKey: firebaseOptions.privateKey || '',
+          },
+          collectionName,
+        }
       );
-    } catch (supabaseError) {
-      const errorMessage = supabaseError instanceof Error 
-        ? supabaseError.message 
-        : String(supabaseError);
-      throw new Error(`Failed to connect to Supabase for agent ${config.id}: ${errorMessage}`);
+    } catch (firebaseError) {
+      const errorMessage = firebaseError instanceof Error 
+        ? firebaseError.message 
+        : String(firebaseError);
+      throw new Error(`Failed to connect to Firebase for agent ${config.id}: ${errorMessage}`);
     }
 
     // Configure agent settings
@@ -140,7 +147,7 @@ export async function createAndStartAgent(agentNumber: number) {
     id: AGENT_ID,
     googleApiKey: process.env[`AGENT${agentNumber}_API_KEY`] || process.env.GOOGLE_API_KEY,
     starknetConfig: getStarknetConfig(agentNumber),
-    supabaseConfig: getSupabaseConfig()
+    firebaseConfig: getFirebaseConfig()
   };
 
   // Create agent with specific configuration

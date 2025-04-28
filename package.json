@@ -20,7 +20,7 @@
     "@daydreamsai/chromadb": "workspace:vendored/chroma",
     "@daydreamsai/core": "workspace:vendored/core",
     "@daydreamsai/defai": "workspace:vendored/defai",
-    "@daydreamsai/supabase": "workspace:vendored/supabase",
+    "@daydreamsai/firebase": "workspace:vendored/firebase",
     "dotenv": "^16.4.7",
     "graphql": "^16.10.0",
     "graphql-request": "^7.1.2",

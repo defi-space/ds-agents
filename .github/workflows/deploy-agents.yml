@@ -10,8 +10,9 @@ name: Deploy Agents to Phala
 # - AGENT4_PRIVATE_KEY, AGENT4_API_KEY: Required for each agent
 # - GOOGLE_API_KEY: For API access
 # - INDEXER_URL: GraphQL Indexer URL
-# - SUPABASE_URL: Supabase project URL
-# - SUPABASE_API_KEY: Supabase API key
+# - FIREBASE_PROJECT_ID: Firebase project ID
+# - FIREBASE_CLIENT_EMAIL: Firebase client email
+# - FIREBASE_PRIVATE_KEY: Firebase private key
 
 on:
   workflow_dispatch:
@@ -130,9 +131,10 @@ jobs:
           PHALA_TEE=true
           PHALA_API_KEY=${{ secrets.PHALA_API_KEY }}
           
-          # Supabase Configuration
-          SUPABASE_URL=${{ secrets.SUPABASE_URL }}
-          SUPABASE_API_KEY=${{ secrets.SUPABASE_API_KEY }}
+          # Firebase Configuration
+          FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          FIREBASE_PRIVATE_KEY=${{ secrets.FIREBASE_PRIVATE_KEY }}
           EOF
 
       - name: Deploy to Phala

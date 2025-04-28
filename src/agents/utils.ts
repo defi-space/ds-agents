@@ -229,21 +229,26 @@ export async function getCollectionName(agentId: string): Promise<string> {
  * @returns Supabase configuration object
  * @throws Error if required config is missing
  */
-export function getSupabaseConfig() {
-  const url = process.env.SUPABASE_URL;
-  const apiKey = process.env.SUPABASE_API_KEY;
+export function getFirebaseConfig() {
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY || '';
   
-  if (!url) {
-    throw new Error('SUPABASE_URL must be provided in environment variables');
+  if (!projectId) {
+    throw new Error('FIREBASE_PROJECT_ID must be provided in environment variables');
   }
   
-  if (!apiKey) {
-    throw new Error('SUPABASE_API_KEY must be provided in environment variables');
+  if (!clientEmail) {
+    throw new Error('FIREBASE_CLIENT_EMAIL must be provided in environment variables');
+  }
+
+  if (!privateKey) {
+    throw new Error('FIREBASE_PRIVATE_KEY must be provided in environment variables');
   }
   
   return {
-    url,
-    apiKey,
-    tableName: process.env.SUPABASE_TABLE_NAME
+    projectId,
+    clientEmail,
+    privateKey
   };
 }

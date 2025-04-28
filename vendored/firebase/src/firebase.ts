@@ -17,15 +17,29 @@ export interface FirebaseMemoryOptions {
    * @default "conversations"
    */
   collectionName?: string;
+  /**
+   * Max retries for Firestore operations
+   * @default 3
+   */
+  maxRetries?: number;
+  /**
+   * Base delay between retries (ms)
+   * @default 1000
+   */
+  retryDelay?: number;
 }
 
 export class FirebaseMemoryStore implements MemoryStore {
   private app: App;
   private db: Firestore;
   private readonly collectionName: string;
+  private readonly maxRetries: number;
+  private readonly retryDelay: number;
 
   constructor(options: FirebaseMemoryOptions) {
     this.collectionName = options.collectionName || "conversations";
+    this.maxRetries = options.maxRetries || 3;
+    this.retryDelay = options.retryDelay || 1000;
     
     // Check if Firebase app is already initialized
     const apps = getApps();
@@ -52,12 +66,47 @@ export class FirebaseMemoryStore implements MemoryStore {
   }
 
   /**
+   * Helper method to implement retry logic for Firestore operations
+   * @param operation - Function to retry
+   * @returns Result of the operation
+   */
+  private async withRetry<T>(operation: () => Promise<T>): Promise<T> {
+    let lastError: Error | null = null;
+    
+    for (let attempt = 0; attempt < this.maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error: any) {
+        lastError = error;
+        
+        // Check if this is a retryable error (like RST_STREAM)
+        const isRetryable = error?.code === 13 || 
+                            error?.message?.includes('RST_STREAM') ||
+                            error?.message?.includes('INTERNAL');
+        
+        if (!isRetryable) {
+          throw error;
+        }
+        
+        // Exponential backoff with jitter
+        const delay = this.retryDelay * Math.pow(2, attempt) * (0.5 + Math.random() * 0.5);
+        console.warn(`Firestore operation failed (attempt ${attempt + 1}/${this.maxRetries}), retrying in ${Math.round(delay)}ms`, error?.message || error);
+        
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    
+    // If we've exhausted all retries
+    throw lastError || new Error('Operation failed after maximum retry attempts');
+  }
+
+  /**
    * Initialize the Firestore connection
    */
   async initialize(): Promise<void> {
-    // Make a simple connection test
+    // Make a simple connection test with retry
     try {
-      await this.db.collection(this.collectionName).limit(1).get();
+      await this.withRetry(() => this.db.collection(this.collectionName).limit(1).get());
     } catch (error) {
       console.error(`Firestore connection error: ${error}`);
       throw error;
@@ -70,13 +119,15 @@ export class FirebaseMemoryStore implements MemoryStore {
    * @returns The stored value or null if not found
    */
   async get<T>(key: string): Promise<T | null> {
-    const docRef = this.db.collection(this.collectionName).doc(key);
-    const doc = await docRef.get();
-    
-    if (!doc.exists) return null;
-    
-    const data = doc.data();
-    return data?.value as T || null;
+    return this.withRetry(async () => {
+      const docRef = this.db.collection(this.collectionName).doc(key);
+      const doc = await docRef.get();
+      
+      if (!doc.exists) return null;
+      
+      const data = doc.data();
+      return data?.value as T || null;
+    });
   }
 
   /**
@@ -85,8 +136,33 @@ export class FirebaseMemoryStore implements MemoryStore {
    * @param value - Value to store
    */
   async set<T>(key: string, value: T): Promise<void> {
-    const docRef = this.db.collection(this.collectionName).doc(key);
-    await docRef.set({ value, updatedAt: new Date() }, { merge: true });
+    return this.withRetry(async () => {
+      const docRef = this.db.collection(this.collectionName).doc(key);
+      // Convert undefined values to null to avoid Firestore errors
+      const processedValue = this.processValue(value);
+      await docRef.set({ value: processedValue, updatedAt: new Date() }, { merge: true });
+    });
+  }
+
+  /**
+   * Helper method to process values before storing in Firestore
+   * Replaces undefined with null to avoid Firestore errors
+   */
+  private processValue(value: any): any {
+    if (value === undefined) return null;
+    
+    if (Array.isArray(value)) {
+      return value.map(item => this.processValue(item));
+    }
+    
+    if (value !== null && typeof value === 'object') {
+      return Object.entries(value).reduce((acc, [k, v]) => {
+        acc[k] = this.processValue(v);
+        return acc;
+      }, {} as Record<string, any>);
+    }
+    
+    return value;
   }
 
   /**
@@ -94,22 +170,26 @@ export class FirebaseMemoryStore implements MemoryStore {
    * @param key - Key to remove
    */
   async delete(key: string): Promise<void> {
-    const docRef = this.db.collection(this.collectionName).doc(key);
-    await docRef.delete();
+    return this.withRetry(async () => {
+      const docRef = this.db.collection(this.collectionName).doc(key);
+      await docRef.delete();
+    });
   }
 
   /**
    * Removes all entries from the store
    */
   async clear(): Promise<void> {
-    const batch = this.db.batch();
-    const snapshot = await this.db.collection(this.collectionName).get();
-    
-    snapshot.docs.forEach(doc => {
-      batch.delete(doc.ref);
+    return this.withRetry(async () => {
+      const batch = this.db.batch();
+      const snapshot = await this.db.collection(this.collectionName).get();
+      
+      snapshot.docs.forEach((doc: any) => {
+        batch.delete(doc.ref);
+      });
+      
+      await batch.commit();
     });
-    
-    await batch.commit();
   }
 }
 
