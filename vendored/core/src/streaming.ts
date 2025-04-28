@@ -258,7 +258,7 @@ export function createContextStreamHandler({
     };
 
     state.steps.push(newStep);
-    workingMemory.steps.push(newStep);
+    // workingMemory.steps.push(newStep);
 
     await handlePushLog(newStep, true);
 
