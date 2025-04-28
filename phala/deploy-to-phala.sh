@@ -17,10 +17,6 @@ cleanup() {
     cp .env.backup .env
     rm .env.backup
   fi
-  if [ -f .env.deploy ]; then
-    echo -e "${YELLOW}Removing temporary deployment .env file...${NC}"
-    rm .env.deploy
-  fi
 }
 
 # Set trap for script exit
@@ -138,19 +134,13 @@ if ! npx phala auth login "$phala_api_key"; then
     exit 1
 fi
 
-# Create a temporary env file with properly formatted Firebase private key
-echo -e "${GREEN}Preparing environment variables for deployment...${NC}"
-cat .env | grep -v "^FIREBASE_PRIVATE_KEY=" > .env.deploy
-firebase_key=$(grep "^FIREBASE_PRIVATE_KEY=" .env | cut -d= -f2-)
-echo "FIREBASE_PRIVATE_KEY=$(echo "$firebase_key" | sed 's/\\n/\n/g')" >> .env.deploy
-
 # Phala deployment
 echo -e "${GREEN}Deploying to Phala Network...${NC}"
-echo -e "${YELLOW}Running: npx phala cvms create --name defi-space-agents --compose phala/docker-compose.yml --env-file .env.deploy${NC}"
+echo -e "${YELLOW}Running: npx phala cvms create --name defi-space-agents --compose phala/docker-compose.yml --env-file .env${NC}"
 
-# Deploy the CVM with all environment variables from .env.deploy, accepting default values
+# Deploy the CVM with all environment variables from .env, accepting default values
 echo -e "${GREEN}Creating Phala CVM with environment variables from .env...${NC}"
-if ! yes "" | npx phala cvms create --name defi-space-agents --compose phala/docker-compose.yml --env-file .env.deploy; then
+if ! yes "" | npx phala cvms create --name defi-space-agents --compose phala/docker-compose.yml --env-file .env; then
     echo -e "${RED}Deployment failed. Please check the above logs for details.${NC}"
     exit 1
 fi
