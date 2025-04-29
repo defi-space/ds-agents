@@ -828,10 +828,10 @@ export function createContextStreamHandler({
 }
 
 function limitWorkingMemorySize(workingMemory: WorkingMemory, logger?: Logger) {
-  // Keep only 3 latest steps and runs
-  if (workingMemory.steps.length > 3) {
-    workingMemory.steps = workingMemory.steps.slice(-3);
-  }
+  // Clear steps
+  workingMemory.steps = [];
+  
+  // Keep only 3 latest runs
   if (workingMemory.runs.length > 3) {
     workingMemory.runs = workingMemory.runs.slice(-3);
   }
