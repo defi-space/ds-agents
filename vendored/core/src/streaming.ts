@@ -258,7 +258,7 @@ export function createContextStreamHandler({
     };
 
     state.steps.push(newStep);
-    // workingMemory.steps.push(newStep);
+    workingMemory.steps.push(newStep);
 
     await handlePushLog(newStep, true);
 
@@ -462,7 +462,10 @@ export function createContextStreamHandler({
       }
     }
 
-    if (done) await saveContextWorkingMemory(agent, ctxState.id, workingMemory);
+    if (done) {
+      limitWorkingMemorySize(workingMemory, logger);
+      await saveContextWorkingMemory(agent, ctxState.id, workingMemory);
+    }
 
     try {
       handlers?.onLogStream?.(log, done);
@@ -822,4 +825,53 @@ export function createContextStreamHandler({
     tags: defaultTags,
     stepConfig: stepConfig,
   };
+}
+
+function limitWorkingMemorySize(workingMemory: WorkingMemory, logger?: Logger) {
+  // Keep only 3 latest steps and runs
+  if (workingMemory.steps.length > 3) {
+    workingMemory.steps = workingMemory.steps.slice(-3);
+  }
+  if (workingMemory.runs.length > 3) {
+    workingMemory.runs = workingMemory.runs.slice(-3);
+  }
+  
+  // Keep only 1 latest inputs and outputs
+  if (workingMemory.inputs.length > 1) {
+    workingMemory.inputs = workingMemory.inputs.slice(-1);
+  }
+  if (workingMemory.outputs.length > 1) {
+    workingMemory.outputs = workingMemory.outputs.slice(-1);
+  }
+  
+  // Keep only 5 latest calls and results
+  if (workingMemory.calls.length > 5) {
+    workingMemory.calls = workingMemory.calls.slice(-5);
+  }
+  if (workingMemory.results.length > 5) {
+    workingMemory.results = workingMemory.results.slice(-5);
+  }
+  
+  // Limit events to 3 most recent entries
+  if (workingMemory.events.length > 3) {  
+    workingMemory.events = workingMemory.events.slice(-3);
+  }
+  
+  // Note: We keep all thoughts and episodicMemory intact
+
+  // Log the final sizes if logger is available
+  if (logger) {
+    logger.debug("memory:limit", "Working memory size after limiting", {
+      finalSizes: {
+        steps: workingMemory.steps.length,
+        runs: workingMemory.runs.length,
+        inputs: workingMemory.inputs.length,
+        outputs: workingMemory.outputs.length,
+        calls: workingMemory.calls.length,
+        results: workingMemory.results.length,
+        thoughts: workingMemory.thoughts.length,
+        events: workingMemory.events.length
+      }
+    });
+  }
 }
