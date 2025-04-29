@@ -221,7 +221,7 @@ export const calculateOptimalLiquidity = async (params: {
 
   // If pair doesn't exist, we can't calculate optimal amounts
   if (!pairAddress || pairAddress === "0x0") {
-    throw new Error("Pool does not exist. For first liquidity provision, provide both amounts manually.");
+    throw new Error("Pool does not exist. Please check context to get all available pairs.");
   }
 
   // Get current reserves
@@ -240,7 +240,7 @@ export const calculateOptimalLiquidity = async (params: {
 
   if (params.amountA) {    
     if (reserveABigInt === 0n || reserveBBigInt === 0n) {
-      throw new Error("Pool does not exist. For first liquidity provision, provide both amounts manually.");
+      throw new Error("Pool does not exist. Please check context to get all available pairs.");
     }
     amountA = BigInt(params.amountA);
     // Calculate amountBOptimal using quote function
@@ -252,7 +252,7 @@ export const calculateOptimalLiquidity = async (params: {
     amountB = BigInt(params.amountB!);
     
     if (reserveABigInt === 0n || reserveBBigInt === 0n) {
-      throw new Error("Pool does not exist. For first liquidity provision, provide both amounts manually.");
+      throw new Error("Pool does not exist. Please check context to get all available pairs.");
     }
     
     // Calculate amountAOptimal using quote function

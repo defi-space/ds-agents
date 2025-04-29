@@ -164,15 +164,26 @@ export const gameActions = [
         const he3Balance = await getTokenBalance(he3Address, agentAddress);
         const winThreshold = gameSession.tokenWinConditionThreshold;
         
-        if (BigInt(he3Balance) < BigInt(winThreshold)) {
+        // Convert the winThreshold to a string first to ensure it can be safely converted to BigInt
+        // he3Balance is already a BigInt from getTokenBalance
+        try {
+          if (he3Balance < BigInt(String(winThreshold))) {
+            return {
+              success: false,
+              message: `Cannot end game: agent has ${he3Balance.toString()} He3 tokens but needs ${winThreshold} to win`,
+              data: {
+                currentBalance: he3Balance.toString(),
+                requiredBalance: String(winThreshold),
+                remaining: (BigInt(String(winThreshold)) - he3Balance).toString()
+              },
+              timestamp: Date.now()
+            };
+          }
+        } catch (error) {
+          console.error('Error comparing token balances:', error);
           return {
             success: false,
-            message: `Cannot end game: agent has ${he3Balance} He3 tokens but needs ${winThreshold} to win`,
-            data: {
-              currentBalance: he3Balance,
-              requiredBalance: winThreshold,
-              remaining: (BigInt(winThreshold) - BigInt(he3Balance)).toString()
-            },
+            message: `Failed to compare token balances: ${(error as Error).message || "Unknown error"}`,
             timestamp: Date.now()
           };
         }
