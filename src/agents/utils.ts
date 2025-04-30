@@ -230,20 +230,20 @@ export async function getCollectionName(agentId: string): Promise<string> {
  * @throws Error if required config is missing
  */
 export function getFirebaseConfig() {
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY || '';
+  const projectId = process.env.FB_PROJECT_ID;
+  const clientEmail = process.env.FB_CLIENT_EMAIL;
+  const privateKey = process.env.FB_PRIVATE_KEY || '';
   
   if (!projectId) {
-    throw new Error('FIREBASE_PROJECT_ID must be provided in environment variables');
+    throw new Error('FB_PROJECT_ID must be provided in environment variables');
   }
   
   if (!clientEmail) {
-    throw new Error('FIREBASE_CLIENT_EMAIL must be provided in environment variables');
+    throw new Error('FB_CLIENT_EMAIL must be provided in environment variables');
   }
 
   if (!privateKey) {
-    throw new Error('FIREBASE_PRIVATE_KEY must be provided in environment variables');
+    throw new Error('FB_PRIVATE_KEY must be provided in environment variables');
   }
   
   return {
