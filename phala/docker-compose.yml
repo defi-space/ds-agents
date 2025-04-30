@@ -45,9 +45,9 @@ services:
       # Database configuration
       - CHROMA_HOST=defi-space-agents_chroma
       - CHROMA_PORT=8000
-      - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}
-      - FIREBASE_CLIENT_EMAIL=${FIREBASE_CLIENT_EMAIL}
-      - FIREBASE_PRIVATE_KEY=${FIREBASE_PRIVATE_KEY}
+      - FB_PROJECT_ID=${FB_PROJECT_ID}
+      - FB_CLIENT_EMAIL=${FB_CLIENT_EMAIL}
+      - FB_PRIVATE_KEY=${FB_PRIVATE_KEY}
       
       # API Keys (must be properly set in .env!)
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
