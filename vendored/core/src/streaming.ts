@@ -857,7 +857,10 @@ function limitWorkingMemorySize(workingMemory: WorkingMemory, logger?: Logger) {
     workingMemory.events = workingMemory.events.slice(-3);
   }
   
-  // Note: We keep all thoughts and episodicMemory intact
+  // Limit thoughts to 50 most recent entries
+  if (workingMemory.thoughts.length > 50) {
+    workingMemory.thoughts = workingMemory.thoughts.slice(-50);
+  }
 
   // Log the final sizes if logger is available
   if (logger) {
