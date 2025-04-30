@@ -46,10 +46,10 @@ echo "- Environment: ${NODE_ENV:-development}"
 echo "- ChromaDB: $CHROMA_HOST:$CHROMA_PORT"
 
 # Check for Firebase configuration
-if [ -z "$FIREBASE_PROJECT_ID" ] || [ -z "$FIREBASE_CLIENT_EMAIL" ] || [ -z "$FIREBASE_PRIVATE_KEY" ]; then
-  echo "⚠️ WARNING: Firebase configuration is missing. Make sure FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY are set."
+if [ -z "$FB_PROJECT_ID" ] || [ -z "$FB_CLIENT_EMAIL" ] || [ -z "$FB_PRIVATE_KEY" ]; then
+  echo "⚠️ WARNING: Firebase configuration is missing. Make sure FB_PROJECT_ID, FB_CLIENT_EMAIL, and FB_PRIVATE_KEY are set."
 else
-  echo "- Database: Firebase ($FIREBASE_PROJECT_ID)"
+  echo "- Database: Firebase ($FB_PROJECT_ID)"
 fi
 
 # Network diagnostics
