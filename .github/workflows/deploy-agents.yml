@@ -134,7 +134,7 @@ jobs:
           # Firebase Configuration
           FB_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
           FB_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }}
-          FB_PRIVATE_KEY=${{ secrets.FIREBASE_PRIVATE_KEY }}
+          FB_PRIVATE_KEY='${{ secrets.FIREBASE_PRIVATE_KEY }}'
           EOF
 
       - name: Deploy to Phala
