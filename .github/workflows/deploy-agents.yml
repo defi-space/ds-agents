@@ -134,8 +134,7 @@ jobs:
           # Firebase Configuration
           FB_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
           FB_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }}
-          # Properly handle the Firebase private key, removing any extra quotes and ensuring newlines are preserved
-          FB_PRIVATE_KEY=$(echo '${{ secrets.FIREBASE_PRIVATE_KEY }}' | sed 's/\\n/\n/g' | sed 's/^"//g' | sed 's/"$//g')
+          FB_PRIVATE_KEY=${{ secrets.FIREBASE_PRIVATE_KEY }}
           EOF
 
       - name: Deploy to Phala

@@ -244,11 +244,24 @@ export function getFirebaseConfig() {
 
   if (!privateKey) {
     throw new Error('FB_PRIVATE_KEY must be provided in environment variables');
+  }  
+
+  // Decode the Base64 encoded key and properly format it
+  let decodedKey;
+  try {
+    // Use Buffer to decode base64 (more reliable than atob)
+    decodedKey = Buffer.from(privateKey, 'base64').toString();
+    
+    // Handle newline characters correctly
+    decodedKey = decodedKey.replace(/\\n/g, '\n');
+  } catch (error) {
+    console.error('Error decoding private key:', error);
+    throw new Error('Failed to decode FB_PRIVATE_KEY. Make sure it is properly base64 encoded.');
   }
-  
+
   return {
     projectId,
     clientEmail,
-    privateKey
+    privateKey: decodedKey
   };
 }
