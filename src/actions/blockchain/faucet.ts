@@ -43,8 +43,8 @@ async function checkFaucetStatus(contractAddress: string, agentAddress: string) 
 export const faucetActions = [
     action({
       name: "claimFaucet",
-      description: "Claims tokens from the faucet to get wattDollar, Carbon, and Neodymium",
-      instructions: "Use this action when an agent needs tokens. Note there is a one-hour cooldown between claims.",
+      description: "Claims tokens from the faucet to get wattDollar (wD), Carbon (C), and Neodymium (Nd)",
+      instructions: "Use this action when an agent needs tokens. Note there is a one (1) hour cooldown between claims on the contract.",
       schema: z.object({
 
       }),
@@ -101,7 +101,7 @@ export const faucetActions = [
           
           return {
             success: true,
-            message: "Successfully claimed 7,000,000 wD, 100,000 C, 210,000 Nd from faucet",
+            message: "Successfully claimed 7,000,000 wattDollar (wD), 100,000 Carbon (C), 210,000 Neodymium (Nd) from faucet",
             txHash: result.transactionHash,
             data: {
               claimedTokens: {
@@ -132,7 +132,7 @@ export const faucetActions = [
     action({
       name: "getClaimTimeStatus",
       description: "Checks whether tokens can be claimed from the faucet and when the next claim will be available.",
-      instructions: "Use this action when an agent needs to know if they can claim tokens now or when they will be able to claim next.",
+      instructions: "Use this action when needing to know if its possible to claim tokens now OR when the next possible claim time is.",
       schema: z.object({
         message: z.string().describe("Not used - can be ignored").default("None"),
       }),

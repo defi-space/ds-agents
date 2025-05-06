@@ -55,7 +55,7 @@ export const utilsActions = [
   action({
     name: "getERC20Balance",
     description: "Retrieves the current balance of any ERC20 token",
-    instructions: "Use this action when an agent needs to check its balance of a specific token",
+    instructions: "Use this action when an agent needs to check its balance of a specific resource token",
     schema: z.object({
       tokenAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Token contract address (must be a valid hex address starting with 0x)")
     }),
@@ -195,7 +195,7 @@ export const utilsActions = [
   action({
     name: "getGameResourceState",
     description: "Retrieves a comprehensive snapshot of an agent's resource portfolio",
-    instructions: "Use this action when an agent needs to see all its token balances, liquidity positions, and staking positions at once",
+    instructions: "Use this action when an agent needs to see all its resource token balances, liquidity positions, and staked farm positions across indexes/pools at once",
     schema: z.object({
       message: z.string().describe("Not used - can be ignored").default("None"),
     }),

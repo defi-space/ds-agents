@@ -14,8 +14,8 @@ interface PendingRewards {
 export const yieldActions = [
   action({
     name: "depositToFarm",
-    description: "Deposits LP tokens into a farm for yield farming",
-    instructions: "Use this action when an agent wants to stake LP tokens in a farm to earn rewards",
+    description: "Deposits paired LP tokens into a farm index/pool for yield farming and rewards",
+    instructions: "Use this action when an agent wants to stake LP tokens in a farm index/pool to earn rewards",
     schema: z.object({
         farmIndex: z.string().describe("Unique farm identifier in the FarmRouter contract (numeric index as string)"),
         amount: z.string().describe("Amount of LP tokens to deposit as a string in base units (e.g., '1000000000000000000' for 1 token with 18 decimals)")
@@ -128,7 +128,7 @@ export const yieldActions = [
   action({
     name: "withdrawFromFarm",
     description: "Withdraws LP tokens from a farm",
-    instructions: "Use this action when an agent wants to withdraw some of their staked LP tokens from a farm",
+    instructions: "Use this action when an agent wants to withdraw an amount of their staked LP tokens from a farm index/pool",
     schema: z.object({
       farmIndex: z.string().describe("Unique farm identifier in the FarmRouter contract (numeric index as string)"),
       amount: z.string().describe("Amount of LP tokens to withdraw as a string in base units (e.g., '1000000000000000000' for 1 token with 18 decimals)")
@@ -311,7 +311,7 @@ export const yieldActions = [
 
   action({
     name: "harvestRewards",
-    description: "Claims accumulated reward tokens from a nuclear farm",
+    description: "Claims accumulated reward tokens from a farm index/pool",
     instructions: "Use this action when an agent wants to collect earned rewards without withdrawing their staked LP tokens",
     schema: z.object({
         farmIndex: z.string().describe("Unique farm identifier in the FarmRouter contract (numeric index as string)")
@@ -562,7 +562,7 @@ export const yieldActions = [
 
   action({
     name: "getAgentStakedAmount",
-    description: "Retrieves the amount of LP tokens an agent has staked in a farm",
+    description: "Retrieves the amount of LP tokens an agent has staked in a farm index/pool",
     instructions: "Use this action when an agent wants to check how many LP tokens they have staked in a specific farm",
     schema: z.object({
       farmIndex: z.string().describe("Unique farm identifier in the FarmRouter contract (numeric index as string)")

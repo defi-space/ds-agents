@@ -9,7 +9,7 @@ export const gameActions = [
   action({
     name: "getGameAgents",
     description: "Retrieves the list of agent addresses and their staked amounts in a game session",
-    instructions: "Use this action when an agent needs to check which agents are registered in a game session and their stake amounts",
+    instructions: "Use this action to check which agents are registered in a game session OR you would like to know an agent's stake amounts",
     schema: z.object({
       message: z.string().describe("Not used - can be ignored").default("None"),
     }),
@@ -75,8 +75,8 @@ export const gameActions = [
         return {
           success: true,
           message: isInGame 
-            ? `Successfully retrieved ${numAgents} game agents. Your agent is registered in this game session.` 
-            : `Successfully retrieved ${numAgents} game agents. Your agent is NOT registered in this game session.`,
+            ? `Successfully retrieved ${numAgents} game agents. Your agent address IS registered in this game session.` 
+            : `Successfully retrieved ${numAgents} game agents. Your agent address is NOT registered in this game session.`,
           data: {
             agents,
             currentAgentAddress,
@@ -103,8 +103,8 @@ export const gameActions = [
 
   action({
     name: "endGame",
-    description: "Ends the current game session if the agent has reached the winning threshold of He3 tokens",
-    instructions: "Use this action when an agent has accumulated enough He3 tokens to win and wants to end the game session",
+    description: "Ends the current game session if the agent has reached the winning threshold of Helium-3 (He3) tokens",
+    instructions: "Use this action when an agent has accumulated enough Helium-3 (He3) tokens to win and wants to end the game session",
     schema: z.object({
       message: z.string().describe("Not used - can be ignored").default("None"),
     }),
@@ -175,7 +175,7 @@ export const gameActions = [
           if (he3Balance < winThresholdBigInt) {
             return {
               success: false,
-              message: `Cannot end game: agent has ${he3Balance.toString()} He3 tokens but needs ${winThreshold} to win`,
+              message: `Cannot end game: agent has ${he3Balance.toString()} Helium-3 (He3) tokens but needs ${winThreshold} Helium-3 (He3) total tokens to win`,
               data: {
                 currentBalance: he3Balance.toString(),
                 requiredBalance: String(winThreshold),

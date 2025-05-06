@@ -45,14 +45,14 @@ export const indexerActions = [
         if (!result || !result.pair) {
           return {
             success: false,
-            message: `No pair information found for address ${args.pairAddress}. Please check context to get available pairs.`,
+            message: `No pair information found for address ${args.pairAddress}. Please check context to get available LP pairs.`,
             timestamp: Date.now()
           };
         }
         
         return {
           success: true,
-          message: `Successfully retrieved information for pair at ${args.pairAddress}`,
+          message: `Successfully retrieved information for LP pair at ${args.pairAddress}`,
           data: result,
           timestamp: Date.now()
         };
@@ -60,7 +60,7 @@ export const indexerActions = [
         console.error('Failed to get pair info:', error);
         return {
           success: false,
-          message: `Failed to retrieve pair information: ${(error as Error).message || "Unknown error"}`,
+          message: `Failed to retrieve LP pair information: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };
       }
@@ -74,7 +74,7 @@ export const indexerActions = [
 
   action({
     name: "getFarmInfo",
-    description: "Fetches detailed information about a specific farming farm",
+    description: "Fetches detailed information about a specific farm and its rewards",
     instructions: "Use this action when an agent needs data about a farm including its rewards, staked amounts, and other metrics",
     schema: z.object({
       farmAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Farm contract address (must be a valid hex address starting with 0x)")
@@ -130,8 +130,8 @@ export const indexerActions = [
 
   action({
     name: "getAllfarms",
-    description: "Retrieves a list of all registered farming farms in the network",
-    instructions: "Use this action when an agent needs to discover all available farms and their data",
+    description: "Retrieves a list of all registered farms and pools during a game session",
+    instructions: "Use this action when an agent needs to discover all available farms, pools, and their additional data",
     schema: z.object({
       message: z.string().describe("Not used - can be ignored").default("None"),
     }),
@@ -202,7 +202,7 @@ export const indexerActions = [
         if (!result || !result.liquidityPosition || !Array.isArray(result.liquidityPosition)) {
           return {
             success: true,
-            message: `No liquidity positions found for user ${args.userAddress}`,
+            message: `No liquidity positions found for address ${args.userAddress}`,
             data: { liquidityPosition: [] },
             timestamp: Date.now()
           };
@@ -210,15 +210,15 @@ export const indexerActions = [
         
         return {
           success: true,
-          message: `Successfully retrieved ${result.liquidityPosition.length} liquidity positions for user ${args.userAddress}`,
+          message: `Successfully retrieved ${result.liquidityPosition.length} liquidity positions for address ${args.userAddress}`,
           data: result,
           timestamp: Date.now()
         };
       } catch (error) {
-        console.error('Failed to get user liquidity positions:', error);
+        console.error('Failed to get liquidity positions for address:', error);
         return {
           success: false,
-          message: `Failed to retrieve user liquidity positions: ${(error as Error).message || "Unknown error"}`,
+          message: `Failed to retrieve address's liquidity positions: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };
       }
@@ -233,7 +233,7 @@ export const indexerActions = [
   action({
     name: "getAgentStakePositions",
     description: "Retrieves all active staking positions for a specific agent",
-    instructions: "Use this action when an agent needs to view its own or another agent's staked amounts and earned rewards",
+    instructions: "Use this action when an agent needs to view own or another agents staked amounts and earned rewards",
     schema: z.object({
       userAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Agent wallet address to query staking positions for (must be a valid hex address starting with 0x)")
     }),
@@ -259,7 +259,7 @@ export const indexerActions = [
         if (!result || !result.agentStake || !Array.isArray(result.agentStake)) {
           return {
             success: true,
-            message: `No stake positions found for user ${args.userAddress}`,
+            message: `No stake positions found for address ${args.userAddress}`,
             data: { agentStake: [] },
             timestamp: Date.now()
           };
@@ -267,7 +267,7 @@ export const indexerActions = [
         
         return {
           success: true,
-          message: `Successfully retrieved ${result.agentStake.length} stake positions for user ${args.userAddress}`,
+          message: `Successfully retrieved ${result.agentStake.length} stake positions for address ${args.userAddress}`,
           data: result,
           timestamp: Date.now()
         };
@@ -289,7 +289,7 @@ export const indexerActions = [
 
   action({
     name: "getFarmIndexByLpToken",
-    description: "Retrieves the farm index for a given LP token address",
+    description: "Retrieves the farm index pool for a given LP token address",
     instructions: "Use this action when an agent needs to find which farm corresponds to a specific LP token",
     schema: z.object({
       lpTokenAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("LP token contract address (must be a valid hex address starting with 0x)")
@@ -300,7 +300,7 @@ export const indexerActions = [
         if (!args.lpTokenAddress) {
           return {
             success: false,
-            message: "Cannot retrieve farm index: LP token address is missing",
+            message: "Cannot retrieve farm index pool: LP token address is missing",
             timestamp: Date.now()
           };
         }
@@ -325,7 +325,7 @@ export const indexerActions = [
         
         return {
           success: true,
-          message: `LP token ${args.lpTokenAddress} corresponds to farm index ${farmIndex}`,
+          message: `LP token ${args.lpTokenAddress} corresponds to farm index pool ${farmIndex}`,
           data: {
             lpTokenAddress: args.lpTokenAddress,
             farmIndex
@@ -333,10 +333,10 @@ export const indexerActions = [
           timestamp: Date.now()
         };
       } catch (error) {
-        console.error('Failed to get farm index by LP token:', error);
+        console.error('Failed to get farm index pool by LP token:', error);
         return {
           success: false,
-          message: `Failed to retrieve farm index for LP token: ${(error as Error).message || "Unknown error"}`,
+          message: `Failed to retrieve farm index pool for LP token: ${(error as Error).message || "Unknown error"}`,
           timestamp: Date.now()
         };
       }
