@@ -18,6 +18,9 @@ import {
   suggestCounterStrategies
 } from "../utils/competition";
 
+// Maximum number of goals per category
+const MAX_GOALS_PER_CATEGORY = 50;
+
 export const goalActions = [
   action({
     name: "addTask",
@@ -60,13 +63,15 @@ export const goalActions = [
       };
 
       const term = args.term as GoalTerm;
+      
+      // Add the new task and ensure we don't exceed the maximum number per category
       agentMemory.goals[term].push(newTask);
+      if (agentMemory.goals[term].length > MAX_GOALS_PER_CATEGORY) {
+        // Sort by priority (highest first) and keep only the top MAX_GOALS_PER_CATEGORY
+        agentMemory.goals[term].sort((a, b) => b.priority - a.priority);
+        agentMemory.goals[term] = agentMemory.goals[term].slice(0, MAX_GOALS_PER_CATEGORY);
+      }
       
-      // Initialize history array if it doesn't exist
-      agentMemory.history = agentMemory.history || [];
-      
-      // Update history
-      agentMemory.history.push(`Added new ${term} task: ${args.task}`);
       agentMemory.lastUpdated = Date.now();
       
       return { 
@@ -95,8 +100,7 @@ export const goalActions = [
     description: "Sets the complete goal planning structure for an agent",
     instructions: "Use this action when an agent needs to establish or completely replace their entire goal structure",
     schema: z.object({ 
-      goal: goalPlanningSchema.describe("Complete goal structure with long_term, medium_term, and short_term goals"),
-      preserveHistory: z.boolean().optional().default(true).describe("Whether to retain existing history entries (true) or clear them (false)")
+      goal: goalPlanningSchema.describe("Complete goal structure with long_term, medium_term, and short_term goals")
     }),
     handler(args, ctx, agent) {
       if (!ctx.memory) {
@@ -108,28 +112,25 @@ export const goalActions = [
       }
       
       const agentMemory = ctx.memory as GoalMemory;
-      const oldHistory = agentMemory.history || [];
       
       // Set the new goal structure - need to convert from goalPlanningSchema to GoalStructure format
       const newGoals: GoalsStructure = {
-        long_term: args.goal.long_term || [],
-        medium_term: args.goal.medium_term || [],
-        short_term: args.goal.short_term || []
+        long_term: [],
+        medium_term: [],
+        short_term: []
       };
+      
+      // Process each category and limit to MAX_GOALS_PER_CATEGORY
+      for (const term of ["long_term", "medium_term", "short_term"] as GoalTerm[]) {
+        // Get the goals for this term, sort by priority and take only the top MAX_GOALS_PER_CATEGORY
+        const goals = args.goal[term] || [];
+        newGoals[term] = goals
+          .sort((a, b) => b.priority - a.priority)
+          .slice(0, MAX_GOALS_PER_CATEGORY);
+      }
       
       // Update the goals
       agentMemory.goals = newGoals;
-      
-      // Preserve history if requested
-      if (args.preserveHistory) {
-        agentMemory.history = oldHistory;
-      } else {
-        // Initialize history array if it doesn't exist or if not preserving
-        agentMemory.history = [];
-      }
-      
-      // Add to history
-      agentMemory.history.push("Updated complete goal plan");
       agentMemory.lastUpdated = Date.now();
       
       return {
@@ -207,12 +208,6 @@ export const goalActions = [
           };
           
           agentMemory.goals[term][goalIndex] = updatedGoal;
-          
-          // Initialize history array if it doesn't exist
-          agentMemory.history = agentMemory.history || [];
-          
-          // Add to history
-          agentMemory.history.push(`Updated ${term} goal: ${updatedGoal.description}`);
           agentMemory.lastUpdated = Date.now();
           
           updated = true;
@@ -286,12 +281,6 @@ export const goalActions = [
         if (goalIndex !== -1) {
           deletedGoal = agentMemory.goals[term][goalIndex];
           agentMemory.goals[term].splice(goalIndex, 1);
-          
-          // Initialize history array if it doesn't exist
-          agentMemory.history = agentMemory.history || [];
-          
-          // Add to history
-          agentMemory.history.push(`Deleted ${term} goal: ${deletedGoal.description}`);
           agentMemory.lastUpdated = Date.now();
           
           deleted = true;

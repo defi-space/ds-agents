@@ -12,7 +12,6 @@ export interface GoalMemory {
   goals: GoalsStructure | null;
   tasks: string[];
   currentTask: string | null;
-  history: string[];
   lastUpdated: number;
   status: 'idle' | 'planning' | 'executing';
 }
