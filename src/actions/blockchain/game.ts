@@ -164,17 +164,22 @@ export const gameActions = [
         const he3Balance = await getTokenBalance(he3Address, agentAddress);
         const winThreshold = gameSession.tokenWinConditionThreshold;
         
-        // Convert the winThreshold to a string first to ensure it can be safely converted to BigInt
-        // he3Balance is already a BigInt from getTokenBalance
+        // Handle the conversion from DecimalField to BigInt safely
         try {
-          if (he3Balance < BigInt(String(winThreshold))) {
+          // Convert winThreshold to string, then remove any decimal part before BigInt conversion
+          const thresholdStr = String(winThreshold);
+          // Split at decimal point and take only the integer part
+          const integerPart = thresholdStr.includes('.') ? thresholdStr.split('.')[0] : thresholdStr;
+          const winThresholdBigInt = BigInt(integerPart);
+          
+          if (he3Balance < winThresholdBigInt) {
             return {
               success: false,
               message: `Cannot end game: agent has ${he3Balance.toString()} He3 tokens but needs ${winThreshold} to win`,
               data: {
                 currentBalance: he3Balance.toString(),
                 requiredBalance: String(winThreshold),
-                remaining: (BigInt(String(winThreshold)) - he3Balance).toString()
+                remaining: (winThresholdBigInt - he3Balance).toString()
               },
               timestamp: Date.now()
             };
