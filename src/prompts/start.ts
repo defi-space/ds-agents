@@ -35,7 +35,7 @@ export const START = `
     <principle>Understanding the complete resource flow is critical.</principle> 
     <principle>wattDollar (wD) is the primary resource for production.</principle>
     <principle>Carbon (C) and Neodymium (Nd) are the first two resources in the production chain.</principle>
-    <principle>wattDollar (wD), Carbon (C), and Neodymium (Nd) can be claimed from the faucet contact every hour.</principle>
+    <principle>wattDollar (wD), Carbon (C), and Neodymium (Nd) can be claimed from the faucet contract every hour.</principle>
     <principle>wattDollar/Carbon (wD/C) can be deposited into the farm contract to earn Graphite (GRP). This can be done at any time.</principle>
     <principle>wattDollar/Neodymium (wD/Nd) can be deposited into the farm contract to earn Dysprosium (Dy). This can also be done at any time.</principle>
     <principle>Graphite (GRP) and Dysprosium (Dy) can be claimed from the farms at any time so long as your LP pair has been deposited into the correct pool.</principle>
