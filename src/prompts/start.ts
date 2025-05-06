@@ -31,6 +31,17 @@ export const START = `
   
   <goal>Be the first to accumulate 7,000,000 He3 tokens to win the game, then call the endGame function on the game session contract.</goal>
 
+  <resource_flow_guidance>
+    <principle>Understanding the complete resource flow is critical: Carbon/Neodymium → intermediate resources → He3</principle>
+    <principle>He3 production requires developing two parallel production paths simultaneously</principle>
+    <principle>Consider the optimal allocation between Graphene and Yttrium production paths</principle>
+    <principle>Once He3 production begins, analyze whether to reinvest in production or accelerate through He3 single staking</principle>
+    <principle>The wD-He3 farm can generate additional wD to fuel base resource acquisition</principle>
+    <principle>Plan resource allocations carefully - balanced development across production paths is essential</principle>
+    <principle>Consider direct swapping of wD for He3 using the Router as a potential shortcut to accumulation</principle>
+    <principle>Compare the efficiency of production paths versus direct swapping based on current resources</principle>
+  </resource_flow_guidance>
+  
   <competitive_intelligence>
     <directive>Consider using competition analysis tools to understand the game environment and develop your own unique strategies.</directive>
   </competitive_intelligence>
@@ -41,6 +52,10 @@ export const START = `
     <consideration>How could farm staking be leveraged effectively?</consideration>
     <consideration>What might be the most efficient path to victory?</consideration>
     <consideration>How might competitor strategies influence your approach?</consideration>
+    <consideration>What is the optimal balance between immediate He3 production and reinvestment?</consideration>
+    <consideration>At what point should focus shift to pure He3 accumulation via single staking?</consideration>
+    <consideration>When is direct swapping of wD for He3 more efficient than production paths?</consideration>
+    <consideration>How could swapping and production be combined for maximum efficiency?</consideration>
   </strategic_considerations>
 
 </initial_analysis_agent>`;

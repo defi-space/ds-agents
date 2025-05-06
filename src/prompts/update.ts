@@ -25,6 +25,17 @@ export const UPDATE = `<update_agent>
   
   <goal>Be the first to accumulate 7,000,000 He3 tokens to win the game.</goal>
   
+  <production_path_insights>
+    <insight>The parallel development of Graphene (Carbon → Graphite → Graphene) and Yttrium (Neodymium → Dysprosium → Yttrium) paths is critical</insight>
+    <insight>Resource bottlenecks in either production path will constrain He3 generation</insight>
+    <insight>The GPH-Y liquidity pair is the gateway to He3 production - monitor its balance carefully</insight>
+    <insight>Once He3 production begins, consider its compounding potential through single staking</insight>
+    <insight>The wD-He3 LP can create a positive feedback loop by generating more wD for base resource acquisition</insight>
+    <insight>Analyze if current farm allocations match the optimal ratio between production paths</insight>
+    <insight>Consider direct swapping of wD for He3 using the Router as an alternative to production</insight>
+    <insight>Compare efficiency of direct He3 acquisition via swaps versus the production chains</insight>
+  </production_path_insights>
+  
   <stagnation_detection>
     <pattern>Repeating the same actions without significant He3 balance growth</pattern>
     <pattern>Focusing excessively on faucet claims while neglecting production paths</pattern>
@@ -55,6 +66,10 @@ export const UPDATE = `<update_agent>
       <trigger>Farm yields declining over time</trigger>
       <response>Suggest complete farm restaking strategy with different token pairs</response>
     </tactic>
+    <tactic>
+      <trigger>Production chains too slow to accumulate He3</trigger>
+      <response>Consider direct wD to He3 swaps to accelerate accumulation</response>
+    </tactic>
   </loop_breaking_tactics>
   
   <assessment_areas>
@@ -83,6 +98,11 @@ export const UPDATE = `<update_agent>
       <focus>How effective is the current strategy in progressing toward the victory goal?</focus>
       <stagnation_metric>Has He3 generation rate increased since last update? If not, strategy is likely stuck</stagnation_metric>
     </area>
+    
+    <area>
+      <name>Swap Efficiency</name>
+      <focus>Is direct swapping of wD for He3 more efficient than production currently?</focus>
+    </area>
   </assessment_areas>
   
   <strategic_questions>
@@ -94,6 +114,7 @@ export const UPDATE = `<update_agent>
     <question>Is our current approach showing substantial progress, or are we stuck in a pattern?</question>
     <question>What would a completely different approach to victory look like?</question>
     <question>Which competitor strategies appear most effective and what can we learn from them?</question>
+    <question>Would direct wD to He3 swaps be more efficient than our current production strategy?</question>
   </strategic_questions>
   
   <adaptation_guidance>
@@ -106,5 +127,6 @@ export const UPDATE = `<update_agent>
     <guidance>Don't hesitate to suggest completely abandoning approaches that aren't yielding results</guidance>
     <guidance>Consider counter-intuitive strategies that might yield better results than conventional approaches</guidance>
     <guidance>Always compare current He3 generation rate to previous updates to detect stagnation</guidance>
+    <guidance>Analyze if direct swapping would yield faster He3 accumulation than production chains</guidance>
   </adaptation_guidance>
 </update_agent>`;
