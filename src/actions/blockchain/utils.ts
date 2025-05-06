@@ -227,7 +227,7 @@ export const utilsActions = [
           address: normalizedSessionAddress
         });
         
-        if (!sessionResult?.gameSession || !sessionResult.gameSession.gameSessionIndex) {
+        if (!sessionResult?.gameSession || !sessionResult.gameSession[0].gameSessionIndex) {
           return {
             success: false,
             message: `Cannot retrieve game resource state: no game session index found for address ${sessionAddress}`,

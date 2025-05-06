@@ -433,7 +433,7 @@ export const indexerActions = [
           address: normalizedAddress
         });
         
-        if (!result?.gameSession || !result.gameSession.gameSessionIndex) {
+        if (!result?.gameSession || !result.gameSession[0].gameSessionIndex) {
           return {
             success: false,
             message: `No game session index found for address ${sessionAddress}.`,
@@ -443,10 +443,10 @@ export const indexerActions = [
         
         return {
           success: true,
-          message: `Game session at ${sessionAddress} has index ${result.gameSession.gameSessionIndex}`,
+          message: `Game session at ${sessionAddress} has index ${result.gameSession[0].gameSessionIndex}`,
           data: {
             sessionAddress: sessionAddress,
-            sessionIndex: result.gameSession.gameSessionIndex
+            sessionIndex: result.gameSession[0].gameSessionIndex
           },
           timestamp: Date.now()
         };
