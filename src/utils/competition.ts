@@ -1,5 +1,5 @@
 import { getCategoryAddresses, isAddressOfType } from "./contracts";
-import { executeQuery } from "./graphql";
+import { executeQuery, getGameSessionId } from "./graphql";
 import { getCurrentAgentId, getTokenBalance, normalizeAddress } from "./starknet";
 import { GET_AGENT_LIQUIDITY_POSITIONS, GET_AGENT_STAKE_POSITIONS } from "./queries";
 
@@ -1551,6 +1551,7 @@ export async function getCompetitiveIntelligence(): Promise<Record<string, Agent
       throw new Error(`Current agent address not found for ID: ${currentAgentId}`);
     }
     
+    const gameSessionId = await getGameSessionId();
     // Get He3 token address
     const resourceAddresses = getCategoryAddresses('resources');
     const he3Address = resourceAddresses['helium3'];
@@ -1586,7 +1587,8 @@ export async function getCompetitiveIntelligence(): Promise<Record<string, Agent
         
         // Get agent's liquidity positions
         const liquidityPositionsResult = await executeQuery<LiquidityPositionsResponse>(GET_AGENT_LIQUIDITY_POSITIONS, {
-          agentAddress: normalizeAddress(agentAddress)
+          agentAddress: normalizeAddress(agentAddress),
+          gameSessionId: gameSessionId
         });
         
         // Ensure liquidity positions are properly structured
@@ -1601,7 +1603,8 @@ export async function getCompetitiveIntelligence(): Promise<Record<string, Agent
         
         // Get agent's stake positions
         const stakePositionsResult = await executeQuery<StakePositionsResponse>(GET_AGENT_STAKE_POSITIONS, {
-          agentAddress: normalizeAddress(agentAddress)
+          agentAddress: normalizeAddress(agentAddress),
+          gameSessionId: gameSessionId
         });
         
         // Ensure stake positions are properly structured
@@ -1820,22 +1823,27 @@ export async function getAgentResourceBalances(agentAddress: string): Promise<Re
 export async function compareAgentPositions(currentAgentAddress: string, targetAgentAddress: string) {
   try {
     // Get both agents' liquidity positions
+    const gameSessionId = await getGameSessionId();
     const [currentAgentLiquidityPositions, targetAgentLiquidityPositions] = await Promise.all([
       executeQuery(GET_AGENT_LIQUIDITY_POSITIONS, {
-        agentAddress: normalizeAddress(currentAgentAddress)
+        agentAddress: normalizeAddress(currentAgentAddress),
+        gameSessionId: gameSessionId
       }),
       executeQuery(GET_AGENT_LIQUIDITY_POSITIONS, {
-        agentAddress: normalizeAddress(targetAgentAddress)
+        agentAddress: normalizeAddress(targetAgentAddress),
+        gameSessionId: gameSessionId
       })
     ]);
 
     // Get both agents' stake positions
     const [currentAgentStakePositions, targetAgentStakePositions] = await Promise.all([
       executeQuery(GET_AGENT_STAKE_POSITIONS, {
-        agentAddress: normalizeAddress(currentAgentAddress)
+        agentAddress: normalizeAddress(currentAgentAddress),
+        gameSessionId: gameSessionId
       }),
       executeQuery(GET_AGENT_STAKE_POSITIONS, {
-        agentAddress: normalizeAddress(targetAgentAddress)
+        agentAddress: normalizeAddress(targetAgentAddress),
+        gameSessionId: gameSessionId
       })
     ]);
 

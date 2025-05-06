@@ -2,7 +2,7 @@ import { action } from "@daydreamsai/core";
 import { z } from "zod";
 import { convertToContractValue, starknetChain, formatTokenBalance, normalizeAddress, getAgentAddress, getTokenBalance } from "../../utils/starknet";
 import { executeQuery } from "../../utils/graphql";
-import { GET_AGENT_LIQUIDITY_POSITIONS, GET_AGENT_STAKE_POSITIONS } from "../../utils/queries";
+import { GET_AGENT_LIQUIDITY_POSITIONS, GET_AGENT_STAKE_POSITIONS, GET_GAME_SESSION_INDEX_BY_ADDRESS } from "../../utils/queries";
 import { getContractAddress } from "../../utils/contracts";
 
 // Define token address interface to fix type issues
@@ -211,6 +211,31 @@ export const utilsActions = [
           };
         }
         
+        // Get the game session ID
+        const sessionAddress = getContractAddress('gameSession', 'current');
+        if (!sessionAddress) {
+          return {
+            success: false,
+            message: "Cannot retrieve game resource state: failed to get game session address",
+            timestamp: Date.now()
+          };
+        }
+        
+        const normalizedSessionAddress = normalizeAddress(sessionAddress);
+        
+        const sessionResult = await executeQuery(GET_GAME_SESSION_INDEX_BY_ADDRESS, {
+          address: normalizedSessionAddress
+        });
+        
+        if (!sessionResult?.gameSession || !sessionResult.gameSession.gameSessionIndex) {
+          return {
+            success: false,
+            message: `Cannot retrieve game resource state: no game session index found for address ${sessionAddress}`,
+            timestamp: Date.now()
+          };
+        }
+        
+        const gameSessionId = sessionResult.gameSession[0].gameSessionIndex;
         // Get all token balances using the contract helper
         const tokenAddresses: TokenAddresses = {
           // Base resources
@@ -364,94 +389,47 @@ export const utilsActions = [
         
         // Get all liquidity positions
         const liquidityPositions = await executeQuery(GET_AGENT_LIQUIDITY_POSITIONS, {
-          agentAddress: normalizeAddress(agentAddress)
+          agentAddress: normalizeAddress(agentAddress),
+          gameSessionId: gameSessionId
         });
         
         // Get all staking positions
         const stakePositions = await executeQuery(GET_AGENT_STAKE_POSITIONS, {
-          agentAddress: normalizeAddress(agentAddress)
+          agentAddress: normalizeAddress(agentAddress),
+          gameSessionId: gameSessionId
         });
         
-        // Get pending rewards for each staking position
+        // Process stake positions including rewardStates with lastPendingRewards
         const stakingPositionsWithRewards = stakePositions?.agentStake && Array.isArray(stakePositions.agentStake) 
-          ? await Promise.all(
-              stakePositions.agentStake.map(async (stake: any) => {
-                // Get the farm address from the stake
-                const farmAddress = stake.farmAddress;
-                
-                if (!farmAddress) {
-                  return {
-                    ...stake,
-                    pendingRewards: [],
-                    error: "Missing farm address"
-                  };
-                }
-                
-                try {
-            // Get all reward tokens for this farm
-            const rewardTokensResponse = await starknetChain.read({
-              contractAddress: farmAddress,
-              entrypoint: "get_reward_tokens",
-              calldata: []
-            });
-            
-            const rewardTokens = Array.isArray(rewardTokensResponse) ? rewardTokensResponse : [rewardTokensResponse];
-            
-            // Get pending rewards for each reward token
-            const pendingRewards = await Promise.all(
-              rewardTokens.map(async (rewardToken: string) => {
-                      try {
-                const earnedResponse = await starknetChain.read({
-                  contractAddress: farmAddress,
-                  entrypoint: "earned",
-                  calldata: [
-                    agentAddress,
-                    rewardToken
-                  ]
-                });
-                        
-                        return {
-                          tokenAddress: rewardToken,
-                          amount: formatTokenBalance(BigInt(earnedResponse[0])).balance,
-                          rawAmount: earnedResponse[0]
-                        };
-                      } catch (error) {
-                        console.error(`Error fetching rewards for token ${rewardToken}:`, error);
-                return {
-                  tokenAddress: rewardToken,
-                          amount: "0",
-                          rawAmount: "0",
-                          error: (error as Error).message
-                };
-                      }
-              })
-            );
-                  
-            return {
-              farmAddress: stake.farmAddress,
-              stakedAmount: stake.stakedAmount,
-              rewards: stake.rewards,
-              penaltyEndTime: stake.penaltyEndTime,
-              rewardPerTokenPaid: stake.rewardPerTokenPaid,
-              pendingRewards,
-                    farmInfo: stake.farm ? {
-                lpTokenAddress: stake.farm.lpTokenAddress,
-                totalStaked: stake.farm.totalStaked,
-                activeRewards: stake.farm.activeRewards,
-                penaltyDuration: stake.farm.penaltyDuration,
-                withdrawPenalty: stake.farm.withdrawPenalty
-                    } : null,
-                  };
-                } catch (error) {
-                  console.error(`Error processing stake for farm ${farmAddress}:`, error);
-                  return {
-                    ...stake,
-                    pendingRewards: [],
-                    error: (error as Error).message
-                  };
-                }
-              })
-            ) 
+          ? stakePositions.agentStake.map((stake: any) => {
+              // Extract rewardStates with lastPendingRewards if available
+              const rewardStates = stake.rewardStates || [];
+              
+              // Format the reward states for easier consumption
+              const formattedRewardStates = rewardStates.map((rewardState: any) => ({
+                farmAddress: stake.farmAddress,
+                rewardTokenAddress: rewardState.rewardTokenAddress,
+                lastPendingRewards: rewardState.lastPendingRewards,
+                rewardPerTokenPaid: rewardState.rewardPerTokenPaid
+              }));
+              
+              return {
+                farmAddress: stake.farmAddress,
+                stakedAmount: stake.stakedAmount,
+                rewards: stake.rewards,
+                penaltyEndTime: stake.penaltyEndTime,
+                rewardPerTokenPaid: stake.rewardPerTokenPaid,
+                rewardStates: formattedRewardStates,
+                farmInfo: stake.farm ? {
+                  lpTokenAddress: stake.farm.lpTokenAddress,
+                  totalStaked: stake.farm.totalStaked,
+                  activeRewards: stake.farm.activeRewards,
+                  penaltyDuration: stake.farm.penaltyDuration,
+                  withdrawPenalty: stake.farm.withdrawPenalty,
+                  gameSessionId: stake.farm.gameSessionId
+                } : null
+              };
+            })
           : [];
         
         // Format the response data
@@ -493,6 +471,7 @@ export const utilsActions = [
                 reserve0: pos.pair.reserve0,
                 reserve1: pos.pair.reserve1,
                 totalSupply: pos.pair.totalSupply,
+                gameSessionId: pos.pair.gameSessionId
               } : null
             }))
           : [];
@@ -513,7 +492,8 @@ export const utilsActions = [
             target: "7,000,000",
             progressPercentage: helium3Amount / 7000000 * 100
           },
-          activeStakes: stakingPositionsWithRewards.length
+          activeStakes: stakingPositionsWithRewards.length,
+          gameSessionId: gameSessionId
         };
 
         return {
@@ -541,7 +521,8 @@ export const utilsActions = [
             },
             liquidityPositions: formattedLiquidityPositions,
             stakePositions: stakingPositionsWithRewards,
-            progressStats
+            progressStats,
+            gameSessionId: gameSessionId
           },
           timestamp: Date.now()
         };

@@ -2,8 +2,8 @@ import { gql } from 'graphql-request';
 
 // AMM Queries
 export const GET_PAIR_INFO = gql`
-  query GetPairInfo($address: String!) {
-    pair(where: { address: { _eq: $address } }) {
+  query GetPairInfo($address: String!, $gameSessionId: Int!) {
+    pair(where: { address: { _eq: $address }, gameSessionId: { _eq: $gameSessionId } }) {
       address
       factoryAddress
       token0Address
@@ -11,6 +11,7 @@ export const GET_PAIR_INFO = gql`
       reserve0
       reserve1
       totalSupply
+      gameSessionId
       factory {
         address
         owner
@@ -21,8 +22,8 @@ export const GET_PAIR_INFO = gql`
 `;
 
 export const GET_FARM_INFO = gql`
-  query GetFarmInfo($address: String!) {
-    farm(where: { address: { _eq: $address } }) {
+  query GetFarmInfo($address: String!, $gameSessionId: Int!) {
+    farm(where: { address: { _eq: $address }, gameSessionId: { _eq: $gameSessionId } }) {
       address
       factoryAddress
       lpTokenAddress
@@ -33,6 +34,7 @@ export const GET_FARM_INFO = gql`
       multiplier
       withdrawPenalty
       penaltyReceiver
+      gameSessionId
       rewardEvents(order_by: { createdAt: desc }, limit: 1) {
         transactionHash
         eventType
@@ -48,8 +50,8 @@ export const GET_FARM_INFO = gql`
 `;
 
 export const GET_ALL_FARMS = gql`
-  query GetAllFarms {
-    farm {
+  query GetAllFarms($gameSessionId: Int!) {
+    farm(where: { gameSessionId: { _eq: $gameSessionId } }) {
       address
       factoryAddress
       farmIndex
@@ -59,6 +61,7 @@ export const GET_ALL_FARMS = gql`
       penaltyDuration
       withdrawPenalty
       penaltyReceiver
+      gameSessionId
       rewardEvents(order_by: { createdAt: desc }, limit: 1) {
         rewardToken
         rewardAmount
@@ -71,9 +74,13 @@ export const GET_ALL_FARMS = gql`
 `;
 
 export const GET_AGENT_LIQUIDITY_POSITIONS = gql`
-  query GetAgentLiquidityPositions($agentAddress: String!) {
-    liquidityPosition(where: { agentAddress: { _eq: $agentAddress } }) {
-      id
+  query GetAgentLiquidityPositions($agentAddress: String!, $gameSessionId: Int!) {
+    liquidityPosition(
+      where: { 
+        agentAddress: { _eq: $agentAddress },
+        pair: { gameSessionId: { _eq: $gameSessionId } }
+      }
+    ) {
       pairAddress
       agentAddress
       liquidity
@@ -87,38 +94,53 @@ export const GET_AGENT_LIQUIDITY_POSITIONS = gql`
         reserve0
         reserve1
         totalSupply
+        gameSessionId
       }
     }
   }
 `;
 
 export const GET_AGENT_STAKE_POSITIONS = gql`
-  query GetAgentStakePositions($agentAddress: String!) {
-    agentStake(where: { agentAddress: { _eq: $agentAddress } }) {
-      id
+  query GetAgentStakePositions($agentAddress: String!, $gameSessionId: Int!) {
+    agentStake(
+      where: { 
+        agentAddress: { _eq: $agentAddress },
+        farm: { gameSessionId: { _eq: $gameSessionId } }
+      }
+    ) {
       farmAddress
       agentAddress
       stakedAmount
       penaltyEndTime
       rewardPerTokenPaid
       rewards
+      rewardStates {
+        rewardTokenAddress
+        lastPendingRewards
+        rewardPerTokenPaid
+      }
       farm {
         lpTokenAddress
         totalStaked
         activeRewards
         penaltyDuration
         withdrawPenalty
+        gameSessionId
       }
     }
   }
 `;
 
 export const GET_FARM_INDEX_BY_LP_TOKEN = gql`
-  query GetFarmIndexByLpToken($lpTokenAddress: String!) {
-    farm(where: { lpTokenAddress: { _eq: $lpTokenAddress } }) {
+  query GetFarmIndexByLpToken($lpTokenAddress: String!, $gameSessionId: Int!) {
+    farm(where: { 
+      lpTokenAddress: { _eq: $lpTokenAddress },
+      gameSessionId: { _eq: $gameSessionId }
+    }) {
       farmIndex
     }
   }
+    
 `;
 
 // Game Session Queries
@@ -131,6 +153,7 @@ export const GET_GAME_SESSION_STATUS = gql`
       gameSuspended
       gameOver
       winningAgentIndex
+      gameSessionIndex
     }
   }
 `;
@@ -148,6 +171,7 @@ export const GET_GAME_SESSION_INFO = gql`
     gameSession(where: { address: { _eq: $address } }) {
       gameFactory
       gameSessionIndex
+      agentsList
     }
   }
 `;

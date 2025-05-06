@@ -1,6 +1,6 @@
 import { action } from "@daydreamsai/core";
 import { z } from "zod";
-import { executeQuery } from "../../utils/graphql";
+import { executeQuery, getGameSessionId } from "../../utils/graphql";
 import { normalizeAddress, getCurrentAgentId } from "../../utils/starknet";
 import {
   GET_PAIR_INFO,
@@ -35,9 +35,11 @@ export const indexerActions = [
         }
         
         const normalizedAddress = normalizeAddress(args.pairAddress);
+        const gameSessionId = await getGameSessionId();
         
         const result = await executeQuery(GET_PAIR_INFO, {
-          address: normalizedAddress
+          address: normalizedAddress,
+          gameSessionId: gameSessionId
         });
         
         if (!result || !result.pair) {
@@ -89,9 +91,11 @@ export const indexerActions = [
         }
         
         const normalizedAddress = normalizeAddress(args.farmAddress);
+        const gameSessionId = await getGameSessionId();
         
         const result = await executeQuery(GET_FARM_INFO, {
-          address: normalizedAddress
+          address: normalizedAddress,
+          gameSessionId: gameSessionId
         });
         
         if (!result || !result.farm) {
@@ -133,7 +137,11 @@ export const indexerActions = [
     }),
     handler: async (args, ctx, agent) => {
       try {
-        const result = await executeQuery(GET_ALL_FARMS, {});
+        const gameSessionId = await getGameSessionId();
+        
+        const result = await executeQuery(GET_ALL_FARMS, {
+          gameSessionId: gameSessionId
+        });
         
         if (!result || !result.farm || !Array.isArray(result.farm)) {
           return {
@@ -184,9 +192,11 @@ export const indexerActions = [
         }
         
         const normalizedAddress = normalizeAddress(args.userAddress);
+        const gameSessionId = await getGameSessionId();
         
         const result = await executeQuery(GET_AGENT_LIQUIDITY_POSITIONS, {
-          agentAddress: normalizedAddress
+          agentAddress: normalizedAddress,
+          gameSessionId: gameSessionId
         });
         
         if (!result || !result.liquidityPosition || !Array.isArray(result.liquidityPosition)) {
@@ -239,9 +249,11 @@ export const indexerActions = [
         }
         
         const normalizedAddress = normalizeAddress(args.userAddress);
+        const gameSessionId = await getGameSessionId();
         
         const result = await executeQuery(GET_AGENT_STAKE_POSITIONS, {
-          agentAddress: normalizedAddress
+          agentAddress: normalizedAddress,
+          gameSessionId: gameSessionId
         });
         
         if (!result || !result.agentStake || !Array.isArray(result.agentStake)) {
@@ -294,9 +306,11 @@ export const indexerActions = [
         }
         
         const normalizedAddress = normalizeAddress(args.lpTokenAddress);
+        const gameSessionId = await getGameSessionId();
         
         const result = await executeQuery(GET_FARM_INDEX_BY_LP_TOKEN, {
-          lpTokenAddress: normalizedAddress
+          lpTokenAddress: normalizedAddress,
+          gameSessionId: gameSessionId
         });
         
         const farmIndex = result?.farm?.[0]?.farmIndex ?? null;
