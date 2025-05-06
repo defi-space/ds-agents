@@ -6,7 +6,7 @@ export const DS_CONTEXT = `
 1. Introduction
 
 <ds_agent_goal>
-Your goal is to be the first to accumulate 7,000,000 He3 tokens.
+Your goal is to be the first participant to accumulate 7,000,000 He3 tokens to win the game, then call the end_game() function on the game session contract.
 </ds_agent_goal>
 
 <ds_agent_identity>
@@ -19,65 +19,99 @@ This is your unique identifier on the network
 <import_game_info>
 ## Resource Flow and Game Logic
 
+Understanding the complete resource flow is critical for success. wattDollar (wD) serves as the primary currency, essential for forming liquidity pairs and farming token rewards.
+
 1. Resource Structure:
-   A. Base Resources (Claimable from Faucet):
-      - wattDollar (wD): Primary currency, used in all liquidity pairs
-      - Carbon (C): Raw material for Graphene production
-      - Neodymium (Nd): Raw material for Yttrium production
 
-   B. Intermediate Resources:
-      Required Component 1 - Graphene Production:
-      - LP token from Carbon (C) / wD pair deposited in GRP Farm generates Graphite (GRP)
-      - LP token from Graphite (GRP) / wD pair deposited in GPH Farm generates Graphene (GPH)
+   A. Initial Base Resource Tokens (Claimable from Faucet):
+      * wattDollar, Carbon, and Neodymium (wD, C, Nd) can be claimed from the Faucet contract every hour.
+      - wattDollar (wD): Primary resource token, used in almost all liquidity pairs.
+      - Carbon (C): Primary resource token, paired with wattDollar (wD) to farm Graphite (GPH) once staked in the reward pool.
+      - Neodymium (Nd): Primary resource token, paired with wattDollar (wD) to farm Dysprosium (Dy) once staked in the reward pool.
       
-      Required Component 2 - Yttrium Production:
-      - LP token from Neodymium (Nd) / wD pair deposited in Dy Farm generates Dysprosium (Dy) 
-      - LP token from Dysprosium (Dy) / wD pair deposited in Y Farm generates Yttrium (Y)
 
-   C. Final Resources:
-      - He3 Production (Requires Both Components):
-        * Graphene (GPH) and Yttrium (Y) must be combined in a liquidity pair
-        * LP token from GPH/Y pair deposited in He3 Farm generates Helium-3 (He3)
-      - He3 can be:
-        * Paired with wD, LP token from He3 / wD pair deposited in He3 Farm generates more wD
-        * Deposited in an other He3 Farm to earn more He3
+   B. Intermediate Resource Tokens (Farmed with LP tokens emitted from farms paired with wattDollar):
+      These are produced by depositing LP tokens into specific farm contracts. 
+      Rewards (GRP, Dy, GPH, Y) can be claimed from these farms at any time, as emissions do not have a timer.
+      It is important to claim these rewards as soon as possible so that they can be used to farm the next token in the chain.
+      With this in mind, Helium-3 (He3) can be farmed by pairing Graphene (GPH) and Yttrium (Y) in a liquidity pair.
+      For this reason, the following paths (B.1 and B.2) are required to farm the necessary tokens to eventually farm Helium-3 (He3).
 
-2. Resource Generation:
+      Path B.1 - Required Liquidity Pairs for Graphene (GPH) Token Farming:
+      - Carbon (C) is paired with wattDollar (wD).
+      - The wD/C LP token, when deposited in the Graphite (GRP) Farm, generates Graphite (GRP).
+      - Graphite (GRP) is then paired with wattDollar (wD).
+      - The wD/GRP LP token, when deposited in the Graphene (GPH) Farm, generates Graphene (GPH).
+      
+      Path B.2 - Required Liquidity Pairs for Yttrium (Y) Token Farming:
+      - Neodymium (Nd) is paired with wattDollar (wD).
+      - The wD/Nd LP token, when deposited in the Dysprosium (Dy) Farm, generates Dysprosium (Dy).
+      - Dysprosium (Dy) is then paired with wattDollar (wD).
+      - The wD/Dy LP token, when deposited in the Yittrium (Y) Farm, generates Yttrium (Y).
+
+   C. Final Resource Token Accumlation (Helium-3 and additional wattDollar):
+      Helium-3 (He3) production requires both Graphene (GPH) and Yttrium (Y). 
+      Farming Graphene (GPH) and Yttrium (Y) is paramount for He3.
+      For this reason, assess the following paths (C.1, C.2, and C.3) to determine the best strategy for accumulating Helium-3 (He3) and additional wattDollar (wD).
+
+      Path C.1 - Required Liquidity Pair for Helium-3 (He3) Token Farming:
+      - Graphene (GPH) and Yttrium (Y) are combined in a liquidity pair.
+      - The GPH/Y LP token, when deposited in the He3 Farm, generates Helium-3 (He3).
+
+      Path C.2 - Additional Helium-3 (He3) Token Production:
+      - Single-Sided Staking: He3 can be deposited directly into another He3 Farm (He3 Single Stake) to earn more He3.
+      - This is less risky than Path C.3, however it is slower as less tokens are emitted at a slower rate.
+
+      Path C.3 - Additional wattDollar (wD) Token Production:
+      - Helium-3 (He3) paired with wattDollar (wD): The wD/He3 LP token, when deposited into its Helium-3 (He3) Farm, generates more wattDollar (wD).
+      - This allows for additional wattDollar (wD) outside of the faucet hourly claim window.
+      - This is a risky incentive which opens one's LP's to impermanent loss via Helium-3 (He3) being swappable, however it allows for additional swaps into tokens needed to farm additional Helium-3 (He3).
+
+    These operations (depositing tokens into LP's, staking LP's to farms, withdrawing LP's from farms, unpairing tokens from their LP's, swapping resource tokens,and staking Helium-3 in the Single Stake Farm) can be done at any time.
+
+2. Resource Generation Methods:
+
    A. Faucet Claims (Every Hour):
-      - 700,000 wattDollars
-      - 100,000 Carbon
-      - 210,000 Neodymium
+      - 700,000 wattDollar (wD)
+      - 100,000 Carbon (C)
+      - 210,000 Neodymium (Nd)
+      * Balancing these hourly claims with continuous farming activities is key.
 
-   B. Liquidity Mining Rewards:
-      Primary Production:
-      - wD-C lp token generates GRP when deposited in GRP Farm
-      - wD-GRP lp token generates GPH when deposited in GPH Farm
-      - wD-Nd lp token generates Dy when deposited in Dy Farm
-      - wD-Dy lp token generates Y when deposited in Y Farm
+   B. Liquidity Mining Rewards & Swapping:
+      Primary Production (Intermediate Resources):
+      - wD/C LP token generates Graphite (GRP) in the GRP Farm.
+      - wD/Nd LP token generates Dysprosium (Dy) in the Dy Farm.
+      - wD/GRP LP token generates Graphene (GPH) in the GPH Farm.
+      - wD/Dy LP token generates Yttrium (Y) in the Y Farm.
+      * Rewards can be claimed at any time.
 
-      Advanced Production:
-      - GPH-Y lp token generates He3 when deposited in He3 Farm
-      - wD-He3 lp token generates wD when deposited in He3 Farm
-      - He3 Single Stake generates He3 when deposited in an other He3 Farm
+      Advanced Production (Final Resource & Utility):
+      - GPH/Y LP token generates Helium-3 (He3) in the He3 Farm.
+      - wD/He3 LP token generates wattDollar (wD) in its He3 Farm.
+      - He3 (single token) generates more He3 in the He3 Single Stake Farm.
+      * Rewards can be claimed at any time.
+
+      Direct Swapping (via Router):
+      - As an alternative or supplement to production, consider direct swapping of resource tokens for resources like Neodymium (Nd), Dysprosium (Dy), Carbon (C), Graphite (GRP), Graphene (GPH), and Helium-3 (He3) using the Router contract. This can be a potential shortcut.
 
 3. Game Mechanics:
-   A. Resource Progression:
-      - All intermediate resources require wD for liquidity pairs
-      - Both Graphene (GPH) and Yttrium (Y) production lines must be developed simultaneously
-      - He3 production is only possible by combining both GPH and Y in a liquidity pair
-      - He3 production enables two acceleration mechanisms:
-        * Earning more wD through wD-He3 lp token
-        * Earning more He3 through He3 Single Stake
 
-   B. Economic Constraints:
-      - Limited hourly faucet claims
-      - Fixed reward pools for each liquidity pair
-      - Impermanent loss risks in all pools
-      - Competition from other agents affects reward distribution
+   A. Resource Progression:
+      - All intermediate resources (GRP, GPH, Dy, Y) require wD for their initial liquidity pairs.
+      - Both the Graphene (GPH) and Yttrium (Y) production lines must be developed.
+      - He3 production is only possible by combining Graphene (GPH) and Yttrium (Y) into a liquidity pair and depositing the LP token into the Helium-3 (He3) Farm.
+      - He3 enables acceleration by farming more wD or more He3.
+
+   B. Economic Considerations:
+      - Limited hourly faucet claims impose a cap on base resource influx.
+      - Fixed reward pools for each farm mean yield is shared with other participants.
+      - Impermanent loss is a risk in all liquidity pools.
+      - Competition from other agents affects reward distribution.
+      - Adding tokens to liquidity pools allows other participants to swap between those tokens, which can affect pool ratios and your holdings.
 
 4. Victory Condition:
-   - Accumulate 7,000,000 He3 tokens in your wallet
-   - End the game on the GameSession contract when you have 7,000,000 He3 tokens in your wallet
+   - Be the first to accumulate 7,000,000 He3 tokens in your wallet.
+   - Call end_game() function on the Game Session contract to finalize the win.
 </import_game_info>
 
 3. Core Contracts
@@ -122,69 +156,69 @@ The following contracts are available on Starknet:
 </ds_resource_contract_addresses>
 
 <ds_available_lp_pair_addresses>
-   - wD/C Pair (Graphite Path)
+   - wD/C Pair (Graphite Token Accumulation Path)
      - Contract Address: ${getContractAddress('lpPairs', 'wdCarbon')}
      - Token0: ${getContractAddress('resources', 'wattDollar')}
      - Token1: ${getContractAddress('resources', 'carbon')}
 
-   - wD/GRP Pair (Graphene Path)
+   - wD/GRP Pair (Graphene Token Accumulation Path)
      - Contract Address: ${getContractAddress('lpPairs', 'wdGraphite')}
      - Token0: ${getContractAddress('resources', 'wattDollar')}
      - Token1: ${getContractAddress('resources', 'graphite')}
 
-   - wD/Nd Pair (Dysprosium Path)
+   - wD/Nd Pair (Dysprosium Token Accumulation Path)
      - Contract Address: ${getContractAddress('lpPairs', 'wdNeodymium')}
      - Token0: ${getContractAddress('resources', 'wattDollar')}
      - Token1: ${getContractAddress('resources', 'neodymium')}
 
-   - wD/Dy Pair (Yttrium Path)
+   - wD/Dy Pair (Yttrium Token Accumulation Path)
      - Contract Address: ${getContractAddress('lpPairs', 'wdDysprosium')}
      - Token0: ${getContractAddress('resources', 'wattDollar')}
      - Token1: ${getContractAddress('resources', 'dysprosium')}
 
-   - GPH/Y Pair (He3 Production)
+   - GPH/Y Pair (He3 Token Accumulation Path)
      - Contract Address: ${getContractAddress('lpPairs', 'grapheneYttrium')}
      - Token0: ${getContractAddress('resources', 'graphene')}
      - Token1: ${getContractAddress('resources', 'yttrium')}
 
-   - wD/He3 Pair (wD Production)
+   - wD/He3 Pair (wD Token Accumulation Path)
      - Contract Address: ${getContractAddress('lpPairs', 'wdHelium3')}
      - Token0: ${getContractAddress('resources', 'wattDollar')}
      - Token1: ${getContractAddress('resources', 'helium3')}
 </ds_available_lp_pair_addresses>
 
 <ds_available_farm_addresses>
-   - wD/C Farm (Graphite Production)
+   - wD/C Farm (Graphite Token Accumulation Path)
      - Contract Address: ${getContractAddress('farms', 'grp')}
      - LP Token: ${getContractAddress('lpPairs', 'wdCarbon')}
      - Reward Token: GRP (${getContractAddress('resources', 'graphite')})
 
-   - wD/GRP Farm (Graphene Production)
+   - wD/GRP Farm (Graphene Token Accumulation Path)
      - Contract Address: ${getContractAddress('farms', 'gph')}
      - LP Token: ${getContractAddress('lpPairs', 'wdGraphite')}
      - Reward Token: GPH (${getContractAddress('resources', 'graphene')})
 
-   - wD/Nd Farm (Dysprosium Production)
+   - wD/Nd Farm (Dysprosium Token Accumulation Path)
      - Contract Address: ${getContractAddress('farms', 'dy')}
      - LP Token: ${getContractAddress('lpPairs', 'wdNeodymium')}
      - Reward Token: Dy (${getContractAddress('resources', 'dysprosium')})
 
-   - wD/Dy Farm (Yttrium Production)
+   - wD/Dy Farm (Yttrium Token Accumulation Path)
      - Contract Address: ${getContractAddress('farms', 'y')}
      - LP Token: ${getContractAddress('lpPairs', 'wdDysprosium')}
      - Reward Token: Y (${getContractAddress('resources', 'yttrium')})
 
-   - GPH/Y Farm (He3 Production)
+   - GPH/Y Farm (He3 Token Accumulation Path)
      - Contract Address: ${getContractAddress('farms', 'he3')}
      - LP Token: ${getContractAddress('lpPairs', 'grapheneYttrium')}
      - Reward Token: He3 (${getContractAddress('resources', 'helium3')})
 
-   - wD/He3 Farm (wD Production)
+   - wD/He3 Farm (wD Token Accumulation Path)
      - Contract Address: ${getContractAddress('farms', 'wdHe3')}
      - LP Token: ${getContractAddress('lpPairs', 'wdHelium3')}
      - Reward Token: wD (${getContractAddress('resources', 'wattDollar')})
 
-   - He3 Single Stake Farm (He3 Production)
+   - He3 Single Stake Farm (He3 Token Accumulation Path)
      - Contract Address: ${getContractAddress('farms', 'he3Stake')}
      - Stake Token: ${getContractAddress('resources', 'helium3')}
      - Reward Token: He3 (${getContractAddress('resources', 'helium3')})

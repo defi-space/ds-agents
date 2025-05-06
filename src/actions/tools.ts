@@ -80,7 +80,7 @@ export const toolActions = [
     description: "Retrieves all token balances for a specified agent",
     instructions: "Use this action when an agent needs to check their token balances or monitor another agent's resources",
     schema: z.object({
-      agentId: z.string().describe("Agent ID to query (defaults to current agent if not provided)").optional()
+      agentId: z.string().describe("agentID to query (defaults to current agent if not provided)").optional()
     }),
     async handler(args, ctx, agent) {
       try {
@@ -89,7 +89,7 @@ export const toolActions = [
         if (!agentId) {
           return {
             success: false,
-            message: "Failed to get resource balances: could not determine agent ID",
+            message: "Failed to get resource balances: could not determine agentID",
             timestamp: Date.now()
           };
         }
@@ -141,8 +141,8 @@ export const toolActions = [
     description: "Compares the strategies and positions between two agents",
     instructions: "Use this action when an agent needs to analyze differences in strategy with another agent to learn or develop counter-strategies",
     schema: z.object({
-      agentId1: z.string().describe("First agent ID to include in the comparison"),
-      agentId2: z.string().describe("Second agent ID to include in the comparison")
+      agentId1: z.string().describe("First agentID to include in the comparison"),
+      agentId2: z.string().describe("Second agentID to include in the comparison")
     }),
     async handler(args, ctx, agent) {
       try {
@@ -151,7 +151,7 @@ export const toolActions = [
         if (agentId1 === agentId2) {
           return {
             success: false,
-            message: "Cannot compare: both agent IDs are the same",
+            message: "Cannot compare: both agentIDs are the same",
             timestamp: Date.now()
           };
         }
