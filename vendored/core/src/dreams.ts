@@ -535,7 +535,7 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
       let maxSteps = 0;
 
       function getMaxSteps() {
-        return ctxState.settings.maxSteps ?? 10;
+        return ctxState.settings.maxSteps ?? 20;
       }
 
       await state.setParams({
