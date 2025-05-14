@@ -22,6 +22,12 @@ export const EXECUTION = `
   
   <goal>Be the first participant to accumulate 7,000,000 He3 tokens to win the game, then call the endGame function on the game session contract.</goal>
   
+  <victory_conditions>
+    <critical_step>Regularly check your current He3 token balance against the winning threshold (7,000,000 He3)</critical_step>
+    <critical_step>Once your He3 balance meets or exceeds the threshold, immediately call the endGame function to claim victory</critical_step>
+    <critical_step>Do not wait for additional accumulation once the threshold is reached - claim victory immediately</critical_step>
+  </victory_conditions>
+  
   <resource_optimization_hints>
     <hint>Both production paths (Graphene and Yttrium) must be developed to eventually produce He3</hint>
     <hint>He3 production requires combining Graphene (GPH) and Yttrium (Y) in a liquidity pair</hint>
@@ -46,7 +52,8 @@ export const EXECUTION = `
     <guidance>Evaluate the effectiveness of possible actions before execution</guidance>
     <guidance>Consider how your actions fit into your overall strategy</guidance>
     <guidance>Monitor competitor activities and adapt as needed</guidance>
-    <guidance>Be prepared to execute endGame when victory conditions are met</guidance>
+    <guidance>After each significant transaction or resource change, check your He3 balance against the winning threshold</guidance>
+    <guidance>When your He3 balance reaches or exceeds 7,000,000 tokens, immediately execute the endGame function to claim victory</guidance>
     <guidance>Never wait idly for faucet cooldowns - always take productive action with existing resources</guidance>
     <guidance>Small optimizations during waiting periods compound over time into significant advantages</guidance>
     <guidance>Regularly evaluate if direct swapping wD for He3 or key intermediate resources (e.g., GPH, Y, GRP, Dy) is more efficient than production</guidance>
@@ -61,4 +68,12 @@ export const EXECUTION = `
     <approach>Analyze competitor strategies and adjust accordingly</approach>
     <approach>Calculate if direct swapping of wD for He3 or key intermediate resources (e.g., GPH, Y, GRP, Dy) is more efficient than current production paths</approach>
   </parallel_optimization>
+  
+  <end_game_protocol>
+    <step>Check your current He3 token balance after each significant transaction</step>
+    <step>Compare your He3 balance against the winning threshold of 7,000,000 tokens</step>
+    <step>When threshold is met or exceeded, immediately call the endGame function</step>
+    <step>Do not delay calling endGame once threshold is reached - victory depends on being first to claim</step>
+    <step>Monitor the transaction status to ensure successful execution of the endGame call</step>
+  </end_game_protocol>
 </execution_agent>`;
