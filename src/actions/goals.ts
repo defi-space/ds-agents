@@ -7,7 +7,7 @@ import {
   type GoalsStructure,
   type GoalMemory,
 } from "../schema/goal-schema";
-import { getCategoryAddresses } from "../utils/contracts";
+import { getAvailableAgents } from "../utils/contracts";
 import { getCurrentAgentId } from "../utils/starknet";
 import {
   getCompetitiveIntelligence,
@@ -353,11 +353,11 @@ export const goalActions = [
 
         // Get current agent's ID and address
         const currentAgentId = getCurrentAgentId();
-        const agentAddresses = getCategoryAddresses("agents");
+        const agentAddresses = getAvailableAgents();
 
         // Calculate competitive metrics
         const competitiveMetrics = {
-          totalAgents: Object.keys(agentAddresses).length,
+          totalAgents: agentAddresses.length,
           agentsWithData: Object.keys(competitiveIntelligence).length,
           leadingAgent: null as string | null,
           maxHe3Balance: "0",

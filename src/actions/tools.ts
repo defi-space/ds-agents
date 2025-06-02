@@ -7,7 +7,7 @@ import {
   compareAgentPositions,
   rankAgentsByHe3,
 } from "../utils/competition";
-import { getContractAddress } from "src/utils/contracts";
+import { getAgentAddress } from "src/utils/contracts";
 
 export const toolActions = [
   action({
@@ -99,7 +99,7 @@ export const toolActions = [
           };
         }
 
-        const agentAddress = getContractAddress("agents", agentId);
+        const agentAddress = getAgentAddress(agentId);
 
         const balances = await getAgentResourceBalances(agentAddress);
 
@@ -161,8 +161,8 @@ export const toolActions = [
             timestamp: Date.now(),
           };
         }
-        const agentAddress1 = getContractAddress("agents", agentId1);
-        const agentAddress2 = getContractAddress("agents", agentId2);
+        const agentAddress1 = getAgentAddress(agentId1);
+        const agentAddress2 = getAgentAddress(agentId2);
 
         const comparison = await compareAgentPositions(agentAddress1, agentAddress2);
 

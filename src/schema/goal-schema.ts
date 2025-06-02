@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@daydreamsai/core";
 
 // Export GoalTerm type here instead of in goal-context.ts
 export type GoalTerm = "long_term" | "medium_term" | "short_term";

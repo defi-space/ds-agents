@@ -1,4 +1,5 @@
 import contractAddresses from "../../contracts.json";
+import { getCurrentAgentId } from "./starknet";
 
 export type ContractCategory = "core" | "resources" | "pairs" | "farms" | "agents";
 
@@ -73,9 +74,19 @@ export function getFarmAddress(tokenA: string, tokenB?: string): string {
  * @param agentId The agent identifier (e.g., "agent-1", "agent-2")
  * @returns The agent contract address
  */
-export function getAgentAddress(agentId: string): string {
+export function getAgentAddress(agentId?: string): string {
   const agents = contractAddresses.agents as Record<string, string>;
   
+  if (!agentId) {
+    // If no agent ID provided, return the current agent's address
+    const currentId = getCurrentAgentId();
+    const address = agents[currentId];
+    if (!address) {
+      throw new Error(`Current agent ${currentId} not found`);
+    }
+    return address;
+  }
+
   const address = agents[agentId];
   if (!address) {
     throw new Error(`Agent ${agentId} not found`);

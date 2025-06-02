@@ -1,5 +1,5 @@
 import { GraphQLClient } from "graphql-request";
-import { getContractAddress } from "./contracts";
+import { getCoreAddress } from "./contracts";
 import { normalizeAddress } from "./starknet";
 import { GET_GAME_SESSION_INDEX_BY_ADDRESS } from "./queries";
 
@@ -36,7 +36,7 @@ export async function executeQuery<T = any>(
 }
 
 export async function getGameSessionId() {
-  const sessionAddress = getContractAddress("gameSession", "current");
+  const sessionAddress = getCoreAddress("gameSession");
   if (!sessionAddress) {
     throw new Error("Failed to get game session address");
   }

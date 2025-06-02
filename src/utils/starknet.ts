@@ -1,7 +1,6 @@
 import { StarknetChain } from "@daydreamsai/defai";
 import { uint256, cairo, type Call } from "starknet";
 import { StarknetConfigStore } from "../agents/utils";
-import { getContractAddress } from "./contracts";
 
 // Create a function to get the current agent ID
 // This will be set by the agent when it starts
@@ -19,19 +18,6 @@ export function getCurrentAgentId(): string {
     return "default-agent";
   }
   return currentAgentId;
-}
-/**
- * Get the agent's address
- * @returns The agent's address
- */
-export async function getAgentAddress(): Promise<string> {
-  try {
-    const agentId = getCurrentAgentId();
-    return getContractAddress("agents", agentId);
-  } catch (error) {
-    console.warn("Warning: Could not get agent address. Using placeholder until agent ID is set.");
-    return "[Agent address will be set when agent starts]";
-  }
 }
 
 // Function to get Starknet configuration for the current agent

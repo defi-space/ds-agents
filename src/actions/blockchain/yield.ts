@@ -2,8 +2,8 @@ import { action, z } from "@daydreamsai/core";
 import { convertU256ToDecimal, getTokenBalance, starknetChain, toHex } from "../../utils/starknet";
 import { toUint256WithSpread } from "../../utils/starknet";
 import { executeMultiCall, getApproveCall } from "../../utils/starknet";
-import { getContractAddress } from "src/utils/contracts";
-import { getAgentAddress } from "../../utils/starknet";
+import { getCoreAddress, getAgentAddress } from "src/utils/contracts";
+
 
 // Define type for pending rewards
 interface PendingRewards {
@@ -38,7 +38,7 @@ export const yieldActions = [
         }
 
         // Get contract addresses
-        const farmRouterAddress = getContractAddress("core", "farmRouter");
+        const farmRouterAddress = getCoreAddress("farmRouter");
         if (!farmRouterAddress) {
           return {
             success: false,
@@ -151,7 +151,7 @@ export const yieldActions = [
         }
 
         // Get contract address
-        const farmRouterAddress = getContractAddress("core", "farmRouter");
+        const farmRouterAddress = getCoreAddress("farmRouter");
         if (!farmRouterAddress) {
           return {
             success: false,
@@ -240,7 +240,7 @@ export const yieldActions = [
         }
 
         // Get contract address
-        const farmRouterAddress = getContractAddress("core", "farmRouter");
+        const farmRouterAddress = getCoreAddress("farmRouter");
         if (!farmRouterAddress) {
           return {
             success: false,
@@ -329,7 +329,7 @@ export const yieldActions = [
         }
 
         // Get contract address
-        const farmRouterAddress = getContractAddress("core", "farmRouter");
+        const farmRouterAddress = getCoreAddress("farmRouter");
         if (!farmRouterAddress) {
           return {
             success: false,
@@ -440,7 +440,7 @@ export const yieldActions = [
         }
 
         // Get contract address
-        const farmRouterAddress = getContractAddress("core", "farmRouter");
+        const farmRouterAddress = getCoreAddress("farmRouter");
         if (!farmRouterAddress) {
           return {
             success: false,
@@ -517,7 +517,7 @@ export const yieldActions = [
         }
 
         // Get contract address
-        const farmRouterAddress = getContractAddress("core", "farmRouter");
+        const farmRouterAddress = getCoreAddress("farmRouter");
         if (!farmRouterAddress) {
           return {
             success: false,
@@ -584,7 +584,7 @@ export const yieldActions = [
         }
 
         // Get contract address
-        const farmRouterAddress = getContractAddress("core", "farmRouter");
+        const farmRouterAddress = getCoreAddress("farmRouter");
         if (!farmRouterAddress) {
           return {
             success: false,
@@ -660,7 +660,7 @@ export const yieldActions = [
         }
 
         // Get contract address
-        const farmRouterAddress = getContractAddress("core", "farmRouter");
+        const farmRouterAddress = getCoreAddress("farmRouter");
         if (!farmRouterAddress) {
           return {
             success: false,
@@ -729,7 +729,7 @@ export const yieldActions = [
         }
 
         // Get contract address
-        const farmRouterAddress = getContractAddress("core", "farmRouter");
+        const farmRouterAddress = getCoreAddress("farmRouter");
         if (!farmRouterAddress) {
           return {
             success: false,
@@ -797,7 +797,7 @@ export const yieldActions = [
         }
 
         // Get contract address
-        const farmRouterAddress = getContractAddress("core", "farmRouter");
+        const farmRouterAddress = getCoreAddress("farmRouter");
         if (!farmRouterAddress) {
           return {
             success: false,

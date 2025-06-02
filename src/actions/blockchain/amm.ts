@@ -10,9 +10,13 @@ import {
   convertToContractValue,
   executeMultiCall,
   getApproveCall,
-  getAgentAddress,
 } from "../../utils/starknet";
-import { getContractAddress, availableTokenSymbols } from "../../utils/contracts";
+import {
+  getCoreAddress,
+  getResourceAddress,
+  availableTokenSymbols,
+  getAgentAddress,
+} from "../../utils/contracts";
 
 export const ammActions = [
   // Router Operations - Price Calculations
@@ -41,7 +45,7 @@ export const ammActions = [
         }
 
         // Get token addresses
-        const tokenInAddress = getContractAddress("resources", args.tokenIn);
+        const tokenInAddress = getResourceAddress(args.tokenIn);
         if (!tokenInAddress) {
           return {
             success: false,
@@ -49,7 +53,7 @@ export const ammActions = [
             timestamp: Date.now(),
           };
         }
-        const tokenOutAddress = getContractAddress("resources", args.tokenOut);
+        const tokenOutAddress = getResourceAddress(args.tokenOut);
         if (!tokenOutAddress) {
           return {
             success: false,
@@ -60,7 +64,7 @@ export const ammActions = [
         const amountIn = convertToContractValue(args.amountIn, 18);
 
         // Get contract addresses
-        const routerAddress = getContractAddress("core", "router");
+        const routerAddress = getCoreAddress("ammRouter");
         if (!routerAddress) {
           return {
             success: false,
@@ -165,11 +169,11 @@ export const ammActions = [
     instructions: `Use this action when you need a simple quote for token swap.`,
     schema: z.object({
       tokenIn: z
-        .enum(availableToken)
-        .describe(`Token name to swap from. Available tokens: ${availableToken.join(", ")}`),
+        .enum(availableTokenSymbols)
+        .describe(`Token name to swap from. Available tokens: ${availableTokenSymbols.join(", ")}`),
       tokenOut: z
-        .enum(availableToken)
-        .describe(`Token name to receive. Available tokens: ${availableToken.join(", ")}`),
+        .enum(availableTokenSymbols)
+        .describe(`Token name to receive. Available tokens: ${availableTokenSymbols.join(", ")}`),
       amountIn: z.string().describe("Amount of input tokens in a human readable format."),
     }),
     handler: async (args, ctx, agent) => {
@@ -183,7 +187,7 @@ export const ammActions = [
           };
         }
         // Get token addresses
-        const tokenInAddress = getContractAddress("resources", args.tokenIn);
+        const tokenInAddress = getResourceAddress(args.tokenIn);
         if (!tokenInAddress) {
           return {
             success: false,
@@ -191,7 +195,7 @@ export const ammActions = [
             timestamp: Date.now(),
           };
         }
-        const tokenOutAddress = getContractAddress("resources", args.tokenOut);
+        const tokenOutAddress = getResourceAddress(args.tokenOut);
         if (!tokenOutAddress) {
           return {
             success: false,
@@ -202,7 +206,7 @@ export const ammActions = [
         const amountIn = convertToContractValue(args.amountIn, 18);
 
         // Get Router Address
-        const routerAddress = getContractAddress("core", "router");
+        const routerAddress = getCoreAddress("ammRouter");
         if (!routerAddress) {
           return {
             success: false,
@@ -295,11 +299,11 @@ export const ammActions = [
     instructions: `Use this action when you need to swap a specific amount of one token for another.`,
     schema: z.object({
       tokenIn: z
-        .enum(availableToken)
-        .describe(`Token name to swap from. Available tokens: ${availableToken.join(", ")}`),
+        .enum(availableTokenSymbols)
+        .describe(`Token name to swap from. Available tokens: ${availableTokenSymbols.join(", ")}`),
       tokenOut: z
-        .enum(availableToken)
-        .describe(`Token name to receive. Available tokens: ${availableToken.join(", ")}`),
+        .enum(availableTokenSymbols)
+        .describe(`Token name to receive. Available tokens: ${availableTokenSymbols.join(", ")}`),
       amountIn: z.string().describe("Amount of input tokens in a human readable format."),
     }),
     handler: async (args, ctx, agent) => {
@@ -314,7 +318,7 @@ export const ammActions = [
         }
 
         // Get token addresses
-        const tokenInAddress = getContractAddress("resources", args.tokenIn);
+        const tokenInAddress = getResourceAddress(args.tokenIn);
         if (!tokenInAddress) {
           return {
             success: false,
@@ -322,7 +326,7 @@ export const ammActions = [
             timestamp: Date.now(),
           };
         }
-        const tokenOutAddress = getContractAddress("resources", args.tokenOut);
+        const tokenOutAddress = getResourceAddress(args.tokenOut);
         if (!tokenOutAddress) {
           return {
             success: false,
@@ -334,7 +338,7 @@ export const ammActions = [
 
         // Construct the path array
         const path = [tokenInAddress, tokenOutAddress];
-        const routerAddress = getContractAddress("core", "router");
+        const routerAddress = getCoreAddress("ammRouter");
         if (!routerAddress) {
           return {
             success: false,
@@ -439,14 +443,14 @@ export const ammActions = [
     instructions: `Use this action when you want to provide liquidity to a trading token pair.`,
     schema: z.object({
       tokenA: z
-        .enum(availableToken)
+        .enum(availableTokenSymbols)
         .describe(
-          `First token name in the liquidity pair. Available tokens: ${availableToken.join(", ")}`
+          `First token name in the liquidity pair. Available tokens: ${availableTokenSymbols.join(", ")}`
         ),
       tokenB: z
-        .enum(availableToken)
+        .enum(availableTokenSymbols)
         .describe(
-          `Second token name in the liquidity pair. Available tokens: ${availableToken.join(", ")}`
+          `Second token name in the liquidity pair. Available tokens: ${availableTokenSymbols.join(", ")}`
         ),
       amountADesired: z
         .string()
@@ -464,7 +468,7 @@ export const ammActions = [
         }
 
         // Get token addresses
-        const tokenAAddress = getContractAddress("resources", args.tokenA);
+        const tokenAAddress = getResourceAddress(args.tokenA);
         if (!tokenAAddress) {
           return {
             success: false,
@@ -472,7 +476,7 @@ export const ammActions = [
             timestamp: Date.now(),
           };
         }
-        const tokenBAddress = getContractAddress("resources", args.tokenB);
+        const tokenBAddress = getResourceAddress(args.tokenB);
         if (!tokenBAddress) {
           return {
             success: false,
@@ -483,7 +487,7 @@ export const ammActions = [
         const amountADesired = convertToContractValue(args.amountADesired, 18);
 
         // Get router address
-        const routerAddress = getContractAddress("core", "router");
+        const routerAddress = getCoreAddress("ammRouter");
         if (!routerAddress) {
           return {
             success: false,
@@ -611,14 +615,14 @@ export const ammActions = [
     instructions: `Use this action when you want to withdraw your liquidity from a liquidity pool.`,
     schema: z.object({
       tokenA: z
-        .enum(availableToken)
+        .enum(availableTokenSymbols)
         .describe(
-          `First token name to receive back. Available tokens: ${availableToken.join(", ")}`
+          `First token name to receive back. Available tokens: ${availableTokenSymbols.join(", ")}`
         ),
       tokenB: z
-        .enum(availableToken)
+        .enum(availableTokenSymbols)
         .describe(
-          `Second token name to receive back. Available tokens: ${availableToken.join(", ")}`
+          `Second token name to receive back. Available tokens: ${availableTokenSymbols.join(", ")}`
         ),
       liquidity: z.string().describe("Amount of LP tokens to burn, in a human readable format."),
     }),
@@ -634,7 +638,7 @@ export const ammActions = [
         }
 
         // Get token addresses
-        const tokenAAddress = getContractAddress("resources", args.tokenA);
+        const tokenAAddress = getResourceAddress(args.tokenA);
         if (!tokenAAddress) {
           return {
             success: false,
@@ -642,7 +646,7 @@ export const ammActions = [
             timestamp: Date.now(),
           };
         }
-        const tokenBAddress = getContractAddress("resources", args.tokenB);
+        const tokenBAddress = getResourceAddress(args.tokenB);
         if (!tokenBAddress) {
           return {
             success: false,
@@ -651,7 +655,7 @@ export const ammActions = [
           };
         }
         const liquidity = convertToContractValue(args.liquidity, 18);
-        const routerAddress = getContractAddress("core", "router");
+        const routerAddress = getCoreAddress("ammRouter");
         if (!routerAddress) {
           return {
             success: false,
