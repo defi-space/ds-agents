@@ -1,9 +1,24 @@
-import contractAddresses from '../../contracts.json';
+import contractAddresses from "../../contracts.json";
 
-export type ContractCategory = 'core' | 'resources' | 'lpPairs' | 'farms' | 'agents' | 'gameSession';
-export type ContractName = keyof typeof contractAddresses[ContractCategory];
+export type ContractCategory =
+  | "core"
+  | "resources"
+  | "lpPairs"
+  | "farms"
+  | "agents"
+  | "gameSession";
+export type ContractName = keyof (typeof contractAddresses)[ContractCategory];
 
-export const availableToken = ['wattDollar', 'neodymium', 'dysprosium', 'yttrium', 'carbon', 'graphite', 'graphene', 'helium3'] as const;
+export const availableToken = [
+  "wattDollar",
+  "neodymium",
+  "dysprosium",
+  "yttrium",
+  "carbon",
+  "graphite",
+  "graphene",
+  "helium3",
+] as const;
 /**
  * Get a contract address from the contracts.json file
  * @param category The category of the contract (core, resources, lpPairs, farms, agents, gameSessions)
@@ -12,29 +27,33 @@ export const availableToken = ['wattDollar', 'neodymium', 'dysprosium', 'yttrium
  * @throws Error if the contract address is not found
  */
 export function getContractAddress(category: ContractCategory, name: string): string {
-    try {
-        const categoryAddresses = contractAddresses[category];
-        if (!categoryAddresses) {
-            throw new Error(`Contract category ${category} not found`);
-        }
-
-        const address = categoryAddresses[name as keyof typeof categoryAddresses];
-        if (!address) {
-            if (category === 'agents') {
-                console.warn(`Agent address for ${name} not found. This may be expected during initialization.`);
-                return "[Address will be available when agent is fully initialized]";
-            }
-            throw new Error(`Contract ${name} not found in category ${category}`);
-        }
-
-        return address;
-    } catch (error) {
-        if (category === 'agents') {
-            console.warn(`Error getting agent address: ${error instanceof Error ? error.message : 'Unknown error'}`);
-            return "[Address will be available when agent is fully initialized]";
-        }
-        throw error;
+  try {
+    const categoryAddresses = contractAddresses[category];
+    if (!categoryAddresses) {
+      throw new Error(`Contract category ${category} not found`);
     }
+
+    const address = categoryAddresses[name as keyof typeof categoryAddresses];
+    if (!address) {
+      if (category === "agents") {
+        console.warn(
+          `Agent address for ${name} not found. This may be expected during initialization.`
+        );
+        return "[Address will be available when agent is fully initialized]";
+      }
+      throw new Error(`Contract ${name} not found in category ${category}`);
+    }
+
+    return address;
+  } catch (error) {
+    if (category === "agents") {
+      console.warn(
+        `Error getting agent address: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+      return "[Address will be available when agent is fully initialized]";
+    }
+    throw error;
+  }
 }
 
 /**
@@ -43,11 +62,11 @@ export function getContractAddress(category: ContractCategory, name: string): st
  * @returns An object containing all contract addresses for the specified category
  */
 export function getCategoryAddresses(category: ContractCategory): Record<string, string> {
-    const categoryAddresses = contractAddresses[category];
-    if (!categoryAddresses) {
-        throw new Error(`Contract category ${category} not found`);
-    }
-    return categoryAddresses;
+  const categoryAddresses = contractAddresses[category];
+  if (!categoryAddresses) {
+    throw new Error(`Contract category ${category} not found`);
+  }
+  return categoryAddresses;
 }
 
 /**
@@ -55,7 +74,7 @@ export function getCategoryAddresses(category: ContractCategory): Record<string,
  * @returns The complete contract addresses object
  */
 export function getAllContractAddresses() {
-    return contractAddresses;
+  return contractAddresses;
 }
 
 /**
@@ -65,7 +84,11 @@ export function getAllContractAddresses() {
  * @param tokenType Optional specific token type within the category
  * @returns Boolean indicating if the address belongs to the specified category/type
  */
-export function isAddressOfType(address: string, category: ContractCategory, tokenType?: string): boolean {
+export function isAddressOfType(
+  address: string,
+  category: ContractCategory,
+  tokenType?: string
+): boolean {
   try {
     const categoryAddresses = contractAddresses[category];
     if (!categoryAddresses) {
@@ -74,19 +97,21 @@ export function isAddressOfType(address: string, category: ContractCategory, tok
 
     // Normalize the address for comparison
     const normalizedAddress = address.toLowerCase();
-    
+
     // If a specific token type is provided, check only that one
     if (tokenType) {
       const tokenAddress = categoryAddresses[tokenType as keyof typeof categoryAddresses];
       return tokenAddress && normalizedAddress === (tokenAddress as string).toLowerCase();
     }
-    
+
     // Otherwise check if the address matches any in the category
     return Object.values(categoryAddresses).some(
       (addr: any) => addr && addr.toLowerCase && addr.toLowerCase() === normalizedAddress
     );
   } catch (error) {
-    console.error(`Error checking address type: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error(
+      `Error checking address type: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
     return false;
   }
 }
@@ -106,17 +131,19 @@ export function getTokenTypeForAddress(address: string, category: ContractCatego
 
     // Normalize the address for comparison
     const normalizedAddress = address.toLowerCase();
-    
+
     // Find the token type for this address
     for (const [tokenType, tokenAddress] of Object.entries(categoryAddresses)) {
       if ((tokenAddress as string).toLowerCase() === normalizedAddress) {
         return tokenType;
       }
     }
-    
+
     return null;
   } catch (error) {
-    console.error(`Error getting token type: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error(
+      `Error getting token type: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
     return null;
   }
-} 
+}

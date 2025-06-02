@@ -1,4 +1,4 @@
-import { gql } from 'graphql-request';
+import { gql } from "graphql-request";
 
 // AMM Queries
 export const GET_PAIR_INFO = gql`

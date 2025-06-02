@@ -13,7 +13,9 @@ export function setCurrentAgentId(agentId: string) {
 
 export function getCurrentAgentId(): string {
   if (!currentAgentId) {
-    console.warn("Warning: No agent ID set. Using 'default-agent' as fallback. This should only happen during initialization.");
+    console.warn(
+      "Warning: No agent ID set. Using 'default-agent' as fallback. This should only happen during initialization."
+    );
     return "default-agent";
   }
   return currentAgentId;
@@ -24,14 +26,13 @@ export function getCurrentAgentId(): string {
  */
 export async function getAgentAddress(): Promise<string> {
   try {
-      const agentId = getCurrentAgentId();
-      return getContractAddress('agents', agentId);
+    const agentId = getCurrentAgentId();
+    return getContractAddress("agents", agentId);
   } catch (error) {
-      console.warn("Warning: Could not get agent address. Using placeholder until agent ID is set.");
-      return "[Agent address will be set when agent starts]";
+    console.warn("Warning: Could not get agent address. Using placeholder until agent ID is set.");
+    return "[Agent address will be set when agent starts]";
   }
 }
-
 
 // Function to get Starknet configuration for the current agent
 const getStarknetConfig = () => {
@@ -55,7 +56,7 @@ const getStarknetConfig = () => {
   if (missing.length > 0) {
     throw new Error(
       `Missing required environment variables: ${missing.join(", ")}\n` +
-      `Please ensure these are set in your .env file`
+        `Please ensure these are set in your .env file`
     );
   }
 
@@ -63,7 +64,7 @@ const getStarknetConfig = () => {
   if (currentAgentId) {
     throw new Error(
       `No configuration found for agent ID: ${currentAgentId}.\n` +
-      `Please ensure you have set up the agent's configuration in your .env file.`
+        `Please ensure you have set up the agent's configuration in your .env file.`
     );
   }
 
@@ -71,9 +72,9 @@ const getStarknetConfig = () => {
   // Return a minimal configuration with just the RPC URL
   console.warn(
     "Warning: No agent ID set. Using minimal configuration with only RPC URL.\n" +
-    "This is expected during initialization but should not occur during normal operation."
+      "This is expected during initialization but should not occur during normal operation."
   );
-  
+
   return {
     rpcUrl: required.STARKNET_RPC_URL!,
     // These will be overridden once the agent ID is set
@@ -112,7 +113,7 @@ export const starknetChain = {
       _starknetChain = getStarknetChain();
     }
     return _starknetChain.writeMulticall(calls);
-  }
+  },
 };
 
 // Contract value conversion utilities
@@ -121,12 +122,16 @@ export const convertToContractValue = (amount: string, decimals: number): string
 };
 
 // Token approval utility
-export const getApproveCall = (tokenAddress: string, spenderAddress: string, amount: string): Call => {
+export const getApproveCall = (
+  tokenAddress: string,
+  spenderAddress: string,
+  amount: string
+): Call => {
   const amountU256 = cairo.uint256(amount);
   return {
     contractAddress: tokenAddress,
-    entrypoint: 'approve',
-    calldata: [spenderAddress, amountU256.low, amountU256.high]
+    entrypoint: "approve",
+    calldata: [spenderAddress, amountU256.low, amountU256.high],
   };
 };
 
@@ -138,7 +143,7 @@ export const executeMultiCall = async (calls: Call[]) => {
 
     return result;
   } catch (error) {
-    console.error('Multicall execution failed:', error);
+    console.error("Multicall execution failed:", error);
     throw error;
   }
 };
@@ -154,9 +159,9 @@ export const convertU256ToDecimal = (low: string, high: string) => {
   try {
     const u256Value = uint256.uint256ToBN({
       low,
-      high
+      high,
     });
-    
+
     return u256Value;
   } catch (error) {
     throw new Error(`Failed to convert u256 to decimal: ${error}`);
@@ -171,9 +176,9 @@ export const convertU256ToDecimal = (low: string, high: string) => {
  */
 export const toHex = (value: bigint | string, withPrefix: boolean = true): string => {
   try {
-    const bigIntValue = typeof value === 'string' ? BigInt(value) : value;
+    const bigIntValue = typeof value === "string" ? BigInt(value) : value;
     const hexString = bigIntValue.toString(16);
-    
+
     return hexString;
   } catch (error) {
     throw new Error(`Failed to convert value to hex: ${error}`);
@@ -186,11 +191,11 @@ export const toHex = (value: bigint | string, withPrefix: boolean = true): strin
  * @returns Optimal amounts for both tokens and whether it's first provision
  */
 export const calculateOptimalLiquidity = async (params: {
-  contractAddress: string,
-  tokenA: string,
-  tokenB: string,
-  amountA?: string,
-  amountB?: string
+  contractAddress: string;
+  tokenA: string;
+  tokenB: string;
+  amountA?: string;
+  amountB?: string;
 }) => {
   if (!params.amountA && !params.amountB) {
     throw new Error("Must provide either amountA or amountB");
@@ -202,22 +207,26 @@ export const calculateOptimalLiquidity = async (params: {
   const chain = getStarknetChain();
 
   // Get factory address
-  const factoryAddress = toHex(await chain.read({
-    contractAddress: params.contractAddress,
-    entrypoint: "factory",
-    calldata: []
-  }));
-  
+  const factoryAddress = toHex(
+    await chain.read({
+      contractAddress: params.contractAddress,
+      entrypoint: "factory",
+      calldata: [],
+    })
+  );
+
   if (!factoryAddress || factoryAddress === "0x0") {
     throw new Error("Factory address not found");
   }
 
   // Get pair address
-  const pairAddress = toHex(await chain.read({
-    contractAddress: factoryAddress,
-    entrypoint: "get_pair",
-    calldata: [params.tokenA, params.tokenB]
-  }));
+  const pairAddress = toHex(
+    await chain.read({
+      contractAddress: factoryAddress,
+      entrypoint: "get_pair",
+      calldata: [params.tokenA, params.tokenB],
+    })
+  );
 
   // If pair doesn't exist, we can't calculate optimal amounts
   if (!pairAddress || pairAddress === "0x0") {
@@ -228,7 +237,7 @@ export const calculateOptimalLiquidity = async (params: {
   const reserves = await chain.read({
     contractAddress: pairAddress,
     entrypoint: "get_reserves",
-    calldata: []
+    calldata: [],
   });
 
   // Parse reserves - first reserve is [0] and [1], second reserve is [2] and [3]
@@ -238,7 +247,7 @@ export const calculateOptimalLiquidity = async (params: {
   let amountA: bigint;
   let amountB: bigint;
 
-  if (params.amountA) {    
+  if (params.amountA) {
     if (reserveABigInt === 0n || reserveBBigInt === 0n) {
       throw new Error("Pool does not exist. Please check context to get all available pairs.");
     }
@@ -246,15 +255,14 @@ export const calculateOptimalLiquidity = async (params: {
     // Calculate amountBOptimal using quote function
     const amountBOptimal = (amountA * reserveBBigInt) / reserveABigInt;
     amountB = amountBOptimal;
-    
   } else {
     // Convert amount B to contract value with decimals
     amountB = BigInt(params.amountB!);
-    
+
     if (reserveABigInt === 0n || reserveBBigInt === 0n) {
       throw new Error("Pool does not exist. Please check context to get all available pairs.");
     }
-    
+
     // Calculate amountAOptimal using quote function
     amountA = (amountB * reserveABigInt) / reserveBBigInt;
   }
@@ -262,7 +270,7 @@ export const calculateOptimalLiquidity = async (params: {
   return {
     amountA: amountA.toString(),
     amountB: amountB.toString(),
-    isFirstProvision: reserveABigInt === 0n && reserveBBigInt === 0n
+    isFirstProvision: reserveABigInt === 0n && reserveBBigInt === 0n,
   };
 };
 
@@ -273,13 +281,13 @@ export const calculateOptimalLiquidity = async (params: {
  */
 export const normalizeAddress = (address: string): string => {
   // Ensure the address starts with '0x'
-  const prefixedAddress = address.startsWith('0x') ? address : `0x${address}`;
-  
+  const prefixedAddress = address.startsWith("0x") ? address : `0x${address}`;
+
   // Remove trailing zeros and maintain '0x' prefix
-  const normalized = prefixedAddress.toLowerCase().replace(/^0x0*/, '0x');
-  
+  const normalized = prefixedAddress.toLowerCase().replace(/^0x0*/, "0x");
+
   // If the result is just '0x', return '0x0'
-  return normalized === '0x' ? '0x0' : normalized;
+  return normalized === "0x" ? "0x0" : normalized;
 };
 
 // Helper function to get balance and convert to decimal
@@ -287,8 +295,8 @@ export const getTokenBalance = async (contractAddress: string, playerAddress: st
   const chain = getStarknetChain();
   const result = await chain.read({
     contractAddress,
-    entrypoint: 'balanceOf',
-    calldata: [playerAddress]
+    entrypoint: "balanceOf",
+    calldata: [playerAddress],
   });
   return convertU256ToDecimal(result[0], result[1]);
 };

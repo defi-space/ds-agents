@@ -13,19 +13,22 @@ export interface GoalMemory {
   tasks: string[];
   currentTask: string | null;
   lastUpdated: number;
-  status: 'idle' | 'planning' | 'executing';
+  status: "idle" | "planning" | "executing";
 }
 
 // Task schema - simplified and included directly in goalSchema
 const taskSchema = z.object({
   plan: z.string().optional().describe("Plan to achieve this task"),
-  actions: z.array(
-    z.object({
-      type: z.string().describe("Type of action to perform"),
-      context: z.string().describe("Context in which to perform action"),
-      payload: z.any().describe("Payload for the action"),
-    })
-  ).optional().describe("Specific actions required to complete this task"),
+  actions: z
+    .array(
+      z.object({
+        type: z.string().describe("Type of action to perform"),
+        context: z.string().describe("Context in which to perform action"),
+        payload: z.any().describe("Payload for the action"),
+      })
+    )
+    .optional()
+    .describe("Specific actions required to complete this task"),
 });
 
 // Goal schema - simplified

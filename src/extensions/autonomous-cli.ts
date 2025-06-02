@@ -19,8 +19,8 @@ const cliContext = context({
  * Defines colors and formatting for different message types
  */
 const styles = {
-  agentLabel: chalk.green.bold('Agent'),
-  separator: chalk.gray('─'.repeat(50)),
+  agentLabel: chalk.green.bold("Agent"),
+  separator: chalk.gray("─".repeat(50)),
   timestamp: chalk.gray,
   header: chalk.cyan.bold,
 };
@@ -82,11 +82,11 @@ const promptsService = service({
       UPDATE: PROMPTS.UPDATE,
     }));
   },
-  
+
   async boot(container) {
     const prompts = container.resolve<Record<string, string>>("prompts");
-    console.log('Prompt service initialized with', Object.keys(prompts).length, 'prompts');
-  }
+    console.log("Prompt service initialized with", Object.keys(prompts).length, "prompts");
+  },
 });
 
 /**
@@ -124,19 +124,19 @@ export const autonomousCli = extension({
         // Clear screen and show header
         clearScreen();
         displayHeader();
-        
-        console.log(chalk.cyan.bold('\nAutomated DS Agents System Started'));
+
+        console.log(chalk.cyan.bold("\nAutomated DS Agents System Started"));
         console.log(styles.separator);
 
         // Get the agent ID from environment variable
-        const agentId = process.env.CURRENT_AGENT_ID || 'unknown-agent';
+        const agentId = process.env.CURRENT_AGENT_ID || "unknown-agent";
         console.log(`Agent ID: ${agentId}`);
-        
+
         // Get prompts from the service
         const prompts = container.resolve<Record<string, string>>("prompts");
 
         // Add initial delay before sending first prompt
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
         // Send initial strategic prompt
         send(
@@ -149,15 +149,15 @@ export const autonomousCli = extension({
         );
 
         // Define intervals for different operations
-        const executionInterval = 5 * 60 * 1000;   // 5 minutes
-        const updateInterval = 30 * 60 * 1000;      // 30 minutes
-        
+        const executionInterval = 5 * 60 * 1000; // 5 minutes
+        const updateInterval = 30 * 60 * 1000; // 30 minutes
+
         // Set up separate timers for execution and updates
         setTimeout(() => {
           // Start execution cycle (every 5 minutes)
           const runExecutionCycle = () => {
             console.log(`${getTimestamp()} Running execution cycle`);
-            
+
             // Send the execution prompt
             send(
               cliContext,
@@ -167,20 +167,20 @@ export const autonomousCli = extension({
                 text: prompts.EXECUTION,
               }
             );
-            
+
             // Schedule the next execution cycle
             setTimeout(runExecutionCycle, executionInterval);
           };
-          
+
           // Start the first execution cycle
           runExecutionCycle();
         }, executionInterval);
-        
+
         setTimeout(() => {
           // Start update cycle (every 30 minutes)
           const runUpdateCycle = () => {
             console.log(`${getTimestamp()} Running update cycle`);
-            
+
             // Send the update prompt
             send(
               cliContext,
@@ -190,11 +190,11 @@ export const autonomousCli = extension({
                 text: prompts.UPDATE,
               }
             );
-            
+
             // Schedule the next update cycle
             setTimeout(runUpdateCycle, updateInterval);
           };
-          
+
           // Start the first update cycle
           runUpdateCycle();
         }, updateInterval);
@@ -212,11 +212,11 @@ export const autonomousCli = extension({
       }),
       handler(content, ctx, agent) {
         // If content is a string, convert it to the expected format
-        const message = typeof content === 'string' ? content : content.message;
-        
+        const message = typeof content === "string" ? content : content.message;
+
         console.log(`${getTimestamp()} ${styles.agentLabel}: ${message}\n`);
-        console.log(styles.separator + '\n');
-        
+        console.log(styles.separator + "\n");
+
         return {
           data: { message },
           timestamp: Date.now(),
@@ -229,16 +229,17 @@ export const autonomousCli = extension({
             content: "",
           });
         }
-        
+
         // Handle both array and single output case
         const ref = Array.isArray(outputRef) ? outputRef[0] : outputRef;
-        
+
         // Extract the content - either from data.message or from outputRef directly
         let message = "";
         if (ref && ref.data) {
-          message = typeof ref.data === 'object' && ref.data.message ? ref.data.message : String(ref.data);
+          message =
+            typeof ref.data === "object" && ref.data.message ? ref.data.message : String(ref.data);
         }
-        
+
         return formatMsg({
           role: "assistant",
           content: message,

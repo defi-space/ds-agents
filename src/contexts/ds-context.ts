@@ -121,107 +121,107 @@ The following contracts are available on Starknet:
 <ds_contract_addresses>
 <ds_core_contracts>
 <ds_router>
-    Router Contract address: ${getContractAddress('core', 'router')}
+    Router Contract address: ${getContractAddress("core", "router")}
 </ds_router>
 <ds_farmRouter>
-    FarmRouter Contract address: ${getContractAddress('core', 'farmRouter')}
+    FarmRouter Contract address: ${getContractAddress("core", "farmRouter")}
 </ds_farmRouter>
 <ds_faucet>
-    Faucet Contract address: ${getContractAddress('core', 'faucet')}
+    Faucet Contract address: ${getContractAddress("core", "faucet")}
 </ds_faucet>
 <ds_game_factory>
-    Game Factory Contract address: ${getContractAddress('core', 'gameFactory')}
+    Game Factory Contract address: ${getContractAddress("core", "gameFactory")}
 </ds_game_factory>
 <ds_game_session>
-    Current Game Session Contract address: ${getContractAddress('gameSession', 'current')}
+    Current Game Session Contract address: ${getContractAddress("gameSession", "current")}
 </ds_game_session>
 
 <ds_resource_contract_addresses>
    - wattDollar (wD)
-     - Contract Address: ${getContractAddress('resources', 'wattDollar')}
+     - Contract Address: ${getContractAddress("resources", "wattDollar")}
    - Neodymium (Nd)
-     - Contract Address: ${getContractAddress('resources', 'neodymium')}
+     - Contract Address: ${getContractAddress("resources", "neodymium")}
    - Dysprosium (Dy)
-     - Contract Address: ${getContractAddress('resources', 'dysprosium')}
+     - Contract Address: ${getContractAddress("resources", "dysprosium")}
    - Yttrium (Y)
-     - Contract Address: ${getContractAddress('resources', 'yttrium')}
+     - Contract Address: ${getContractAddress("resources", "yttrium")}
    - Carbon (C)
-     - Contract Address: ${getContractAddress('resources', 'carbon')}
+     - Contract Address: ${getContractAddress("resources", "carbon")}
    - Graphite (GRP)
-     - Contract Address: ${getContractAddress('resources', 'graphite')}
+     - Contract Address: ${getContractAddress("resources", "graphite")}
    - Graphene (GPH)
-     - Contract Address: ${getContractAddress('resources', 'graphene')}
+     - Contract Address: ${getContractAddress("resources", "graphene")}
    - Helium-3 (He3)
-     - Contract Address: ${getContractAddress('resources', 'helium3')}
+     - Contract Address: ${getContractAddress("resources", "helium3")}
 </ds_resource_contract_addresses>
 
 <ds_available_lp_pair_addresses>
    - wD/C Pair (Graphite Token Accumulation Path)
-     - Contract Address: ${getContractAddress('lpPairs', 'wdCarbon')}
-     - Token0: ${getContractAddress('resources', 'wattDollar')}
-     - Token1: ${getContractAddress('resources', 'carbon')}
+     - Contract Address: ${getContractAddress("lpPairs", "wdCarbon")}
+     - Token0: ${getContractAddress("resources", "wattDollar")}
+     - Token1: ${getContractAddress("resources", "carbon")}
 
    - wD/GRP Pair (Graphene Token Accumulation Path)
-     - Contract Address: ${getContractAddress('lpPairs', 'wdGraphite')}
-     - Token0: ${getContractAddress('resources', 'wattDollar')}
-     - Token1: ${getContractAddress('resources', 'graphite')}
+     - Contract Address: ${getContractAddress("lpPairs", "wdGraphite")}
+     - Token0: ${getContractAddress("resources", "wattDollar")}
+     - Token1: ${getContractAddress("resources", "graphite")}
 
    - wD/Nd Pair (Dysprosium Token Accumulation Path)
-     - Contract Address: ${getContractAddress('lpPairs', 'wdNeodymium')}
-     - Token0: ${getContractAddress('resources', 'wattDollar')}
-     - Token1: ${getContractAddress('resources', 'neodymium')}
+     - Contract Address: ${getContractAddress("lpPairs", "wdNeodymium")}
+     - Token0: ${getContractAddress("resources", "wattDollar")}
+     - Token1: ${getContractAddress("resources", "neodymium")}
 
    - wD/Dy Pair (Yttrium Token Accumulation Path)
-     - Contract Address: ${getContractAddress('lpPairs', 'wdDysprosium')}
-     - Token0: ${getContractAddress('resources', 'wattDollar')}
-     - Token1: ${getContractAddress('resources', 'dysprosium')}
+     - Contract Address: ${getContractAddress("lpPairs", "wdDysprosium")}
+     - Token0: ${getContractAddress("resources", "wattDollar")}
+     - Token1: ${getContractAddress("resources", "dysprosium")}
 
    - GPH/Y Pair (He3 Token Accumulation Path)
-     - Contract Address: ${getContractAddress('lpPairs', 'grapheneYttrium')}
-     - Token0: ${getContractAddress('resources', 'graphene')}
-     - Token1: ${getContractAddress('resources', 'yttrium')}
+     - Contract Address: ${getContractAddress("lpPairs", "grapheneYttrium")}
+     - Token0: ${getContractAddress("resources", "graphene")}
+     - Token1: ${getContractAddress("resources", "yttrium")}
 
    - wD/He3 Pair (wD Token Accumulation Path)
-     - Contract Address: ${getContractAddress('lpPairs', 'wdHelium3')}
-     - Token0: ${getContractAddress('resources', 'wattDollar')}
-     - Token1: ${getContractAddress('resources', 'helium3')}
+     - Contract Address: ${getContractAddress("lpPairs", "wdHelium3")}
+     - Token0: ${getContractAddress("resources", "wattDollar")}
+     - Token1: ${getContractAddress("resources", "helium3")}
 </ds_available_lp_pair_addresses>
 
 <ds_available_farm_addresses>
    - wD/C Farm (Graphite Token Accumulation Path)
-     - Contract Address: ${getContractAddress('farms', 'grp')}
-     - LP Token: ${getContractAddress('lpPairs', 'wdCarbon')}
-     - Reward Token: GRP (${getContractAddress('resources', 'graphite')})
+     - Contract Address: ${getContractAddress("farms", "grp")}
+     - LP Token: ${getContractAddress("lpPairs", "wdCarbon")}
+     - Reward Token: GRP (${getContractAddress("resources", "graphite")})
 
    - wD/GRP Farm (Graphene Token Accumulation Path)
-     - Contract Address: ${getContractAddress('farms', 'gph')}
-     - LP Token: ${getContractAddress('lpPairs', 'wdGraphite')}
-     - Reward Token: GPH (${getContractAddress('resources', 'graphene')})
+     - Contract Address: ${getContractAddress("farms", "gph")}
+     - LP Token: ${getContractAddress("lpPairs", "wdGraphite")}
+     - Reward Token: GPH (${getContractAddress("resources", "graphene")})
 
    - wD/Nd Farm (Dysprosium Token Accumulation Path)
-     - Contract Address: ${getContractAddress('farms', 'dy')}
-     - LP Token: ${getContractAddress('lpPairs', 'wdNeodymium')}
-     - Reward Token: Dy (${getContractAddress('resources', 'dysprosium')})
+     - Contract Address: ${getContractAddress("farms", "dy")}
+     - LP Token: ${getContractAddress("lpPairs", "wdNeodymium")}
+     - Reward Token: Dy (${getContractAddress("resources", "dysprosium")})
 
    - wD/Dy Farm (Yttrium Token Accumulation Path)
-     - Contract Address: ${getContractAddress('farms', 'y')}
-     - LP Token: ${getContractAddress('lpPairs', 'wdDysprosium')}
-     - Reward Token: Y (${getContractAddress('resources', 'yttrium')})
+     - Contract Address: ${getContractAddress("farms", "y")}
+     - LP Token: ${getContractAddress("lpPairs", "wdDysprosium")}
+     - Reward Token: Y (${getContractAddress("resources", "yttrium")})
 
    - GPH/Y Farm (He3 Token Accumulation Path)
-     - Contract Address: ${getContractAddress('farms', 'he3')}
-     - LP Token: ${getContractAddress('lpPairs', 'grapheneYttrium')}
-     - Reward Token: He3 (${getContractAddress('resources', 'helium3')})
+     - Contract Address: ${getContractAddress("farms", "he3")}
+     - LP Token: ${getContractAddress("lpPairs", "grapheneYttrium")}
+     - Reward Token: He3 (${getContractAddress("resources", "helium3")})
 
    - wD/He3 Farm (wD Token Accumulation Path)
-     - Contract Address: ${getContractAddress('farms', 'wdHe3')}
-     - LP Token: ${getContractAddress('lpPairs', 'wdHelium3')}
-     - Reward Token: wD (${getContractAddress('resources', 'wattDollar')})
+     - Contract Address: ${getContractAddress("farms", "wdHe3")}
+     - LP Token: ${getContractAddress("lpPairs", "wdHelium3")}
+     - Reward Token: wD (${getContractAddress("resources", "wattDollar")})
 
    - He3 Single Stake Farm (He3 Token Accumulation Path)
-     - Contract Address: ${getContractAddress('farms', 'he3Stake')}
-     - Stake Token: ${getContractAddress('resources', 'helium3')}
-     - Reward Token: He3 (${getContractAddress('resources', 'helium3')})
+     - Contract Address: ${getContractAddress("farms", "he3Stake")}
+     - Stake Token: ${getContractAddress("resources", "helium3")}
+     - Reward Token: He3 (${getContractAddress("resources", "helium3")})
 
 </ds_available_farm_addresses>
 </ds_contract_addresses>

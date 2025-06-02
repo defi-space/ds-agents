@@ -1,7 +1,7 @@
-import { GraphQLClient } from 'graphql-request';
-import { getContractAddress } from './contracts';
-import { normalizeAddress } from './starknet';
-import { GET_GAME_SESSION_INDEX_BY_ADDRESS } from './queries';
+import { GraphQLClient } from "graphql-request";
+import { getContractAddress } from "./contracts";
+import { normalizeAddress } from "./starknet";
+import { GET_GAME_SESSION_INDEX_BY_ADDRESS } from "./queries";
 
 // Ensure INDEXER_URL is set
 const INDEXER_URL = process.env.INDEXER_URL as string;
@@ -12,8 +12,8 @@ if (!INDEXER_URL) {
 // Initialize GraphQL client
 const graphqlClient = new GraphQLClient(INDEXER_URL, {
   headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    "Content-Type": "application/json",
+    Accept: "application/json",
   },
 });
 
@@ -30,24 +30,23 @@ export async function executeQuery<T = any>(
   try {
     return await graphqlClient.request<T>(query, variables);
   } catch (error) {
-    console.error('GraphQL query failed:', error);
+    console.error("GraphQL query failed:", error);
     throw error;
   }
 }
 
-
 export async function getGameSessionId() {
-  const sessionAddress = getContractAddress('gameSession', 'current');
+  const sessionAddress = getContractAddress("gameSession", "current");
   if (!sessionAddress) {
     throw new Error("Failed to get game session address");
   }
-  
+
   const normalizedAddress = normalizeAddress(sessionAddress);
-  
+
   const result = await executeQuery(GET_GAME_SESSION_INDEX_BY_ADDRESS, {
-    address: normalizedAddress
+    address: normalizedAddress,
   });
-  
+
   if (!result?.gameSession?.[0]?.gameSessionIndex) {
     throw new Error(`No game session index found for address ${sessionAddress}`);
   }
