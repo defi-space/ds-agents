@@ -1,5 +1,4 @@
-import { action } from "@daydreamsai/core";
-import { z } from "zod";
+import { action, z } from "@daydreamsai/core";
 import { uint256 } from "starknet";
 import { DS_CONTEXT } from "../contexts/ds-context";
 import { getCurrentAgentId } from "../utils/starknet";

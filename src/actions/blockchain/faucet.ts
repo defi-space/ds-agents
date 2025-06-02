@@ -1,8 +1,6 @@
-import { action } from "@daydreamsai/core";
-import { z } from "zod";
-import { getStarknetChain } from "../../utils/starknet";
+import { action, z } from "@daydreamsai/core";
+import { getStarknetChain, getAgentAddress } from "../../utils/starknet";
 import { getContractAddress } from "../../utils/contracts";
-import { getAgentAddress } from "../../utils/starknet";
 
 // Helper function to check faucet status
 async function checkFaucetStatus(contractAddress: string, agentAddress: string) {
@@ -44,12 +42,15 @@ export const faucetActions = [
   action({
     name: "claimFaucet",
     description:
-      "Claims tokens from the faucet to get wattDollar (wD), Carbon (C), and Neodymium (Nd)",
+      "Claims tokens from the faucet to get wattDollar (wD), carbon (C), and neodymium (Nd)",
     instructions:
-      "Use this action when an agent needs tokens. Note there is a one (1) hour cooldown between claims on the contract.",
-    schema: z.object({}),
+      "Use this action when you need tokens. Note there is a one (1) hour cooldown between claims on the contract.",
+    schema: z.object({
+      message: z.string().describe("Not used - can be ignored").default("None"),
+    }),
     handler: async (args, ctx, agent) => {
       try {
+        // Get faucet address
         const faucetAddress = getContractAddress("core", "faucet");
         if (!faucetAddress) {
           return {
@@ -59,6 +60,7 @@ export const faucetActions = [
           };
         }
 
+        // Get agent address
         const agentAddress = await getAgentAddress();
         if (!agentAddress) {
           return {
@@ -90,6 +92,7 @@ export const faucetActions = [
           calldata: [],
         });
 
+        // Check if transaction was successful
         if (result?.statusReceipt !== "success") {
           return {
             success: false,
@@ -100,6 +103,7 @@ export const faucetActions = [
           };
         }
 
+        // Return result
         return {
           success: true,
           message:
@@ -118,6 +122,7 @@ export const faucetActions = [
           timestamp: Date.now(),
         };
       } catch (error) {
+        // Log error
         console.error("Failed to claim from faucet:", error);
         return {
           success: false,
@@ -138,12 +143,13 @@ export const faucetActions = [
     description:
       "Checks whether tokens can be claimed from the faucet and when the next claim will be available.",
     instructions:
-      "Use this action when needing to know if its possible to claim tokens now OR when the next possible claim time is.",
+      "Use this action when you need to know if its possible to claim tokens now OR when the next possible claim time is.",
     schema: z.object({
       message: z.string().describe("Not used - can be ignored").default("None"),
     }),
     handler: async (args, ctx, agent) => {
       try {
+        // Get faucet address
         const faucetAddress = getContractAddress("core", "faucet");
         if (!faucetAddress) {
           return {
@@ -154,6 +160,7 @@ export const faucetActions = [
           };
         }
 
+        // Get agent address
         const agentAddress = await getAgentAddress();
         if (!agentAddress) {
           return {
@@ -163,8 +170,10 @@ export const faucetActions = [
           };
         }
 
+        // Check faucet status
         const status = await checkFaucetStatus(faucetAddress, agentAddress);
 
+        // Return result
         return {
           success: true,
           message: status.canClaim
@@ -185,6 +194,7 @@ export const faucetActions = [
           timestamp: Date.now(),
         };
       } catch (error) {
+        // Log error
         console.error("Failed to check faucet status:", error);
         return {
           success: false,
