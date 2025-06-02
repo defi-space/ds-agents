@@ -40,7 +40,7 @@ async function checkFaucetStatus(contractAddress: string, agentAddress: string) 
 // Faucet Operations
 export const faucetActions = [
   action({
-    name: "claimFaucet",
+    name: "claimFromFaucet",
     description:
       "Claims tokens from the faucet to get wattDollar (wD), carbon (C), and neodymium (Nd)",
     instructions:
@@ -139,7 +139,7 @@ export const faucetActions = [
   }),
 
   action({
-    name: "getClaimTimeStatus",
+    name: "getFaucetClaimStatus",
     description:
       "Checks whether tokens can be claimed from the faucet and when the next claim will be available.",
     instructions:
