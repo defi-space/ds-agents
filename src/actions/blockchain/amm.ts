@@ -12,7 +12,7 @@ import {
   getApproveCall,
   getAgentAddress,
 } from "../../utils/starknet";
-import { getContractAddress, availableToken } from "../../utils/contracts";
+import { getContractAddress, availableTokenSymbols } from "../../utils/contracts";
 
 export const ammActions = [
   // Router Operations - Price Calculations
@@ -22,11 +22,11 @@ export const ammActions = [
     instructions: `Use this action when you need to know how much of a token you will receive for a specific amount of another token.`,
     schema: z.object({
       tokenIn: z
-        .enum(availableToken)
-        .describe(`Token name to swap from. Available tokens: ${availableToken.join(", ")}`),
+        .enum(availableTokenSymbols)
+        .describe(`Token symbol to swap from. Available tokens: ${availableTokenSymbols.join(", ")}`),
       tokenOut: z
-        .enum(availableToken)
-        .describe(`Token name to receive. Available tokens: ${availableToken.join(", ")}`),
+        .enum(availableTokenSymbols)
+        .describe(`Token symbol to receive. Available tokens: ${availableTokenSymbols.join(", ")}`),
       amountIn: z.string().describe("Amount of input tokens in a human readable format."),
     }),
     handler: async (args, ctx, agent) => {

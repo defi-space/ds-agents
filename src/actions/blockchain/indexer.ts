@@ -12,32 +12,30 @@ import {
   GET_GAME_SESSION_INDEX_BY_ADDRESS,
   GET_MOST_STAKED_AGENTS,
 } from "../../utils/queries";
-import { getContractAddress } from "src/utils/contracts";
+import { getContractAddress, availableTokenSymbols } from "../../utils/contracts";
 
 export const indexerActions = [
   action({
     name: "getPairInfo",
     description: "Retrieves detailed information about a specific liquidity pair",
     instructions:
-      "Use this action when an agent needs comprehensive data about a liquidity pair including reserves, volume, and fees",
+      "Use this action when you need comprehensive data about a liquidity pair including reserves, volume, and fees",
     schema: z.object({
-      pairAddress: z
-        .string()
-        .regex(/^0x[a-fA-F0-9]+$/)
-        .describe("Pair contract address (must be a valid hex address starting with 0x)"),
+      tokenA: z.enum(availableTokenSymbols).describe(`First token symbol for the pair. Available tokens: ${availableTokenSymbols.join(", ")}`),
+      tokenB: z.enum(availableTokenSymbols).describe(`Second token symbol for the pair. Available tokens: ${availableTokenSymbols.join(", ")}`),
     }),
     handler: async (args, ctx, agent) => {
       try {
         // Input validation
-        if (!args.pairAddress) {
+        if (args.tokenA === args.tokenB) {
           return {
             success: false,
-            message: "Cannot retrieve pair information: pair address is missing",
+            message: "Cannot retrieve pair information: tokenA and tokenB cannot be the same",
             timestamp: Date.now(),
           };
         }
 
-        const normalizedAddress = normalizeAddress(args.pairAddress);
+        const pairAddress = 
         const gameSessionId = await getGameSessionId();
 
         const result = await executeQuery(GET_PAIR_INFO, {
