@@ -103,40 +103,13 @@ export class ChromaVectorStore implements VectorStore {
    * @param collectionName - Name of the collection to initialize
    */
   private async initCollection(collectionName: string) {
-    try {
-      let existingCollection = false;
-      
-      try {
-        // Try to get the collection if it exists
-        this.collection = await this.client.getCollection({
-          name: collectionName,
-          embeddingFunction: this.embedder,
-        });
-        existingCollection = true;
-      } catch (error) {
-        // Collection doesn't exist, create it
-        this.collection = await this.client.createCollection({
-          name: collectionName,
-          embeddingFunction: this.embedder,
-          metadata: {
-            description: "Memory storage for AI consciousness",
-          },
-        });
-      }
-
-      this.isInitialized = true;
-    } catch (error) {
-      // Log the specific error during collection initialization
-      console.error(`Failed to initialize collection '${collectionName}':`, error);
-      this.isInitialized = false;
-      throw error; // Re-throw the error after logging
-    }
-  }
-
-  private async ensureInitialized() {
-    if (!this.isInitialized || !this.collection) {
-      throw new Error("ChromaVectorStore not properly initialized");
-    }
+    this.collection = await this.client.getOrCreateCollection({
+      name: collectionName,
+      embeddingFunction: this.embedder,
+      metadata: {
+        description: "Memory storage for AI consciousness",
+      },
+    });
   }
 
   /**
@@ -148,33 +121,26 @@ export class ChromaVectorStore implements VectorStore {
     contextId: string,
     data: InferContextMemory<any>[]
   ): Promise<void> {
-    try {
-      await this.ensureInitialized();
+    if (data.length === 0) return;
 
-      // Generate IDs for the documents
-      const ids = data.map((_, index) => `doc_${Date.now()}_${index}`);
+    // Generate IDs for the documents
+    const ids = data.map((_, index) => `doc_${Date.now()}_${index}`);
 
-      // Convert documents to strings if they aren't already
-      const documents = data.map((item) =>
-        typeof item === "string" ? item : JSON.stringify(item)
-      );
+    // Convert documents to strings if they aren't already
+    const documents = data.map((item) =>
+      typeof item === "string" ? item : JSON.stringify(item)
+    );
 
-      // Create metadata for each document
-      const metadatas = data.map(() => ({
-        contextId: contextId,
-        timestamp: Date.now(),
-      }));
-
-      await this.collection.add({
-        ids,
-        documents,
-        metadatas,
-      });
-
-    } catch (error) {
-      console.error("Error in upsert operation:", error);
-      throw error;
-    }
+    await this.collection.add({
+      ids,
+      documents,
+      metadatas: [
+        {
+          contextId: contextId,
+          timestamp: Date.now(),
+        },
+      ],
+    });
   }
 
   /**
@@ -184,57 +150,15 @@ export class ChromaVectorStore implements VectorStore {
    * @returns Array of matching documents
    */
   async query(contextId: string, query: string): Promise<any[]> {
-    try {
-      await this.ensureInitialized();
-      
-      try {
-        // First try querying with the where filter
-        const results = await this.collection.query({
-          queryTexts: [query],
-          nResults: 5,
-          where: {
-            contextId: contextId,
-          },
-        });
-        
-        return results.documents[0] || [];
-      } catch (filterError) {
-        // Log the specific error when the filtered query fails
-        console.warn(`Query with filter failed for contextId '${contextId}'. Error:`, filterError);
-        console.warn(`Trying query without filter...`);
-        
-        // If filtering fails, try without the where clause
-        try {
-          const results = await this.collection.query({
-            queryTexts: [query],
-            nResults: 5,
-          });
-          
-          // Filter the results manually by contextId
-          const filteredDocuments = results.documents[0] || [];
-          const filteredMetadatas = results.metadatas[0] || [];
-          
-          // Find indices of documents with matching contextId
-          const matchingIndices = filteredMetadatas
-            .map((metadata, index) => (metadata?.contextId === contextId ? index : -1))
-            .filter(index => index !== -1);
-          
-          // Filter documents using the matching indices
-          const matchingDocuments = matchingIndices.map(index => filteredDocuments[index]);
-          
-          return matchingDocuments;
-        } catch (noFilterError) {
-          // Log the specific error when the unfiltered query also fails
-          console.error(`Query without filter also failed for contextId '${contextId}'. Error:`, noFilterError);
-          return []; // Return empty array as per original logic
-        }
-      }
-    } catch (error) {
-      // Log any other errors occurring during the query operation
-      console.error(`Error in query operation for contextId '${contextId}':`, error);
-      // Return empty array instead of throwing to avoid breaking the agent
-      return [];
-    }
+    const results = await this.collection.query({
+      queryTexts: [query],
+      nResults: 5,
+      where: {
+        contextId: contextId,
+      },
+    });
+
+    return results.documents[0] || [];
   }
 
   /**
@@ -242,18 +166,10 @@ export class ChromaVectorStore implements VectorStore {
    * @param indexName - Name of the index to create
    */
   async createIndex(indexName: string): Promise<void> {
-    try {
-      await this.client.createCollection({
-        name: indexName,
-        embeddingFunction: this.embedder,
-        metadata: {
-          description: "Index collection",
-        },
-      });
-    } catch (error) {
-      console.error(`Error creating index "${indexName}":`, error);
-      throw error;
-    }
+    await this.client.getOrCreateCollection({
+      name: indexName,
+      embeddingFunction: this.embedder,
+    });
   }
 
   /**
@@ -261,17 +177,11 @@ export class ChromaVectorStore implements VectorStore {
    * @param indexName - Name of the index to delete
    */
   async deleteIndex(indexName: string): Promise<void> {
-    try {
-      const collection = await this.client.getCollection({
-        name: indexName,
-        embeddingFunction: this.embedder,
-      });
-      
-      await collection.delete();
-    } catch (error) {
-      console.error(`Error deleting index "${indexName}":`, error);
-      throw error;
-    }
+    await this.collection.delete({
+      where: {
+        indexName: indexName,
+      },
+    });
   }
 }
 

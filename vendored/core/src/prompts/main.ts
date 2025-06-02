@@ -7,12 +7,11 @@ import {
   render,
   xml,
 } from "../formatters";
+import type { Prompt } from "../prompt";
 import type {
   AnyAction,
   AnyContext,
-  AnyRef,
   ContextState,
-  Log,
   Output,
   WorkingMemory,
 } from "../types";
@@ -77,6 +76,7 @@ Follow these steps to process the updates:
    - You can only use actions listed in the <available_actions> section
    - Follow the schemas provided for each action
    - Actions should be used when necessary to fulfill requests or provide information that cannot be conveyed through a simple response
+   - If action belongs to a context and there is many instances of the context use <action_call contextKey="[Context key]">
 
 5. No output or action:
    If you determine that no output or action is necessary, don't respond to that message.`,
@@ -93,11 +93,14 @@ Configuration: Access pre-defined configuration values using {{config.key.name}}
 Here are the available actions you can initiate:
 {{actions}}
 
-Here are the available outputs you can use:
+Here are the available outputs you can use (full details):
 {{outputs}}
 
 Here is the current contexts:
 {{contexts}}
+
+Here is a summary of the available output types you can use:
+{{output_types_summary}}
 
 <template-engine>
 Purpose: Utilize the template engine ({{...}} syntax) primarily to streamline workflows by transferring data between different components within the same turn. This includes passing outputs from actions into subsequent action arguments, or embedding data from various sources directly into response outputs. This enhances efficiency and reduces interaction latency.
@@ -124,10 +127,10 @@ Here's how you structure your response:
 </reasoning>
 
 [List of async action calls to be initiated, if applicable]
-<action_call name="[Action name]">[action arguments using the schema as JSON]</action_call>
+<action_call name="[Action name]">[action arguments using the schema and format]</action_call>
 
 [List of outputs, if applicable]
-<output type="[Output type]" {...output attributes using the schema}>
+<output type="[Output type]" {...output attributes using the attributes_schema}>
 [output content using the content_schema]
 </output>
 </response>`,
@@ -145,7 +148,9 @@ Remember:
 IMPORTANT: 
 Always include the 'type' attribute in the output tag and ensure it matches one of the available output types listed above.
 Remember to include the other attribute in the output tag and ensure it matches the output attributes schema.
-If you say you will perform an action, you MUST issue the corresponding action call here`,
+If you say you will perform an action, you MUST issue the corresponding action call here
+Always check the correct format for each action: JSON or XML
+`,
 } as const;
 
 export const promptTemplate = `\
@@ -175,6 +180,20 @@ export function formatPromptSections({
   maxWorkingMemorySize?: number;
   chainOfThoughtSize?: number;
 }) {
+  // Create a simple list of output types
+  const outputTypesSummary =
+    outputs.length > 0
+      ? xml(
+          "output_types_summary",
+          undefined,
+          outputs.map((o) => `- ${o.type}`).join("\\n")
+        )
+      : xml(
+          "output_types_summary",
+          undefined,
+          "No outputs are currently available."
+        );
+
   return {
     actions: xml("available-actions", undefined, actions.map(formatAction)),
     outputs: xml(
@@ -182,6 +201,7 @@ export function formatPromptSections({
       undefined,
       outputs.map(formatOutputInterface)
     ),
+    output_types_summary: outputTypesSummary,
     contexts: xml("contexts", undefined, contexts.map(formatContextState)),
     workingMemory: xml(
       "working-memory",
@@ -211,31 +231,20 @@ export function formatPromptSections({
 }
 
 // WIP
-export const mainStep = {
+export const mainPrompt = {
   name: "main",
   template: promptTemplate,
   sections: templateSections,
   render: (data: ReturnType<typeof formatPromptSections>) => {
     const sections = Object.fromEntries(
-      Object.entries(mainStep.sections).map(([key, templateSection]) => [
+      Object.entries(mainPrompt.sections).map(([key, templateSection]) => [
         key,
         render(templateSection, data as any),
       ])
     ) as Record<keyof typeof templateSections, string>;
-
-    const prompt = render(mainStep.template, sections);
-
-    return prompt;
+    return render(mainPrompt.template, sections);
   },
-
   formatter: formatPromptSections,
-
-  shouldContinue: (state: { chain: AnyRef[] }) => {
-    const pendingResults = state.chain.filter(
-      (i) => i.ref !== "thought" && i.processed === false
-    );
-    return pendingResults.length > 0;
-  },
 } as const;
 
-export type StepConfig = typeof mainStep;
+export type PromptConfig = typeof mainPrompt;

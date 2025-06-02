@@ -102,7 +102,7 @@ export async function createAgent(config: AgentConfig) {
     // Configure agent settings
     const agentConfig = {
       id: config.id,
-      logger: LogLevel.DEBUG,
+      logLevel: LogLevel.DEBUG,
       container: createContainer(),
       model,
       extensions: [isManualMode() ? cli : autonomousCli],

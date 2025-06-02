@@ -1,5 +1,4 @@
 import {
-  smoothStream,
   streamText,
   type CoreMessage,
   type LanguageModelV1,
@@ -17,45 +16,8 @@ import type {
 } from "../types";
 import type { Logger } from "../logger";
 import { wrapStream } from "../streaming";
-
-type ModelConfig = {
-  assist?: boolean;
-  prefix?: string;
-  thinkTag?: string;
-};
-
-// TODO: move this
-export const modelsResponseConfig: Record<string, ModelConfig> = {
-  "o3-mini": {
-    assist: false,
-    prefix: "",
-  },
-  "claude-3-7-sonnet-20250219": {
-    // assist: true,
-    // prefix: "<thinking>",
-    // thinkTag: "<thinking>",
-  },
-  "qwen-qwq-32b": {
-    prefix: "",
-  },
-  "google/gemini-2.0-flash-001": {
-    // prefix: "",
-  },
-  "deepseek-r1-distill-llama-70b": {
-    prefix: "",
-    assist: false,
-  },
-};
-
-export const reasoningModels = [
-  "claude-3-7-sonnet-20250219",
-  "qwen-qwq-32b",
-  "deepseek-r1-distill-llama-70b",
-  "o3-mini",
-  "google/gemini-2.0-flash-001",
-  "google/gemini-2.0-flash-lite-preview-02-05:free",
-];
-
+import { modelsResponseConfig, reasoningModels } from "../configs";
+import { generateText } from "ai";
 /**
  * Prepares a stream response by handling the stream result and parsing it.
  *
@@ -79,7 +41,7 @@ function prepareStreamResponse({
   const prefix =
     modelsResponseConfig[model.modelId]?.prefix ??
     (isReasoningModel
-      ? (modelsResponseConfig[model.modelId]?.thinkTag ?? "<think>")
+      ? modelsResponseConfig[model.modelId]?.thinkTag ?? "<think>"
       : "<response>");
   const suffix = "</response>";
   return {
@@ -97,15 +59,15 @@ type GenerateOptions = {
   workingMemory: WorkingMemory;
   logger: Logger;
   model: LanguageModelV1;
+  streaming: boolean;
   onError: (error: unknown) => void;
-  abortSignal?: AbortSignal;
 };
 
-export const runGenerate = task(
-  "agent:run:generate",
-  async (
-    { prompt, workingMemory, model, onError, abortSignal }: GenerateOptions,
-    { callId, debug }
+export const runGenerate = task({
+  key: "agent:run:generate",
+  handler: async (
+    { prompt, workingMemory, model, streaming, onError }: GenerateOptions,
+    { abortSignal }
   ) => {
     const isReasoningModel = reasoningModels.includes(model.modelId);
 
@@ -125,7 +87,7 @@ export const runGenerate = task(
       messages.push({
         role: "assistant",
         content: isReasoningModel
-          ? (modelsResponseConfig[model.modelId]?.thinkTag ?? "<think>")
+          ? modelsResponseConfig[model.modelId]?.thinkTag ?? "<think>"
           : "<response>",
       });
 
@@ -140,32 +102,56 @@ export const runGenerate = task(
     }
 
     try {
-    const stream = streamText({
-      model,
-      messages,
-      stopSequences: ["\n</response>"],
-      temperature: 0.6,
-      abortSignal,
-        // experimental_transform: smoothStream({
-        //   chunking: "word",
-        // }),
-      onError: (event) => {
-          console.log({ event });
-        onError(event.error);
-      },
-    });
+      if (!streaming) {
+        const response = await generateText({
+          model,
+          messages,
+          temperature: 0.2,
+        });
 
-    return prepareStreamResponse({
-      model,
-      stream,
-      isReasoningModel,
-    });
+        let getTextResponse = async () => response.text;
+        let stream = textToStream(response.text);
+
+        return { getTextResponse, stream };
+      } else {
+        const stream = streamText({
+          model,
+          messages,
+          stopSequences: ["\n</response>"],
+          temperature: 0.5,
+          abortSignal,
+          // experimental_transform: smoothStream({
+          //   chunking: "word",
+          // }),
+          onError: (event) => {
+            onError(event.error);
+          },
+        });
+
+        return prepareStreamResponse({
+          model,
+          stream,
+          isReasoningModel,
+        });
+      }
     } catch (error) {
-      console.log({ error });
+      onError(error);
       throw error;
     }
+  },
+});
+
+async function* textToStream(
+  text: string,
+  chunkSize = 10
+): AsyncGenerator<string> {
+  for (let i = 0; i < text.length; i += chunkSize) {
+    const chunk = text.slice(i, i + chunkSize);
+    yield chunk;
+    // Optional: add a small delay to simulate streaming
+    // await new Promise(resolve => setTimeout(resolve, 10));
   }
-);
+}
 
 /**
  * Task that executes an action with the given context and parameters.
@@ -179,9 +165,9 @@ export const runGenerate = task(
  * @returns The result of the action execution
  * @throws Will throw an error if the action execution fails
  */
-export const runAction = task(
-  "agent:run:action",
-  async <TContext extends AnyContext>({
+export const runAction = task({
+  key: "agent:run:action",
+  handler: async <TContext extends AnyContext>({
     ctx,
     action,
     agent,
@@ -205,15 +191,16 @@ export const runAction = task(
           : await Promise.try(action.handler as any, ctx.call.data, ctx, agent);
 
       logger.debug("agent:action_result:" + ctx.call.id, ctx.call.name, result);
+
       return result;
     } catch (error) {
       logger.error("agent:action", "ACTION_FAILED", { error });
 
       if (action.onError) {
-        await Promise.try(action.onError, error, ctx, agent);
+        return await Promise.try(action.onError, error, ctx, agent);
       } else {
         throw error;
       }
     }
-  }
-);
+  },
+});
