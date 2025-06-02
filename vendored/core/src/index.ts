@@ -15,3 +15,4 @@ export * from "./providers";
 export * from "./http";
 export * from "./prompts/main";
 export * from "./tasks/index";
+export { z } from "zod";

@@ -3,6 +3,7 @@ import contractAddresses from '../../contracts.json';
 export type ContractCategory = 'core' | 'resources' | 'lpPairs' | 'farms' | 'agents' | 'gameSession';
 export type ContractName = keyof typeof contractAddresses[ContractCategory];
 
+export const availableToken = ['wattDollar', 'neodymium', 'dysprosium', 'yttrium', 'carbon', 'graphite', 'graphene', 'helium3'] as const;
 /**
  * Get a contract address from the contracts.json file
  * @param category The category of the contract (core, resources, lpPairs, farms, agents, gameSessions)

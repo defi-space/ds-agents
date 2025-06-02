@@ -10,21 +10,20 @@
     "start-agents-4": "bun run src/run-agents.ts 4"
   },
   "devDependencies": {
-    "@types/bun": "^1.2.3"
+    "@types/bun": "^1.2.15"
   },
   "peerDependencies": {
     "typescript": "^5.7.3"
   },
   "dependencies": {
-    "@ai-sdk/google": "^1.2.11",
+    "@ai-sdk/google": "^1.2.18",
     "@daydreamsai/chromadb": "workspace:vendored/chroma",
     "@daydreamsai/core": "workspace:vendored/core",
     "@daydreamsai/defai": "workspace:vendored/defai",
     "@daydreamsai/firebase": "workspace:vendored/firebase",
-    "dotenv": "^16.4.7",
-    "graphql": "^16.10.0",
-    "graphql-request": "^7.1.2",
-    "starknet": "^6.23.1",
-    "zod": "^3.24.2"
+    "dotenv": "^16.5.0",
+    "graphql": "^16.11.0",
+    "graphql-request": "^7.2.0",
+    "starknet": "^6.24.1"
   }
 }

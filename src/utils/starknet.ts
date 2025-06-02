@@ -294,7 +294,6 @@ export const getTokenBalance = async (contractAddress: string, playerAddress: st
 };
 
 // Helper function to format token balance
-export const formatTokenBalance = (rawBalance: bigint) => ({
-  balance: (Number(rawBalance) / Math.pow(10, 18)).toString(),
-  tokenBaseUnitBalance: rawBalance.toString()
-});
+export const formatTokenBalance = (rawBalance: bigint) => {
+  return (Number(rawBalance) / Math.pow(10, 18)).toString();
+};
