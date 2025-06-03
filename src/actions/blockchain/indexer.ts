@@ -13,14 +13,15 @@ import {
   getCoreAddress,
   getFarmAddress,
   getPairAddress,
+  availableAgentIds,
+  getAgentAddress,
 } from "../../utils/contracts";
 
 export const indexerActions = [
   action({
     name: "getPairInfo",
     description: "Retrieves detailed information about a specific liquidity pair",
-    instructions:
-      "Use this action when you need comprehensive data about a liquidity pair including reserves, volume, and fees",
+    instructions: "Use this action when you need comprehensive data about a liquidity pair",
     schema: z.object({
       tokenA: z
         .enum(availableTokenSymbols)
@@ -56,14 +57,14 @@ export const indexerActions = [
         if (!result || !result.pair) {
           return {
             success: false,
-            message: `No pair information found for ${args.tokenA}/${args.tokenB}. Please check context to get available LP pairs.`,
+            message: `No pair information found for ${args.tokenA}/${args.tokenB}.\nPlease check context to get available LP pairs.`,
             timestamp: Date.now(),
           };
         }
 
         return {
           success: true,
-          message: `Successfully retrieved information for LP pair ${args.tokenA}/${args.tokenB} at ${pairAddress}`,
+          message: `Successfully retrieved information for LP pair ${args.tokenA}/${args.tokenB}`,
           data: result,
           timestamp: Date.now(),
         };
@@ -86,8 +87,7 @@ export const indexerActions = [
   action({
     name: "getFarmInfo",
     description: "Fetches detailed information about a specific farm and its rewards",
-    instructions:
-      "Use this action when an agent needs data about a farm including its rewards, staked amounts, and other metrics",
+    instructions: "Use this action when an agent needs data about a farm",
     schema: z.object({
       tokenA: z
         .enum(availableTokenSymbols)
@@ -129,14 +129,14 @@ export const indexerActions = [
         if (!result || !result.farm) {
           return {
             success: false,
-            message: `No farm information found for ${args.tokenA}/${args.tokenB}. Check the available farms in the context`,
+            message: `No farm information found for ${args.tokenA}/${args.tokenB}.\nCheck the available farms in the context`,
             timestamp: Date.now(),
           };
         }
 
         return {
           success: true,
-          message: `Successfully retrieved information for farm ${args.tokenA}/${args.tokenB} at ${farmAddress}`,
+          message: `Successfully retrieved information for farm ${args.tokenA}/${args.tokenB}`,
           data: result,
           timestamp: Date.now(),
         };
@@ -157,7 +157,7 @@ export const indexerActions = [
   }),
 
   action({
-    name: "getAllfarms",
+    name: "getAllFarms",
     description: "Retrieves a list of all farms available in the game",
     instructions: "Use this action when you need to discover all available farms",
     schema: z.object({
@@ -207,14 +207,19 @@ export const indexerActions = [
     instructions:
       "Use this action when you need to view your own or another agent's liquidity positions",
     schema: z.object({
-      agentAddress: z
-        .string()
-        .regex(/^0x[a-fA-F0-9]+$/)
-        .describe("Agent address to query liquidity positions for."),
+      agentIndex: z.enum(availableAgentIds).describe("Agent ID to query liquidity positions for."),
     }),
     handler: async (args, _ctx, _agent) => {
       try {
-        const normalizedAddress = normalizeAddress(args.agentAddress);
+        const agentAddress = getAgentAddress(args.agentIndex);
+        if (!agentAddress) {
+          return {
+            success: false,
+            message: `No agent address found for ${args.agentIndex}`,
+            timestamp: Date.now(),
+          };
+        }
+        const normalizedAddress = normalizeAddress(agentAddress);
         const gameSessionId = await getGameSessionId();
 
         const result = await executeQuery(GET_AGENT_LIQUIDITY_POSITIONS, {
@@ -225,7 +230,7 @@ export const indexerActions = [
         if (!result || !result.liquidityPosition || !Array.isArray(result.liquidityPosition)) {
           return {
             success: true,
-            message: `No liquidity positions found for address ${args.agentAddress}`,
+            message: `No liquidity positions found for ${args.agentIndex}`,
             data: { liquidityPosition: [] },
             timestamp: Date.now(),
           };
@@ -233,7 +238,7 @@ export const indexerActions = [
 
         return {
           success: true,
-          message: `Successfully retrieved ${result.liquidityPosition.length} liquidity positions for address ${args.agentAddress}`,
+          message: `Successfully retrieved ${result.liquidityPosition.length} liquidity positions for ${args.agentIndex}`,
           data: result,
           timestamp: Date.now(),
         };
@@ -259,14 +264,19 @@ export const indexerActions = [
     instructions:
       "Use this action when you need to view your own or another agent's farm positions",
     schema: z.object({
-      agentAddress: z
-        .string()
-        .regex(/^0x[a-fA-F0-9]+$/)
-        .describe("Agent address to query farm positions for."),
+      agentIndex: z.enum(availableAgentIds).describe("Agent ID to query farm positions for."),
     }),
     handler: async (args, _ctx, _agent) => {
       try {
-        const normalizedAddress = normalizeAddress(args.agentAddress);
+        const agentAddress = getAgentAddress(args.agentIndex);
+        if (!agentAddress) {
+          return {
+            success: false,
+            message: `No agent address found for ${args.agentIndex}`,
+            timestamp: Date.now(),
+          };
+        }
+        const normalizedAddress = normalizeAddress(agentAddress);
         const gameSessionId = await getGameSessionId();
 
         const result = await executeQuery(GET_AGENT_FARM_POSITIONS, {
@@ -277,7 +287,7 @@ export const indexerActions = [
         if (!result || !result.agentStake || !Array.isArray(result.agentStake)) {
           return {
             success: true,
-            message: `No farm positions found for address ${args.agentAddress}`,
+            message: `No farm positions found for ${args.agentIndex}`,
             data: { farmPositions: [] },
             timestamp: Date.now(),
           };
@@ -285,7 +295,7 @@ export const indexerActions = [
 
         return {
           success: true,
-          message: `Successfully retrieved ${result.agentStake.length} farm positions for address ${args.agentAddress}`,
+          message: `Successfully retrieved ${result.agentStake.length} farm positions for ${args.agentIndex}`,
           data: result,
           timestamp: Date.now(),
         };
@@ -340,11 +350,15 @@ export const indexerActions = [
         // Handle the nested data structure correctly
         const gameSession = result.gameSession["0"] || result.gameSession;
         const isActive = !gameSession.gameSuspended && !gameSession.gameOver;
-        const status = gameSession.gameOver ? "over" : gameSession.gameSuspended ? "suspended" : "active";
+        const status = gameSession.gameOver
+          ? "over"
+          : gameSession.gameSuspended
+            ? "suspended"
+            : "active";
 
         return {
           success: true,
-          message: `Game session at ${sessionAddress} is ${status}`,
+          message: `Game session is ${status}`,
           data: {
             ...gameSession,
             isActive,

@@ -12,13 +12,13 @@ export const EXECUTION = `
   
   <execution_mode>
     <primary>Execute YOUR chosen strategy based on current resources and opportunities</primary>
-    <immediate>Check He3 balance - if ≥7,000,000 call end_game() IMMEDIATELY</immediate>
+    <immediate>Check He3 balance - if ≥7,000,000 call endGameSession action IMMEDIATELY</immediate>
     <creative>Find innovative ways to optimize your approach</creative>
     <adaptive>Adjust tactics based on what you observe working</adaptive>
   </execution_mode>
   
   <core_priorities>
-    1. WIN CHECK: If He3 ≥ 7,000,000 → call end_game() NOW
+    1. WIN CHECK: If He3 ≥ 7,000,000 → call endGameSession action NOW
     2. EXECUTE: Take the next action that advances YOUR strategy
     3. OPTIMIZE: Look for creative improvements to your approach
     4. ADAPT: Adjust based on results and opportunities you see
@@ -53,7 +53,7 @@ export const EXECUTION = `
   
   <victory_protocol>
     Step 1: Check current He3 balance
-    Step 2: If He3 ≥ 7,000,000 → CALL END_GAME() IMMEDIATELY
+    Step 2: If He3 ≥ 7,000,000 → CALL endGameSession ACTION IMMEDIATELY
     Step 3: Do NOT wait or hesitate - first to call wins
   </victory_protocol>
   

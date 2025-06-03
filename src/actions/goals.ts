@@ -14,9 +14,9 @@ const MAX_GOALS_PER_CATEGORY = 50;
 export const goalActions = [
   action({
     name: "addTask",
-    description: "Creates and adds a new task to the agent's goal list",
+    description: "Creates and adds a new task to your goal list",
     instructions:
-      "Use this action when an agent needs to add a new task to their goals with specific priority and timeframe",
+      "Use this action when you need to add a new task to your goals with specific priority and timeframe",
     schema: z.object({
       task: z.string().describe("Description of the task to add to the goal list"),
       priority: z
@@ -97,9 +97,9 @@ export const goalActions = [
 
   action({
     name: "setGoalPlan",
-    description: "Sets the complete goal planning structure for an agent",
+    description: "Sets the complete goal planning structure for you",
     instructions:
-      "Use this action when an agent needs to establish or completely replace their entire goal structure",
+      "Use this action when you need to establish or completely replace your entire goal structure",
     schema: z.object({
       goal: goalPlanningSchema.describe(
         "Complete goal structure with long_term, medium_term, and short_term goals"
@@ -170,7 +170,7 @@ export const goalActions = [
     name: "updateGoal",
     description: "Updates properties of a specific goal by ID",
     instructions:
-      "Use this action when an agent needs to modify an existing goal's attributes like description or priority",
+      "Use this action when you need to modify an existing goal's attributes like description or priority",
     schema: z.object({
       goal: goalSchema.describe("Goal object with the updated fields (must include the goal's id)"),
       term: z
@@ -252,9 +252,9 @@ export const goalActions = [
 
   action({
     name: "deleteGoal",
-    description: "Removes a goal from the agent's goal list",
+    description: "Removes a goal from your goal list",
     instructions:
-      "Use this action when an agent needs to remove a goal that is no longer relevant or has been completed",
+      "Use this action when you need to remove a goal that is no longer relevant or has been completed",
     schema: z.object({
       goalId: z.string().describe("Unique ID of the goal to delete"),
       term: z

@@ -11,7 +11,7 @@ export const START = `
   </initialization_steps>
   
   <game_basics>
-    - Victory: Accumulate 7,000,000 He3 tokens first, then call end_game()
+    - Victory: Accumulate 7,000,000 He3 tokens first, then call endGameSession action
     - Base resources: Claim wD, C, Nd from faucet every hour (700k wD, 100k C, 210k Nd)
     - Production chains: C→GRP→GPH and Nd→Dy→Y, then GPH+Y→He3
     - All operations use token symbols: wD, C, Nd, GRP, Dy, GPH, Y, He3

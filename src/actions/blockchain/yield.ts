@@ -21,8 +21,8 @@ interface PendingRewards {
 export const yieldActions = [
   action({
     name: "depositToFarm",
-    description: "Deposits LP token into a farm for yield farming and generate rewards",
-    instructions: "Use this action when you want to stake LP tokens in a farm to earn rewards",
+    description: "Deposits LP token into a farm to generate rewards",
+    instructions: "Use this action when you want to deposit LP tokens into a farm",
     schema: z.object({
       tokenA: z
         .enum(availableTokenSymbols)
@@ -127,9 +127,8 @@ export const yieldActions = [
           message: `Successfully deposited ${args.amount} LP tokens to farm ${args.tokenA}/${args.tokenB}`,
           txHash: result.transactionHash,
           data: {
-            farmIndex: farmIndex,
+            farm: `${args.tokenA}/${args.tokenB}`,
             amount: args.amount,
-            lpToken,
           },
           timestamp: Date.now(),
         };
@@ -151,9 +150,9 @@ export const yieldActions = [
 
   action({
     name: "withdrawFromFarm",
-    description: "Withdraw LP tokens from a farm and get your LP tokens back",
+    description: "Withdraws LP tokens from a farm and get your LP tokens back",
     instructions:
-      "Use this action when you want to withdraw an amount of your staked LP tokens from a farm",
+      "Use this action when you want to withdraw an amount of your deposited LP tokens from a farm",
     schema: z.object({
       tokenA: z
         .enum(availableTokenSymbols)
@@ -238,7 +237,7 @@ export const yieldActions = [
           message: `Successfully withdrew ${args.amount} LP tokens from farm ${args.tokenA}/${args.tokenB}`,
           txHash: result.transactionHash,
           data: {
-            farmIndex: farmIndex,
+            farm: `${args.tokenA}/${args.tokenB}`,
             amount: args.amount,
           },
           timestamp: Date.now(),
@@ -261,7 +260,7 @@ export const yieldActions = [
 
   action({
     name: "exitFarm",
-    description: "Withdraw all LP tokens and rewards from a farm",
+    description: "Withdraws all LP tokens and rewards from a farm",
     instructions:
       "Use this action when you want to completely exit a farm, withdrawing all LP tokens and harvesting all rewards",
     schema: z.object({
@@ -341,11 +340,11 @@ export const yieldActions = [
 
         return {
           success: true,
-          message: `Successfully exited farm ${args.tokenA}/${args.tokenB}, withdrew all LP tokens (approximately ${stakedAmount})`,
+          message: `Successfully exited farm ${args.tokenA}/${args.tokenB}, withdrew all LP tokens (approximately ${formatTokenBalance(BigInt(stakedAmount))})`,
           txHash: result.transactionHash,
           data: {
-            farmIndex: farmIndex,
-            exitedAmount: stakedAmount,
+            farm: `${args.tokenA}/${args.tokenB}`,
+            exitedAmount: formatTokenBalance(BigInt(stakedAmount)),
           },
           timestamp: Date.now(),
         };
@@ -367,9 +366,9 @@ export const yieldActions = [
 
   action({
     name: "harvestRewards",
-    description: "Harvest rewards from a farm",
+    description: "Harvests rewards from a farm",
     instructions:
-      "Use this action when you want to collect earned rewards without withdrawing your staked LP tokens",
+      "Use this action when you want to collect earned rewards without withdrawing your deposited LP tokens",
     schema: z.object({
       tokenA: z
         .enum(availableTokenSymbols)
@@ -468,9 +467,8 @@ export const yieldActions = [
           message: `Successfully harvested rewards from farm ${args.tokenA}/${args.tokenB}`,
           txHash: result.transactionHash,
           data: {
-            farmIndex: farmIndex,
-            rewardTokens,
-            harvestedAmounts: pendingRewards,
+            farm: `${args.tokenA}/${args.tokenB}`,
+            harvestedAmounts: formatTokenBalance(BigInt(pendingRewards[rewardTokens[0]])),
           },
           timestamp: Date.now(),
         };
@@ -492,7 +490,7 @@ export const yieldActions = [
 
   action({
     name: "checkPendingRewards",
-    description: "Check the amount of pending rewards in a farm",
+    description: "Checks the amount of pending rewards in a farm",
     instructions:
       "Use this action when you want to know how much of a specific reward token you've earned",
     schema: z.object({
@@ -570,11 +568,10 @@ export const yieldActions = [
 
         return {
           success: true,
-          message: `You have ${earnedAmount} of reward token ${rewardTokenAddress} pending in farm ${args.tokenA}/${args.tokenB}`,
+          message: `You have ${formatTokenBalance(BigInt(earnedAmount))} of reward pending in farm ${args.tokenA}/${args.tokenB}`,
           data: {
-            farmIndex: farmIndex,
-            rewardToken: rewardTokenAddress,
-            earnedAmount,
+            farm: `${args.tokenA}/${args.tokenB}`,
+            earnedAmount: formatTokenBalance(BigInt(earnedAmount)),
           },
           timestamp: Date.now(),
         };

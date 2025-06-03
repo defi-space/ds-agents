@@ -1,6 +1,12 @@
 import { action, z } from "@daydreamsai/core";
 import { executeQuery, normalizeAddress } from "../../utils/graphql";
-import { getStarknetChain, getTokenBalance, convertU256ToDecimal } from "../../utils/starknet";
+import {
+  getStarknetChain,
+  getTokenBalance,
+  convertU256ToDecimal,
+  formatTokenBalance,
+  getCurrentAgentId,
+} from "../../utils/starknet";
 import { getCoreAddress, getAgentAddress, getResourceAddress } from "../../utils/contracts";
 import { GET_GAME_SESSION_STATUS } from "../../utils/queries";
 
@@ -8,9 +14,9 @@ export const gameActions = [
   action({
     name: "endGameSession",
     description:
-      "Ends the current game session if you have reached the winning threshold of helium-3 (He3) tokens",
+      "Ends the current game session if you have reached the winning threshold of He3 tokens",
     instructions:
-      "Use this action when you have accumulated enough helium-3 (He3) tokens to win and want to end the game session",
+      "Use this action when you have accumulated enough He3 tokens to win and want to end the game session",
     schema: z.object({
       message: z.string().describe("Not used - can be ignored").default("None"),
     }),
@@ -78,11 +84,11 @@ export const gameActions = [
         if (he3Balance < formattedWinThreshold) {
           return {
             success: false,
-            message: `Cannot end game: agent has ${he3Balance.toString()} Helium-3 (He3) tokens but needs ${formattedWinThreshold} Helium-3 (He3) total tokens to win`,
+            message: `Cannot end game: agent has ${formatTokenBalance(he3Balance)} He3 tokens but needs ${formatTokenBalance(formattedWinThreshold)} He3 to win`,
             data: {
-              currentBalance: he3Balance.toString(),
-              requiredBalance: String(formattedWinThreshold),
-              remaining: (formattedWinThreshold - he3Balance).toString(),
+              currentBalance: formatTokenBalance(he3Balance),
+              requiredBalance: formatTokenBalance(formattedWinThreshold),
+              remaining: formatTokenBalance(formattedWinThreshold - he3Balance),
             },
             timestamp: Date.now(),
           };
@@ -109,10 +115,8 @@ export const gameActions = [
           message: "Successfully ended the game and claimed victory!",
           txHash: result.transactionHash,
           data: {
-            gameSession: {
-              address: sessionAddress,
-              winningAgent: agentAddress,
-            },
+            gameSessionAddress: sessionAddress,
+            winningAgentIndex: getCurrentAgentId(),
           },
           timestamp: Date.now(),
         };

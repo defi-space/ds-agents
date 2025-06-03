@@ -51,10 +51,10 @@ export const utilsActions = [
 
         return {
           success: true,
-          message: `Current balance of token ${args.token}: ${adjustedBalance}`,
+          message: `Current balance of ${args.token}: ${adjustedBalance}`,
           data: {
+            token: args.token,
             balance: adjustedBalance,
-            tokenAddress: tokenAddress,
           },
           timestamp: Date.now(),
         };

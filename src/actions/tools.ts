@@ -7,6 +7,7 @@ import {
   rankAgentsByHe3,
   rankAgentsByProgression,
 } from "../utils/competition";
+import { availableAgentIds, getAgentAddress } from "src/utils/contracts";
 
 export const toolActions = [
   action({
@@ -21,7 +22,9 @@ export const toolActions = [
       return {
         success: true,
         message: "Successfully retrieved complete defi.space context",
-        data: DS_CONTEXT,
+        data: {
+          context: DS_CONTEXT,
+        },
         timestamp: Date.now(),
       };
     },
@@ -39,29 +42,17 @@ export const toolActions = [
     instructions:
       "Use this action when you need to know the current state of an agent, including their balances, positions, game stage, and strategy",
     schema: z.object({
-      agentId: z
-        .string()
-        .describe("Agent ID to analyze (defaults to current agent if not provided)")
-        .optional(),
+      agentIndex: z.enum(availableAgentIds).describe("Agent ID to analyze."),
     }),
     async handler(args, _ctx, _agent) {
       try {
-        const agentId = args.agentId || getCurrentAgentId();
-
-        if (!agentId) {
-          return {
-            success: false,
-            message: "Failed to get agent data: could not determine agent ID",
-            timestamp: Date.now(),
-          };
-        }
-
-        const agentData = await getAgentData(agentId);
+        const agentData = await getAgentData(args.agentIndex);
 
         return {
           success: true,
-          message: `Successfully retrieved comprehensive data for agent ${agentId}`,
+          message: `Successfully retrieved comprehensive data for ${args.agentIndex}`,
           data: {
+            agent: args.agentIndex,
             agentData,
             summary: {
               gameStage: agentData.gameStage,
@@ -94,15 +85,13 @@ export const toolActions = [
     instructions:
       "Use this action when you need to compare yourself with another agent, including their balances, positions, game stage, and strategy",
     schema: z.object({
-      competitorAgentId: z.string().describe("Agent ID to compare"),
+      competitorAgentIndex: z.enum(availableAgentIds).describe("Agent ID to compare."),
     }),
     async handler(args, _ctx, _agent) {
       try {
-        const { competitorAgentId } = args;
+        const agentIndex = getCurrentAgentId();
 
-        const agentId = getCurrentAgentId();
-
-        if (competitorAgentId === agentId) {
+        if (args.competitorAgentIndex === agentIndex) {
           return {
             success: false,
             message: "Cannot compare: both agent IDs are the same",
@@ -110,23 +99,25 @@ export const toolActions = [
           };
         }
 
-        const comparison = await compareAgents(agentId, competitorAgentId);
+        const comparison = await compareAgents(agentIndex, args.competitorAgentIndex);
 
         // Create a summary for easier understanding
         const summary = {
           overall_winner: comparison.winner.overall,
           he3_leader: comparison.winner.he3,
           strategic_leader: comparison.winner.strategy,
-          game_stages: `${agentId}: ${comparison.agent1.gameStage}, ${competitorAgentId}: ${comparison.agent2.gameStage}`,
-          strategy_focus: `${agentId}: ${comparison.agent1.strategyFocus}, ${competitorAgentId}: ${comparison.agent2.strategyFocus}`,
+          game_stages: `${agentIndex}: ${comparison.agent1.gameStage}, ${args.competitorAgentIndex}: ${comparison.agent2.gameStage}`,
+          strategy_focus: `${agentIndex}: ${comparison.agent1.strategyFocus}, ${args.competitorAgentIndex}: ${comparison.agent2.strategyFocus}`,
           key_insights: comparison.differences,
           strategic_analysis: comparison.strategicAnalysis,
         };
 
         return {
           success: true,
-          message: `Successfully compared agents ${agentId} and ${competitorAgentId}`,
+          message: `Successfully compared agents ${agentIndex} and ${args.competitorAgentIndex}`,
           data: {
+            agent: agentIndex,
+            competitorAgent: args.competitorAgentIndex,
             comparison,
             summary,
           },

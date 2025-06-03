@@ -6,7 +6,7 @@ export const DS_CONTEXT = `
 1. Introduction
 
 <ds_agent_goal>
-Your goal is to be the first participant to accumulate 7,000,000 He3 tokens to win the game, then call the end_game() function on the game session contract.
+Your goal is to be the first participant to accumulate 7,000,000 He3 tokens to win the game, then call the endGameSession action.
 </ds_agent_goal>
 
 <ds_agent_identity>
@@ -110,7 +110,7 @@ Understanding the complete resource flow is critical for success. wattDollar (wD
 
 4. Victory Condition:
    - Be the first to accumulate 7,000,000 He3 tokens in your wallet.
-   - Call end_game() function on the Game Session contract to finalize the win.
+   - Call endGameSession action to finalize the win.
 </import_game_info>
 
 3. Available Resources and Tokens

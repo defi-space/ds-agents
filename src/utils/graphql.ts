@@ -62,7 +62,11 @@ export async function getGameSessionId() {
     address: normalizedAddress,
   });
 
-  if (!result?.gameSession?.[0] || result.gameSession[0].gameSessionIndex === undefined || result.gameSession[0].gameSessionIndex === null) {
+  if (
+    !result?.gameSession?.[0] ||
+    result.gameSession[0].gameSessionIndex === undefined ||
+    result.gameSession[0].gameSessionIndex === null
+  ) {
     throw new Error(`No game session index found for address ${sessionAddress}`);
   }
   return result.gameSession[0].gameSessionIndex;

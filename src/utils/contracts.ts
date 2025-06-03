@@ -5,7 +5,10 @@ export type ContractCategory = "core" | "resources" | "pairs" | "farms" | "agent
 
 export const availableTokenSymbols = ["wD", "Nd", "Dy", "Y", "C", "GRP", "GPH", "He3"] as const;
 
+export const availableAgentIds = ["agent-1", "agent-2", "agent-3", "agent-4"] as const;
+
 export type TokenSymbol = (typeof availableTokenSymbols)[number];
+export type AgentId = (typeof availableAgentIds)[number];
 
 /**
  * Get a trading pair address by token symbols

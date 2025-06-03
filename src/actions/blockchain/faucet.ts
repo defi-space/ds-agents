@@ -76,8 +76,9 @@ export const faucetActions = [
         if (!status.canClaim) {
           return {
             success: false,
-            message: `Cannot claim yet. Please wait approximately ${status.minutesLeft} minutes before claiming again.`,
+            message: `Cannot claim yet.\nPlease wait approximately ${status.minutesLeft} minutes before claiming again.`,
             data: {
+              secondsLeft: status.timeLeft,
               minutesLeft: status.minutesLeft,
               nextClaimTime: new Date((status.lastClaim + status.interval) * 1000).toISOString(),
             },
@@ -97,7 +98,7 @@ export const faucetActions = [
           return {
             success: false,
             message:
-              "Failed to claim tokens from faucet. The transaction was submitted but did not complete successfully.",
+              "Failed to claim tokens from faucet.\nThe transaction was submitted but did not complete successfully.",
             receipt: result,
             timestamp: Date.now(),
           };
@@ -111,9 +112,9 @@ export const faucetActions = [
           txHash: result.transactionHash,
           data: {
             claimedTokens: {
-              wattDollar: "7,000,000",
-              carbon: "100,000",
-              neodymium: "210,000",
+              wD: "7,000,000",
+              C: "100,000",
+              Nd: "210,000",
             },
             nextClaimTime: new Date(
               (Math.floor(Date.now() / 1000) + status.interval) * 1000
@@ -180,12 +181,10 @@ export const faucetActions = [
             ? "You can claim tokens from the faucet now"
             : `You need to wait approximately ${status.minutesLeft} minutes before claiming again`,
           data: {
-            timeLeft: status.timeLeft,
+            secondsLeft: status.timeLeft,
             minutesLeft: status.minutesLeft,
             lastClaim: status.lastClaim,
-            lastClaimTime: new Date(status.lastClaim * 1000).toISOString(),
             interval: status.interval,
-            intervalInHours: Math.round((status.interval / 3600) * 10) / 10,
             canClaim: status.canClaim,
             nextClaimTime: status.canClaim
               ? "Available now"

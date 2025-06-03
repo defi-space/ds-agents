@@ -34,7 +34,7 @@ export const ammActions = [
       tokenOut: z
         .enum(availableTokenSymbols)
         .describe(`Token symbol to receive. Available tokens: ${availableTokenSymbols.join(", ")}`),
-      amountIn: z.string().describe("Amount of input tokens in a human readable format."),
+      amountIn: z.string().describe("Amount of input tokens, in a human readable format."),
     }),
     handler: async (args, _ctx, _agent) => {
       try {
@@ -98,7 +98,7 @@ export const ammActions = [
         if (pairAddress === "0x0" || pairAddress === "0x00") {
           return {
             success: false,
-            message: `Cannot calculate amount out: no liquidity pair exists for ${args.tokenIn} and ${args.tokenOut}. Please check context to get available pairs.`,
+            message: `Cannot calculate amount out: no liquidity pair exists for ${args.tokenIn} and ${args.tokenOut}.\nPlease check context to get available pairs.`,
             timestamp: Date.now(),
           };
         }
@@ -141,12 +141,10 @@ export const ammActions = [
           success: true,
           message: `For ${args.amountIn} of ${args.tokenIn}, you will receive approximately ${formattedAmountOut} of ${args.tokenOut}`,
           data: {
+            tokenIn: args.tokenIn,
+            tokenOut: args.tokenOut,
+            amountIn: args.amountIn,
             amountOut: formattedAmountOut,
-            tokenInAddress,
-            tokenOutAddress,
-            reserveIn: formatTokenBalance(reserveIn),
-            reserveOut: formatTokenBalance(reserveOut),
-            pairAddress,
           },
           timestamp: Date.now(),
         };
@@ -168,16 +166,19 @@ export const ammActions = [
 
   action({
     name: "quote",
-    description: "Provides a quote for swapping tokens based on current pool reserves.",
-    instructions: "Use this action when you need a simple quote for token swap.",
+    description: "Provides a quote for adding liquidity to a token pair.",
+    instructions:
+      "Use this action when you need to know how much of a token you need to add to a pair to get a specific amount of the other token.",
     schema: z.object({
       tokenIn: z
         .enum(availableTokenSymbols)
-        .describe(`Token name to swap from. Available tokens: ${availableTokenSymbols.join(", ")}`),
+        .describe(
+          `Token symbol to swap from. Available tokens: ${availableTokenSymbols.join(", ")}`
+        ),
       tokenOut: z
         .enum(availableTokenSymbols)
-        .describe(`Token name to receive. Available tokens: ${availableTokenSymbols.join(", ")}`),
-      amountIn: z.string().describe("Amount of input tokens in a human readable format."),
+        .describe(`Token symbol to receive. Available tokens: ${availableTokenSymbols.join(", ")}`),
+      amountIn: z.string().describe("Amount of input tokens, in a human readable format."),
     }),
     handler: async (args, _ctx, _agent) => {
       try {
@@ -240,7 +241,7 @@ export const ammActions = [
         if (pairAddress === "0x0" || pairAddress === "0x00") {
           return {
             success: false,
-            message: `Cannot calculate quote: no liquidity pair exists for ${args.tokenIn} and ${args.tokenOut}. Please check context to get available pairs.`,
+            message: `Cannot calculate quote: no liquidity pair exists for ${args.tokenIn} and ${args.tokenOut}.\nPlease check context to get available pairs.`,
             timestamp: Date.now(),
           };
         }
@@ -272,11 +273,14 @@ export const ammActions = [
         // Return result
         return {
           success: true,
-          message: `For ${args.amountIn} of ${args.tokenIn}, you will receive approximately ${formattedAmountOut} of ${args.tokenOut}`,
+          message: `For ${args.amountIn} of ${args.tokenIn}, you need to add ${formattedAmountOut} of ${args.tokenOut}`,
           data: {
+            tokenIn: args.tokenIn,
+            tokenOut: args.tokenOut,
+            amountIn: args.amountIn,
             amountOut: formattedAmountOut,
-            tokenInAddress,
-            tokenOutAddress,
+            reserveIn: formatTokenBalance(reserveIn),
+            reserveOut: formatTokenBalance(reserveOut),
           },
           timestamp: Date.now(),
         };
@@ -304,11 +308,13 @@ export const ammActions = [
     schema: z.object({
       tokenIn: z
         .enum(availableTokenSymbols)
-        .describe(`Token name to swap from. Available tokens: ${availableTokenSymbols.join(", ")}`),
+        .describe(
+          `Token symbol to swap from. Available tokens: ${availableTokenSymbols.join(", ")}`
+        ),
       tokenOut: z
         .enum(availableTokenSymbols)
-        .describe(`Token name to receive. Available tokens: ${availableTokenSymbols.join(", ")}`),
-      amountIn: z.string().describe("Amount of input tokens in a human readable format."),
+        .describe(`Token symbol to receive. Available tokens: ${availableTokenSymbols.join(", ")}`),
+      amountIn: z.string().describe("Amount of input tokens, in a human readable format."),
     }),
     handler: async (args, _ctx, _agent) => {
       try {
@@ -375,7 +381,7 @@ export const ammActions = [
         if (pairAddress === "0x0" || pairAddress === "0x00") {
           return {
             success: false,
-            message: `Cannot execute swap: no liquidity pair exists for ${args.tokenIn} and ${args.tokenOut}. Please check context to get available pairs.`,
+            message: `Cannot execute swap: no liquidity pair exists for ${args.tokenIn} and ${args.tokenOut}.\nPlease check context to get available pairs.`,
             timestamp: Date.now(),
           };
         }
@@ -423,6 +429,11 @@ export const ammActions = [
         return {
           success: true,
           message: `Swap executed successfully: ${args.tokenIn} → ${args.tokenOut}`,
+          data: {
+            tokenIn: args.tokenIn,
+            tokenOut: args.tokenOut,
+            amountIn: args.amountIn,
+          },
           txHash: result.transactionHash,
           timestamp: Date.now(),
         };
@@ -445,22 +456,23 @@ export const ammActions = [
   action({
     name: "addLiquidity",
     description: "Adds liquidity to a liquidity pool",
-    instructions:
-      "Use this action when you want to provide liquidity to a trading token pair.",
+    instructions: "Use this action when you want to provide liquidity to a token pair.",
     schema: z.object({
       tokenA: z
         .enum(availableTokenSymbols)
         .describe(
-          `First token name in the liquidity pair. Available tokens: ${availableTokenSymbols.join(", ")}`
+          `First token symbol in the liquidity pair. Available tokens: ${availableTokenSymbols.join(", ")}`
         ),
       tokenB: z
         .enum(availableTokenSymbols)
         .describe(
-          `Second token name in the liquidity pair. Available tokens: ${availableTokenSymbols.join(", ")}`
+          `Second token symbol in the liquidity pair. Available tokens: ${availableTokenSymbols.join(", ")}`
         ),
       amountADesired: z
         .string()
-        .describe("Desired amount of first token to deposit in the liquidity pool."),
+        .describe(
+          "Desired amount of first token to deposit in the liquidity pool, in a human readable format."
+        ),
     }),
     handler: async (args, _ctx, _agent) => {
       try {
@@ -535,7 +547,7 @@ export const ammActions = [
         if (!optimalAmounts.isFirstProvision && (pairAddress === "0x0" || pairAddress === "0x00")) {
           return {
             success: false,
-            message: `Cannot add liquidity: no liquidity pair exists for ${args.tokenA} and ${args.tokenB}. Please check context to get available pairs.`,
+            message: `Cannot add liquidity: no liquidity pair exists for ${args.tokenA} and ${args.tokenB}.\nPlease check context to get available pairs.`,
             timestamp: Date.now(),
           };
         }
@@ -550,14 +562,14 @@ export const ammActions = [
         if (balanceA < BigInt(amountA)) {
           return {
             success: false,
-            message: `Insufficient balance for ${args.tokenA}, consider decreasing amountADesired. amountA: ${formatTokenBalance(BigInt(amountA))}, balance: ${formatTokenBalance(balanceA)}`,
+            message: `Insufficient balance for ${args.tokenA}, consider decreasing amountADesired. amount: ${formatTokenBalance(BigInt(amountA))} ${args.tokenA}, balance: ${formatTokenBalance(balanceA)} ${args.tokenA}.\nCall quote action to get the exact amountADesired to add.`,
             timestamp: Date.now(),
           };
         }
         if (balanceB < BigInt(amountB)) {
           return {
             success: false,
-            message: `Insufficient balance for ${args.tokenB}, consider decreasing amountADesired. amountB: ${formatTokenBalance(BigInt(amountB))}, balance: ${formatTokenBalance(balanceB)}`,
+            message: `Insufficient balance for ${args.tokenB}, consider decreasing amountADesired. amount: ${formatTokenBalance(BigInt(amountB))} ${args.tokenB}, balance: ${formatTokenBalance(balanceB)} ${args.tokenB}.\nCall quote action to get the exact amountADesired to add.`,
             timestamp: Date.now(),
           };
         }
@@ -596,6 +608,12 @@ export const ammActions = [
         return {
           success: true,
           message: `Liquidity added successfully for ${args.tokenA}/${args.tokenB} pair`,
+          data: {
+            tokenA: args.tokenA,
+            tokenB: args.tokenB,
+            amountA: formatTokenBalance(BigInt(amountA)),
+            amountB: formatTokenBalance(BigInt(amountB)),
+          },
           txHash: result.transactionHash,
           timestamp: Date.now(),
         };
@@ -618,18 +636,17 @@ export const ammActions = [
   action({
     name: "removeLiquidity",
     description: "Removes liquidity from a liquidity pool",
-    instructions:
-      "Use this action when you want to withdraw your liquidity from a liquidity pool.",
+    instructions: "Use this action when you want to withdraw your liquidity from a liquidity pool.",
     schema: z.object({
       tokenA: z
         .enum(availableTokenSymbols)
         .describe(
-          `First token name to receive back. Available tokens: ${availableTokenSymbols.join(", ")}`
+          `First token symbol to receive back. Available tokens: ${availableTokenSymbols.join(", ")}`
         ),
       tokenB: z
         .enum(availableTokenSymbols)
         .describe(
-          `Second token name to receive back. Available tokens: ${availableTokenSymbols.join(", ")}`
+          `Second token symbol to receive back. Available tokens: ${availableTokenSymbols.join(", ")}`
         ),
       liquidity: z.string().describe("Amount of LP tokens to burn, in a human readable format."),
     }),
@@ -688,7 +705,7 @@ export const ammActions = [
         if (pairAddress === "0x0" || pairAddress === "0x00") {
           return {
             success: false,
-            message: `Cannot remove liquidity: no liquidity pair exists for ${args.tokenA} and ${args.tokenB}. Please check context to get available pairs.`,
+            message: `Cannot remove liquidity: no liquidity pair exists for ${args.tokenA} and ${args.tokenB}.\nPlease check context to get available pairs.`,
             timestamp: Date.now(),
           };
         }
@@ -698,7 +715,7 @@ export const ammActions = [
         if (BigInt(liquidity) > balance) {
           return {
             success: false,
-            message: `Cannot remove liquidity: insufficient LP token balance for ${args.tokenA}/${args.tokenB} pair. liquidity: ${args.liquidity}, balance: ${balance}`,
+            message: `Cannot remove liquidity: insufficient LP token balance for ${args.tokenA}/${args.tokenB} pair. liquidity: ${args.liquidity}, balance: ${formatTokenBalance(balance)}`,
             timestamp: Date.now(),
           };
         }
@@ -737,6 +754,11 @@ export const ammActions = [
         return {
           success: true,
           message: `Liquidity removed successfully from ${args.tokenA}/${args.tokenB} pair`,
+          data: {
+            tokenA: args.tokenA,
+            tokenB: args.tokenB,
+            liquidity: args.liquidity,
+          },
           txHash: result.transactionHash,
           timestamp: Date.now(),
         };
