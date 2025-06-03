@@ -6,16 +6,21 @@ export const GET_PAIR_INFO = gql`
     pair(where: { address: { _eq: $address }, gameSessionId: { _eq: $gameSessionId } }) {
       address
       factoryAddress
+      gameSessionId
+      lpTokenName
+      lpTokenSymbol
       token0Address
+      token0Name
+      token0Symbol
       token1Address
+      token1Name
+      token1Symbol
       reserve0
       reserve1
       totalSupply
-      gameSessionId
       factory {
         address
-        owner
-        feeTo
+        numOfPairs
       }
     }
   }
@@ -24,26 +29,25 @@ export const GET_PAIR_INFO = gql`
 export const GET_FARM_INFO = gql`
   query GetFarmInfo($address: String!, $gameSessionId: Int!) {
     farm(where: { address: { _eq: $address }, gameSessionId: { _eq: $gameSessionId } }) {
-      address
+      address 
       factoryAddress
-      lpTokenAddress
-      totalStaked
-      owner
-      activeRewards
-      penaltyDuration
-      multiplier
-      withdrawPenalty
-      penaltyReceiver
+      farmIndex
       gameSessionId
-      rewardEvents(order_by: { createdAt: desc }, limit: 1) {
-        transactionHash
-        eventType
-        rewardToken
-        rewardAmount
-        rewardDuration
-        rewardRate
+      lpTokenAddress
+      lpTokenName
+      lpTokenSymbol
+      rewardTokens
+      totalStaked
+      activeRewards
+      rewards {
+        address
+        decimals
+        initialAmount
+        remainingAmount
+        rewardTokenName
+        rewardTokenSymbol
         periodFinish
-        createdAt
+        rewardsDuration
       }
     }
   }
@@ -52,22 +56,25 @@ export const GET_FARM_INFO = gql`
 export const GET_ALL_FARMS = gql`
   query GetAllFarms($gameSessionId: Int!) {
     farm(where: { gameSessionId: { _eq: $gameSessionId } }) {
-      address
+      address 
       factoryAddress
       farmIndex
+      gameSessionId
       lpTokenAddress
+      lpTokenName
+      lpTokenSymbol
+      rewardTokens
       totalStaked
       activeRewards
-      penaltyDuration
-      withdrawPenalty
-      penaltyReceiver
-      gameSessionId
-      rewardEvents(order_by: { createdAt: desc }, limit: 1) {
-        rewardToken
-        rewardAmount
-        rewardDuration
-        rewardRate
+      rewards {
+        address
+        decimals
+        initialAmount
+        remainingAmount
+        rewardTokenName
+        rewardTokenSymbol
         periodFinish
+        rewardsDuration
       }
     }
   }
@@ -81,51 +88,50 @@ export const GET_AGENT_LIQUIDITY_POSITIONS = gql`
         pair: { gameSessionId: { _eq: $gameSessionId } }
       }
     ) {
-      pairAddress
       agentAddress
-      liquidity
       depositsToken0
       depositsToken1
       withdrawalsToken0
       withdrawalsToken1
+      liquidity
+      pairAddress
       pair {
+        gameSessionId
+        lpTokenName
+        lpTokenSymbol
         token0Address
+        token0Name
+        token0Symbol
         token1Address
+        token1Name
+        token1Symbol
         reserve0
         reserve1
         totalSupply
-        gameSessionId
       }
     }
   }
 `;
 
-export const GET_AGENT_STAKE_POSITIONS = gql`
-  query GetAgentStakePositions($agentAddress: String!, $gameSessionId: Int!) {
+export const GET_AGENT_FARM_POSITIONS = gql`
+  query GetAgentFarmPositions($agentAddress: String!, $gameSessionId: Int!) {
     agentStake(
       where: { 
         agentAddress: { _eq: $agentAddress },
         farm: { gameSessionId: { _eq: $gameSessionId } }
       }
     ) {
-      farmAddress
       agentAddress
+      farmAddress
       stakedAmount
-      penaltyEndTime
-      rewardPerTokenPaid
-      rewards
       rewardStates {
-        rewardTokenAddress
         lastPendingRewards
+        rewardTokenAddress
         rewardPerTokenPaid
-      }
-      farm {
-        lpTokenAddress
-        totalStaked
-        activeRewards
-        penaltyDuration
-        withdrawPenalty
-        gameSessionId
+        reward {
+          rewardTokenName
+          rewardTokenSymbol
+        }
       }
     }
   }
@@ -148,12 +154,21 @@ export const GET_GAME_SESSION_STATUS = gql`
   query GetGameSessionStatus($address: String!) {
     gameSession(where: { address: { _eq: $address } }) {
       address
-      tokenWinConditionAddress
-      tokenWinConditionThreshold
       gameSuspended
       gameOver
-      winningAgentIndex
+    }
+  }
+`;
+
+export const GET_GAME_SESSION_INFO = gql`
+  query GetGameSessionInfo($address: String!) {
+    gameSession(where: { address: { _eq: $address } }) {
+      address
       gameSessionIndex
+      tokenWinConditionAddress
+      tokenWinConditionName
+      tokenWinConditionSymbol
+      tokenWinConditionThreshold
     }
   }
 `;
@@ -162,30 +177,6 @@ export const GET_GAME_SESSION_INDEX_BY_ADDRESS = gql`
   query GetGameSessionIndexByAddress($address: String!) {
     gameSession(where: { address: { _eq: $address } }) {
       gameSessionIndex
-    }
-  }
-`;
-
-export const GET_GAME_SESSION_INFO = gql`
-  query GetGameSessionInfo($address: String!) {
-    gameSession(where: { address: { _eq: $address } }) {
-      gameFactory
-      gameSessionIndex
-      agentsList
-    }
-  }
-`;
-
-export const GET_MOST_STAKED_AGENTS = gql`
-  query GetMostStakedAgents($sessionAddress: String!, $limit: Int = 5) {
-    userStake(
-      where: { sessionAddress: { _eq: $sessionAddress } }
-      order_by: { amount: desc }
-      limit: $limit
-    ) {
-      agentIndex
-      userAddress
-      amount
     }
   }
 `;
