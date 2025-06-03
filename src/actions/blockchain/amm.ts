@@ -27,7 +27,9 @@ export const ammActions = [
     schema: z.object({
       tokenIn: z
         .enum(availableTokenSymbols)
-        .describe(`Token symbol to swap from. Available tokens: ${availableTokenSymbols.join(", ")}`),
+        .describe(
+          `Token symbol to swap from. Available tokens: ${availableTokenSymbols.join(", ")}`
+        ),
       tokenOut: z
         .enum(availableTokenSymbols)
         .describe(`Token symbol to receive. Available tokens: ${availableTokenSymbols.join(", ")}`),

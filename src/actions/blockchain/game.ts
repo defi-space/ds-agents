@@ -3,11 +3,10 @@ import { executeQuery } from "../../utils/graphql";
 import {
   normalizeAddress,
   getStarknetChain,
-  getAgentAddress,
   getTokenBalance,
-  formatTokenBalance,
+  convertU256ToDecimal,
 } from "../../utils/starknet";
-import { getContractAddress } from "../../utils/contracts";
+import { getCoreAddress, getAgentAddress, getResourceAddress } from "../../utils/contracts";
 import { GET_GAME_SESSION_STATUS } from "../../utils/queries";
 
 export const gameActions = [
@@ -22,10 +21,7 @@ export const gameActions = [
     }),
     handler: async (args, ctx, agent) => {
       try {
-        // Get session address
-        const sessionAddress = getContractAddress("gameSession", "current");
-
-        // Check if session address is missing
+        const sessionAddress = getCoreAddress("gameSession");
         if (!sessionAddress) {
           return {
             success: false,
@@ -34,10 +30,8 @@ export const gameActions = [
           };
         }
 
-        // Get agent address
-        const agentAddress = await getAgentAddress();
+        const agentAddress = getAgentAddress();
 
-        // Check if agent address is missing
         if (!agentAddress) {
           return {
             success: false,
@@ -46,12 +40,10 @@ export const gameActions = [
           };
         }
 
-        // Get session status
         const sessionResult = await executeQuery(GET_GAME_SESSION_STATUS, {
           address: normalizeAddress(sessionAddress),
         });
 
-        // Check if session result is missing
         if (!sessionResult || !sessionResult.gameSession) {
           return {
             success: false,
@@ -60,7 +52,6 @@ export const gameActions = [
           };
         }
 
-        // Get game session
         const gameSession = sessionResult.gameSession;
 
         // Check if game is already over
@@ -79,41 +70,30 @@ export const gameActions = [
             timestamp: Date.now(),
           };
         }
-
-        // Get helium-3 (He3) address
-        const he3Address = getContractAddress("resources", "helium3");
-
-        // Get helium-3 (He3) balance
+        const chain = getStarknetChain();
+        const he3Address = getResourceAddress("He3");
         const he3Balance = await getTokenBalance(he3Address, agentAddress);
+        const winThreshold = await chain.read({
+          contractAddress: sessionAddress,
+          entrypoint: "get_winning_threshold",
+          calldata: [],
+        });
+        const formattedWinThreshold = convertU256ToDecimal(winThreshold[0], winThreshold[1]);
 
-        // Get win threshold
-        const winThreshold = gameSession.tokenWinConditionThreshold;
+        if (he3Balance < formattedWinThreshold) {
+          return {
+            success: false,
+            message: `Cannot end game: agent has ${he3Balance.toString()} Helium-3 (He3) tokens but needs ${formattedWinThreshold} Helium-3 (He3) total tokens to win`,
+            data: {
+              currentBalance: he3Balance.toString(),
+              requiredBalance: String(formattedWinThreshold),
+              remaining: (formattedWinThreshold - he3Balance).toString(),
+            },
+            timestamp: Date.now(),
+          };
+        }
 
-        // Convert winThreshold to string, then remove any decimal part before BigInt conversion
-        const thresholdStr = String(winThreshold);
-        const integerPart = thresholdStr.includes(".")
-            ? thresholdStr.split(".")[0]
-            : thresholdStr;
-          const winThresholdBigInt = BigInt(integerPart);
-
-          if (he3Balance < winThresholdBigInt) {
-            return {
-              success: false,
-              message: `Cannot end game: you have ${formatTokenBalance(he3Balance)} helium-3 (He3) tokens but need ${formatTokenBalance(winThresholdBigInt)} helium-3 (He3) total tokens to win`,
-              data: {
-                currentBalance: formatTokenBalance(he3Balance),
-                requiredBalance: formatTokenBalance(winThresholdBigInt),
-                remaining: formatTokenBalance(winThresholdBigInt - he3Balance),
-              },
-              timestamp: Date.now(),
-            };
-          }
-
-        // Get chain
-        const starknetChain = getStarknetChain();
-
-        // End game session
-        const result = await starknetChain.write({
+        const result = await chain.write({
           contractAddress: sessionAddress,
           entrypoint: "end_game",
           calldata: [],
@@ -129,7 +109,6 @@ export const gameActions = [
           };
         }
 
-        // Return result
         return {
           success: true,
           message: "Successfully ended the game and claimed victory!",
@@ -143,7 +122,6 @@ export const gameActions = [
           timestamp: Date.now(),
         };
       } catch (error) {
-        // Log error
         console.error("Failed to end game:", error);
         return {
           success: false,

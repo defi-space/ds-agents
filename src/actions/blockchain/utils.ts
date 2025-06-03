@@ -10,7 +10,7 @@ import {
 import { executeQuery } from "../../utils/graphql";
 import {
   GET_AGENT_LIQUIDITY_POSITIONS,
-  GET_AGENT_STAKE_POSITIONS,
+  GET_AGENT_FARM_POSITIONS,
   GET_GAME_SESSION_INDEX_BY_ADDRESS,
 } from "../../utils/queries";
 import { getContractAddress } from "../../utils/contracts";
@@ -423,15 +423,15 @@ export const utilsActions = [
         });
 
         // Get all staking positions
-        const stakePositions = await executeQuery(GET_AGENT_STAKE_POSITIONS, {
+        const farmPositions = await executeQuery(GET_AGENT_FARM_POSITIONS, {
           agentAddress: normalizeAddress(agentAddress),
           gameSessionId: gameSessionId,
         });
 
         // Process stake positions including rewardStates with lastPendingRewards
-        const stakingPositionsWithRewards =
-          stakePositions?.agentStake && Array.isArray(stakePositions.agentStake)
-            ? stakePositions.agentStake.map((stake: any) => {
+        const farmPositionsWithRewards =
+          farmPositions?.agentStake && Array.isArray(farmPositions.agentStake)
+            ? farmPositions.agentStake.map((stake: any) => {
                 // Extract rewardStates with lastPendingRewards if available
                 const rewardStates = stake.rewardStates || [];
 
@@ -526,7 +526,7 @@ export const utilsActions = [
             target: "7,000,000",
             progressPercentage: (helium3Amount / 7000000) * 100,
           },
-          activeStakes: stakingPositionsWithRewards.length,
+          activeStakes: farmPositionsWithRewards.length,
           gameSessionId: gameSessionId,
         };
 
@@ -554,7 +554,7 @@ export const utilsActions = [
               },
             },
             liquidityPositions: formattedLiquidityPositions,
-            stakePositions: stakingPositionsWithRewards,
+            farmPositions: farmPositionsWithRewards,
             progressStats,
             gameSessionId: gameSessionId,
           },

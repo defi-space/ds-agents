@@ -1,7 +1,7 @@
 import { GraphQLClient } from "graphql-request";
-import { getCoreAddress } from "./contracts";
+import { getCoreAddress, getFarmAddress } from "./contracts";
 import { normalizeAddress } from "./starknet";
-import { GET_GAME_SESSION_INDEX_BY_ADDRESS } from "./queries";
+import { GET_FARM_INFO, GET_GAME_SESSION_INDEX_BY_ADDRESS } from "./queries";
 
 // Ensure INDEXER_URL is set
 const INDEXER_URL = process.env.INDEXER_URL as string;
@@ -51,4 +51,20 @@ export async function getGameSessionId() {
     throw new Error(`No game session index found for address ${sessionAddress}`);
   }
   return result.gameSession[0].gameSessionIndex;
+}
+
+export async function getFarmIndex(tokenA: string, tokenB: string) {
+  const farmAddress = getFarmAddress(tokenA, tokenB);
+  const normalizedAddress = normalizeAddress(farmAddress);
+  const gameSessionId = await getGameSessionId();
+
+  const result = await executeQuery(GET_FARM_INFO, {
+    address: normalizedAddress,
+    gameSessionId: gameSessionId,
+  });
+
+  if (!result?.farm?.[0]?.farmIndex) {
+    throw new Error(`No farm index found for address ${farmAddress}`);
+  }
+  return result.farm[0].farmIndex;
 }

@@ -2,8 +2,7 @@ import { action, z } from "@daydreamsai/core";
 import { convertU256ToDecimal, getTokenBalance, starknetChain, toHex } from "../../utils/starknet";
 import { toUint256WithSpread } from "../../utils/starknet";
 import { executeMultiCall, getApproveCall } from "../../utils/starknet";
-import { getCoreAddress, getAgentAddress } from "src/utils/contracts";
-
+import { getCoreAddress, getAgentAddress, availableTokenSymbols } from "src/utils/contracts";
 
 // Define type for pending rewards
 interface PendingRewards {
@@ -13,30 +12,20 @@ interface PendingRewards {
 export const yieldActions = [
   action({
     name: "depositToFarm",
-    description: "Deposits paired LP tokens into a farm index/pool for yield farming and rewards",
+    description: "Deposits paired LP tokens into a farm for yield farming and rewards",
     instructions:
-      "Use this action when an agent wants to stake LP tokens in a farm index/pool to earn rewards",
+      "Use this action when you want to stake LP tokens in a farm to earn rewards",
     schema: z.object({
-      farmIndex: z
-        .string()
-        .describe("Unique farm identifier in the FarmRouter contract (numeric index as string)"),
+      tokenA: z.enum(availableTokenSymbols).describe(`First token symbol for the farm. Available tokens: ${availableTokenSymbols.join(", ")}`),
+      tokenB: z.enum(availableTokenSymbols).describe(`Second token symbol for the farm. Available tokens: ${availableTokenSymbols.join(", ")}`),
       amount: z
         .string()
         .describe(
-          "Amount of LP tokens to deposit as a string in base units (e.g., '1000000000000000000' for 1 token with 18 decimals)"
+          "Amount of LP tokens to deposit as a string in human readable format"
         ),
     }),
     handler: async (args, ctx, agent) => {
       try {
-        // Input validation
-        if (!args.farmIndex || !args.amount) {
-          return {
-            success: false,
-            message: "Both farmIndex and amount are required for deposit",
-            timestamp: Date.now(),
-          };
-        }
-
         // Get contract addresses
         const farmRouterAddress = getCoreAddress("farmRouter");
         if (!farmRouterAddress) {

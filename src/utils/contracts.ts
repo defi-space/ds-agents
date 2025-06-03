@@ -3,18 +3,9 @@ import { getCurrentAgentId } from "./starknet";
 
 export type ContractCategory = "core" | "resources" | "pairs" | "farms" | "agents";
 
-export const availableTokenSymbols = [
-  "wD",
-  "Nd", 
-  "Dy",
-  "Y",
-  "C",
-  "GRP",
-  "GPH",
-  "He3",
-] as const;
+export const availableTokenSymbols = ["wD", "Nd", "Dy", "Y", "C", "GRP", "GPH", "He3"] as const;
 
-export type TokenSymbol = typeof availableTokenSymbols[number];
+export type TokenSymbol = (typeof availableTokenSymbols)[number];
 
 /**
  * Get a trading pair address by token symbols
@@ -26,15 +17,15 @@ export function getPairAddress(tokenA: string, tokenB: string): string {
   // Try both combinations since pairs can be listed as A/B or B/A
   const pairKey1 = `${tokenA}/${tokenB}`;
   const pairKey2 = `${tokenB}/${tokenA}`;
-  
+
   const pairs = contractAddresses.pairs as Record<string, string>;
-  
+
   const address = pairs[pairKey1] || pairs[pairKey2];
-  
+
   if (!address) {
     throw new Error(`Pair ${tokenA}/${tokenB} not found`);
   }
-  
+
   return address;
 }
 
@@ -46,7 +37,7 @@ export function getPairAddress(tokenA: string, tokenB: string): string {
  */
 export function getFarmAddress(tokenA: string, tokenB?: string): string {
   const farms = contractAddresses.farms as Record<string, string>;
-  
+
   if (!tokenB) {
     // Single token farm
     const address = farms[tokenA];
@@ -55,17 +46,17 @@ export function getFarmAddress(tokenA: string, tokenB?: string): string {
     }
     return address;
   }
-  
+
   // LP token farm - try both combinations
   const farmKey1 = `${tokenA}/${tokenB}`;
   const farmKey2 = `${tokenB}/${tokenA}`;
-  
+
   const address = farms[farmKey1] || farms[farmKey2];
-  
+
   if (!address) {
     throw new Error(`Farm ${tokenA}/${tokenB} not found`);
   }
-  
+
   return address;
 }
 
@@ -76,7 +67,7 @@ export function getFarmAddress(tokenA: string, tokenB?: string): string {
  */
 export function getAgentAddress(agentId?: string): string {
   const agents = contractAddresses.agents as Record<string, string>;
-  
+
   if (!agentId) {
     // If no agent ID provided, return the current agent's address
     const currentId = getCurrentAgentId();
@@ -91,7 +82,7 @@ export function getAgentAddress(agentId?: string): string {
   if (!address) {
     throw new Error(`Agent ${agentId} not found`);
   }
-  
+
   return address;
 }
 
@@ -102,12 +93,12 @@ export function getAgentAddress(agentId?: string): string {
  */
 export function getResourceAddress(symbol: TokenSymbol): string {
   const resources = contractAddresses.resources as Record<string, string>;
-  
+
   const address = resources[symbol];
   if (!address) {
     throw new Error(`Resource token ${symbol} not found`);
   }
-  
+
   return address;
 }
 
@@ -118,12 +109,12 @@ export function getResourceAddress(symbol: TokenSymbol): string {
  */
 export function getCoreAddress(contractName: string): string {
   const core = contractAddresses.core as Record<string, string>;
-  
+
   const address = core[contractName];
   if (!address) {
     throw new Error(`Core contract ${contractName} not found`);
   }
-  
+
   return address;
 }
 

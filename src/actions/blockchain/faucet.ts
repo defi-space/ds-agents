@@ -1,6 +1,6 @@
 import { action, z } from "@daydreamsai/core";
-import { getStarknetChain, getAgentAddress } from "../../utils/starknet";
-import { getContractAddress } from "../../utils/contracts";
+import { getStarknetChain } from "../../utils/starknet";
+import { getCoreAddress, getAgentAddress } from "../../utils/contracts";
 
 // Helper function to check faucet status
 async function checkFaucetStatus(contractAddress: string, agentAddress: string) {
@@ -51,7 +51,7 @@ export const faucetActions = [
     handler: async (args, ctx, agent) => {
       try {
         // Get faucet address
-        const faucetAddress = getContractAddress("core", "faucet");
+        const faucetAddress = getCoreAddress("faucet");
         if (!faucetAddress) {
           return {
             success: false,
@@ -61,7 +61,7 @@ export const faucetActions = [
         }
 
         // Get agent address
-        const agentAddress = await getAgentAddress();
+        const agentAddress = getAgentAddress();
         if (!agentAddress) {
           return {
             success: false,
@@ -150,7 +150,7 @@ export const faucetActions = [
     handler: async (args, ctx, agent) => {
       try {
         // Get faucet address
-        const faucetAddress = getContractAddress("core", "faucet");
+        const faucetAddress = getCoreAddress("faucet");
         if (!faucetAddress) {
           return {
             success: false,
@@ -161,7 +161,7 @@ export const faucetActions = [
         }
 
         // Get agent address
-        const agentAddress = await getAgentAddress();
+        const agentAddress = getAgentAddress();
         if (!agentAddress) {
           return {
             success: false,
