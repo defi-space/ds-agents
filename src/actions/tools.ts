@@ -241,4 +241,38 @@ export const toolActions = [
       ctx.emit("progressionRankingError", { action: ctx.call.name, error: error.message });
     },
   }),
+
+  action({
+    name: "compareTimestamps",
+    description: "Gets current timestamp and compares it with a provided timestamp",
+    instructions: "Use this action when you need to check time differences or validate timestamps",
+    schema: z.object({
+      timestamp: z.number().describe("Timestamp to compare with current time (in milliseconds)"),
+    }),
+    handler(args, _ctx, _agent) {
+      const currentTimestamp = Date.now();
+      const timeDiffMs = currentTimestamp - args.timestamp;
+
+      const isInPast = timeDiffMs > 0;
+      const isInFuture = timeDiffMs < 0;
+
+      return {
+        success: true,
+        message: "Successfully compared timestamps",
+        data: {
+          currentTimestamp,
+          providedTimestamp: args.timestamp,
+          difference: timeDiffMs,
+          isInPast,
+          isInFuture,
+        },
+        timestamp: Date.now(),
+      };
+    },
+    retry: 3,
+    onError: async (error, ctx, _agent) => {
+      console.error("Timestamp comparison failed:", error);
+      ctx.emit("timestampComparisonError", { action: ctx.call.name, error: error.message });
+    },
+  }),
 ];
