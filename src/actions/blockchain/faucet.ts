@@ -78,7 +78,7 @@ export const faucetActions = [
             success: false,
             message: `Cannot claim yet.\nPlease wait approximately ${status.minutesLeft} minutes before claiming again.`,
             data: {
-              secondsLeft: status.timeLeft,
+              secondsLeft: status.timeLeft / 1000,
               minutesLeft: status.minutesLeft,
               nextClaimTime: new Date((status.lastClaim + status.interval) * 1000).toISOString(),
             },
@@ -181,7 +181,7 @@ export const faucetActions = [
             ? "You can claim tokens from the faucet now"
             : `You need to wait approximately ${status.minutesLeft} minutes before claiming again`,
           data: {
-            secondsLeft: status.timeLeft,
+            secondsLeft: status.timeLeft / 1000,
             minutesLeft: status.minutesLeft,
             lastClaim: status.lastClaim,
             interval: status.interval,

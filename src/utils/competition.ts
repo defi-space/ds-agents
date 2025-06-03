@@ -6,7 +6,7 @@ import {
 } from "./contracts";
 import type { TokenSymbol } from "./contracts";
 import { executeQuery, getGameSessionId, normalizeAddress } from "./graphql";
-import { getCurrentAgentId, getTokenBalance } from "./starknet";
+import { formatTokenBalance, getCurrentAgentId, getTokenBalance } from "./starknet";
 import { GET_AGENT_LIQUIDITY_POSITIONS, GET_AGENT_FARM_POSITIONS } from "./queries";
 
 /**
@@ -92,7 +92,7 @@ export async function getAgentData(agentId: string): Promise<AgentData> {
       const balanceValue = BigInt(balance.toString());
 
       // Store the balance and add to total value
-      resourceBalances[symbol] = balance.toString();
+      resourceBalances[symbol] = formatTokenBalance(balanceValue);
       totalResourceValue += balanceValue;
 
       // Track which resource has the highest balance (dominant resource)
@@ -132,7 +132,7 @@ export async function getAgentData(agentId: string): Promise<AgentData> {
     resourceBalances,
     liquidityPositions: liquidityPositions?.liquidityPosition?.length || 0,
     farmPositions: farmPositions?.agentStake?.length || 0,
-    totalResourceValue: totalResourceValue.toString(),
+    totalResourceValue: formatTokenBalance(totalResourceValue),
     he3Balance: resourceBalances.He3, // He3 is the most important resource
     dominantResource,
     gameStage,
