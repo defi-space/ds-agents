@@ -550,8 +550,16 @@ export function prepareOutputRef({
 
     try {
       if (typeof parsedContent === "string") {
+        // First try to extract content from XML-like wrapper if present
+        const contentMatch = parsedContent.match(/<content>(.*?)<\/content>/s);
+        if (contentMatch) {
+          parsedContent = contentMatch[1];
+        }
+        
+        parsedContent = parsedContent.trim();
+        
         if (schema._def.typeName !== "ZodString") {
-          parsedContent = JSON.parse(parsedContent.trim());
+          parsedContent = JSON.parse(parsedContent);
         }
       }
 

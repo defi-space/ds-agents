@@ -337,15 +337,16 @@ export const indexerActions = [
           };
         }
 
-        const isActive = !result.gameSession.gameSuspended && !result.gameSession.gameOver;
+        // Handle the nested data structure correctly
+        const gameSession = result.gameSession["0"] || result.gameSession;
+        const isActive = !gameSession.gameSuspended && !gameSession.gameOver;
+        const status = gameSession.gameOver ? "over" : gameSession.gameSuspended ? "suspended" : "active";
 
         return {
           success: true,
-          message: isActive
-            ? `Game session at ${sessionAddress} is active`
-            : `Game session at ${sessionAddress} is not active (${result.gameSession.gameSuspended ? "suspended" : "over"})`,
+          message: `Game session at ${sessionAddress} is ${status}`,
           data: {
-            ...result.gameSession,
+            ...gameSession,
             isActive,
           },
           timestamp: Date.now(),

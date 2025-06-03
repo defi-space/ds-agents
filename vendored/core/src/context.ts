@@ -177,6 +177,50 @@ export function pushToWorkingMemory(workingMemory: WorkingMemory, ref: AnyRef) {
 }
 
 /**
+ * Limits the size of working memory arrays to prevent unbounded growth
+ * @param workingMemory - The working memory to limit
+ * @param logger - Optional logger for debugging
+ */
+export function limitWorkingMemorySize(
+  workingMemory: WorkingMemory,
+  logger?: { debug: (category: string, message: string, data?: any) => void }
+) {
+  // Clear steps since they are not needed after processing
+  workingMemory.steps = [];
+  
+  // Keep only 3 latest runs
+  if (workingMemory.runs && workingMemory.runs.length > 3) {
+    workingMemory.runs = workingMemory.runs.slice(-3);
+  }
+  
+  // Keep only 1 latest input and output
+  if (workingMemory.inputs && workingMemory.inputs.length > 1) {
+    workingMemory.inputs = workingMemory.inputs.slice(-1);
+  }
+  if (workingMemory.outputs && workingMemory.outputs.length > 1) {
+    workingMemory.outputs = workingMemory.outputs.slice(-1);
+  }
+  
+  // Keep only 5 latest calls and results
+  if (workingMemory.calls && workingMemory.calls.length > 5) {
+    workingMemory.calls = workingMemory.calls.slice(-5);
+  }
+  if (workingMemory.results && workingMemory.results.length > 5) {
+    workingMemory.results = workingMemory.results.slice(-5);
+  }
+  
+  // Limit events to 3 most recent entries
+  if (workingMemory.events && workingMemory.events.length > 3) {
+    workingMemory.events = workingMemory.events.slice(-3);
+  }
+  
+  // Limit thoughts to 50 most recent entries
+  if (workingMemory.thoughts && workingMemory.thoughts.length > 50) {
+    workingMemory.thoughts = workingMemory.thoughts.slice(-50);
+  }
+}
+
+/**
  * Default working memory config
  * Provides a memory container with standard working memory structure
  */
