@@ -1,16 +1,13 @@
 import { action, z } from "@daydreamsai/core";
-import {
-  formatTokenBalance,
-  normalizeAddress,
-  getTokenBalance,
-} from "../../utils/starknet";
+import { formatTokenBalance, normalizeAddress, getTokenBalance } from "../../utils/starknet";
 import { executeQuery, getGameSessionId } from "../../utils/graphql";
+import { GET_AGENT_LIQUIDITY_POSITIONS, GET_AGENT_FARM_POSITIONS } from "../../utils/queries";
 import {
-  GET_AGENT_LIQUIDITY_POSITIONS,
-  GET_AGENT_FARM_POSITIONS,
-  GET_GAME_SESSION_INDEX_BY_ADDRESS,
-} from "../../utils/queries";
-import { getAgentAddress, availableTokenSymbols, getResourceAddress, getCoreAddress, getPairAddress } from "../../utils/contracts";
+  getAgentAddress,
+  availableTokenSymbols,
+  getResourceAddress,
+  getCoreAddress,
+} from "../../utils/contracts";
 
 export const utilsActions = [
   action({
@@ -19,7 +16,9 @@ export const utilsActions = [
     instructions:
       "Use this action when you need to check your balance of a specific resource token",
     schema: z.object({
-      token: z.enum(availableTokenSymbols).describe(`Token symbol. Available tokens: ${availableTokenSymbols.join(", ")}`),
+      token: z
+        .enum(availableTokenSymbols)
+        .describe(`Token symbol. Available tokens: ${availableTokenSymbols.join(", ")}`),
     }),
     handler: async (args, ctx, agent) => {
       try {
@@ -77,7 +76,8 @@ export const utilsActions = [
 
   action({
     name: "getResourceState",
-    description: "Retrieves all resource balances, liquidity positions, and farm positions with pending rewards",
+    description:
+      "Retrieves all resource balances, liquidity positions, and farm positions with pending rewards",
     instructions:
       "Use this action when you need to see all your resource token balances, liquidity positions, and farm positions at once",
     schema: z.object({
@@ -110,9 +110,17 @@ export const utilsActions = [
         // Fetch all data concurrently
         const [
           // All resource token balances
-          wD, C, Nd, Dy, Y, GRP, GPH, He3,
+          wD,
+          C,
+          Nd,
+          Dy,
+          Y,
+          GRP,
+          GPH,
+          He3,
           // Agent's liquidity and farm positions
-          liquidityPositions, farmPositions
+          liquidityPositions,
+          farmPositions,
         ] = await Promise.all([
           // Resource balance queries
           getTokenBalance(getResourceAddress("wD"), agentAddress),
@@ -156,44 +164,49 @@ export const utilsActions = [
               depositsToken1: pos.depositsToken1,
               withdrawalsToken0: pos.withdrawalsToken0,
               withdrawalsToken1: pos.withdrawalsToken1,
-              pairInfo: pos.pair ? {
-                token0Address: pos.pair.token0Address,
-                token1Address: pos.pair.token1Address,
-                token0Name: pos.pair.token0Name,
-                token0Symbol: pos.pair.token0Symbol,
-                token1Name: pos.pair.token1Name,
-                token1Symbol: pos.pair.token1Symbol,
-                reserve0: pos.pair.reserve0,
-                reserve1: pos.pair.reserve1,
-                totalSupply: pos.pair.totalSupply,
-                gameSessionId: pos.pair.gameSessionId,
-              } : null,
+              pairInfo: pos.pair
+                ? {
+                    token0Address: pos.pair.token0Address,
+                    token1Address: pos.pair.token1Address,
+                    token0Name: pos.pair.token0Name,
+                    token0Symbol: pos.pair.token0Symbol,
+                    token1Name: pos.pair.token1Name,
+                    token1Symbol: pos.pair.token1Symbol,
+                    reserve0: pos.pair.reserve0,
+                    reserve1: pos.pair.reserve1,
+                    totalSupply: pos.pair.totalSupply,
+                    gameSessionId: pos.pair.gameSessionId,
+                  }
+                : null,
             }))
           : [];
 
         // Process farm positions with pending rewards
-        const formattedFarmPositions = farmPositions?.agentStake && Array.isArray(farmPositions.agentStake)
-          ? farmPositions.agentStake.map((stake: any) => {
-              // Extract pending rewards from rewardStates
-              const rewardStates = stake.rewardStates || [];
-              const pendingRewards = rewardStates.map((rewardState: any) => ({
-                farmAddress: stake.farmAddress,
-                rewardTokenAddress: rewardState.rewardTokenAddress,
-                pendingAmount: rewardState.lastPendingRewards, // This is the pending rewards amount
-                rewardPerTokenPaid: rewardState.rewardPerTokenPaid,
-                rewardToken: rewardState.reward ? {
-                  name: rewardState.reward.rewardTokenName,
-                  symbol: rewardState.reward.rewardTokenSymbol,
-                } : null,
-              }));
+        const formattedFarmPositions =
+          farmPositions?.agentStake && Array.isArray(farmPositions.agentStake)
+            ? farmPositions.agentStake.map((stake: any) => {
+                // Extract pending rewards from rewardStates
+                const rewardStates = stake.rewardStates || [];
+                const pendingRewards = rewardStates.map((rewardState: any) => ({
+                  farmAddress: stake.farmAddress,
+                  rewardTokenAddress: rewardState.rewardTokenAddress,
+                  pendingAmount: rewardState.lastPendingRewards, // This is the pending rewards amount
+                  rewardPerTokenPaid: rewardState.rewardPerTokenPaid,
+                  rewardToken: rewardState.reward
+                    ? {
+                        name: rewardState.reward.rewardTokenName,
+                        symbol: rewardState.reward.rewardTokenSymbol,
+                      }
+                    : null,
+                }));
 
-              return {
-                farmAddress: stake.farmAddress,
-                stakedAmount: stake.stakedAmount,
-                pendingRewards: pendingRewards, // All pending rewards for this farm position
-              };
-            })
-          : [];
+                return {
+                  farmAddress: stake.farmAddress,
+                  stakedAmount: stake.stakedAmount,
+                  pendingRewards: pendingRewards, // All pending rewards for this farm position
+                };
+              })
+            : [];
 
         return {
           success: true,
