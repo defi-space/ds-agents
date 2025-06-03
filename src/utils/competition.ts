@@ -92,7 +92,7 @@ export async function getAgentData(agentId: string): Promise<AgentData> {
       const balanceValue = BigInt(balance.toString());
 
       // Store the balance and add to total value
-      resourceBalances[symbol] = formatTokenBalance(balanceValue);
+      resourceBalances[symbol] = balanceValue.toString();
       totalResourceValue += balanceValue;
 
       // Track which resource has the highest balance (dominant resource)
