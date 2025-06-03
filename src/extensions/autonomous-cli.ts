@@ -1,6 +1,5 @@
 import * as readline from "readline/promises";
-import { context, extension, formatMsg, input, output, service } from "@daydreamsai/core";
-import { z } from "zod";
+import { context, extension, formatMsg, input, output, service, z } from "@daydreamsai/core";
 import chalk from "chalk";
 import { PROMPTS } from "../prompts";
 
