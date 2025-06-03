@@ -103,28 +103,25 @@ export const cli = extension({
         console.log(styles.separator);
         console.log(chalk.gray(`Type ${styles.exitCommand} to quit\n`));
 
-        new Promise<void>(async (resolve) => {
-          while (!controller.signal.aborted) {
-            const question = await rl.question(styles.prompt);
-
-            if (question.toLowerCase() === "exit") {
-              console.log(chalk.yellow("\nGoodbye! 👋\n"));
-              break;
-            }
-
-            console.log(`${getTimestamp()} ${styles.userLabel}: ${question}\n`);
-
-            send(
-              cliContext,
-              { user: "admin" },
-              {
-                user: "admin",
-                text: question,
+        new Promise<void>((resolve) => {
+          const processInput = async () => {
+            while (!controller.signal.aborted) {
+              try {
+                const line = await rl.question(styles.prompt);
+                if (line === styles.exitCommand) {
+                  controller.abort();
+                  break;
+                }
+                send(cliContext, { user: "user" }, { user: "user", text: line });
+              } catch (error) {
+                if (error instanceof Error) {
+                  console.error(chalk.red("Error:"), error.message);
+                }
               }
-            );
-          }
-
-          resolve();
+            }
+            resolve();
+          };
+          processInput();
         });
 
         return () => {
@@ -144,7 +141,7 @@ export const cli = extension({
         const message = typeof content === "string" ? content : content.message;
 
         console.log(`${getTimestamp()} ${styles.agentLabel}: ${message}\n`);
-        console.log(styles.separator + "\n");
+        console.log(`${styles.separator}\n`);
 
         return {
           data: { message },
@@ -164,7 +161,7 @@ export const cli = extension({
 
         // Extract the content - either from data.message or from outputRef directly
         let message = "";
-        if (ref && ref.data) {
+        if (ref?.data) {
           message =
             typeof ref.data === "object" && ref.data.message ? ref.data.message : String(ref.data);
         }

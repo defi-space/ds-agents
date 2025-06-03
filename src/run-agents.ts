@@ -1,5 +1,5 @@
-import { spawn, type ChildProcess } from "child_process";
-import path from "path";
+import { spawn, type ChildProcess } from "node:child_process";
+import path from "node:path";
 import chalk from "chalk";
 
 // Configuration
@@ -28,7 +28,7 @@ function parseCommandLineArgs(): number {
 
   const parsedNum = Number.parseInt(args[0], 10);
 
-  if (!isNaN(parsedNum) && parsedNum >= MIN_AGENTS && parsedNum <= MAX_AGENTS) {
+  if (!Number.isNaN(parsedNum) && parsedNum >= MIN_AGENTS && parsedNum <= MAX_AGENTS) {
     return parsedNum;
   }
 
@@ -81,22 +81,22 @@ function runAgent(agentNumber: number): ChildProcess {
     const text = data.toString();
     const lines = text.trim().split("\n");
 
-    lines.forEach((line: string) => {
-      if (!line.trim()) return;
+    for (const line of lines) {
+      if (!line.trim()) continue;
 
       // Regular log output
       console.log(`${colorize(`[${agentName}]`)} ${line}`);
-    });
+    }
   });
 
   // Process agent errors
   agentProcess.stderr.on("data", (data: Buffer) => {
     const lines = data.toString().trim().split("\n");
-    lines.forEach((line: string) => {
+    for (const line of lines) {
       if (line.trim()) {
         console.error(`${colorize(`[${agentName}] ERROR:`)} ${line}`);
       }
-    });
+    }
   });
 
   // Handle agent exit

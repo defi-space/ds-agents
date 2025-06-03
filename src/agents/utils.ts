@@ -46,7 +46,7 @@ export class StarknetConfigStore {
  * @throws Error if agent number is invalid
  */
 export function validateAgentNumber(agentNumber: number): void {
-  if (isNaN(agentNumber) || agentNumber < 1 || agentNumber > 4) {
+  if (Number.isNaN(agentNumber) || agentNumber < 1 || agentNumber > 4) {
     throw new Error(`Invalid agent number: ${agentNumber}. Must be between 1 and 4.`);
   }
 }
@@ -139,7 +139,7 @@ export function getChromaDbUrl(): string {
   // Check if we're running locally (not in Docker)
   const isLocalDev = !process.env.HOSTNAME?.includes("container") && !isPhalaEnvironment();
 
-  let chromaHost;
+  let chromaHost: string;
 
   if (isLocalDev) {
     // When running locally outside Docker, we need to use localhost or the specified host
@@ -250,7 +250,7 @@ export function getFirebaseConfig() {
   }
 
   // Decode the Base64 encoded key and properly format it
-  let decodedKey;
+  let decodedKey: string;
   try {
     // Use Buffer to decode base64 (more reliable than atob)
     decodedKey = Buffer.from(privateKey, "base64").toString();

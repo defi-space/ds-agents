@@ -58,16 +58,14 @@ const getStarknetConfig = () => {
 
   if (missing.length > 0) {
     throw new Error(
-      `Missing required environment variables: ${missing.join(", ")}\n` +
-        `Please ensure these are set in your .env file`
+      `Missing required environment variables: ${missing.join(", ")}\nPlease ensure these are set in your .env file`
     );
   }
 
   // If we have a current agent ID but no configuration for it, this is an error
   if (currentAgentId) {
     throw new Error(
-      `No configuration found for agent ID: ${currentAgentId}.\n` +
-        `Please ensure you have set up the agent's configuration in your .env file.`
+      `No configuration found for agent ID: ${currentAgentId}.\nPlease ensure you have set up the agent's configuration in your .env file.`
     );
   }
 
@@ -79,7 +77,7 @@ const getStarknetConfig = () => {
   );
 
   return {
-    rpcUrl: required.STARKNET_RPC_URL!,
+    rpcUrl: required.STARKNET_RPC_URL || "",
     // These will be overridden once the agent ID is set
     address: "0x0",
     privateKey: "0x0",
@@ -168,10 +166,10 @@ export const convertU256ToDecimal = (low: string, high: string) => {
 /**
  * Converts a BigInt value to hexadecimal format
  * @param value - BigInt value or string to convert
- * @param withPrefix - Whether to include '0x' prefix
+ * @param _withPrefix - Whether to include '0x' prefix
  * @returns Hexadecimal string
  */
-export const toHex = (value: bigint | string, withPrefix = true): string => {
+export const toHex = (value: bigint | string, _withPrefix = true): string => {
   try {
     const bigIntValue = typeof value === "string" ? BigInt(value) : value;
     const hexString = bigIntValue.toString(16);
@@ -255,7 +253,7 @@ export const calculateOptimalLiquidity = async (params: {
     amountB = amountBOptimal;
   } else {
     // Convert amount B to contract value with decimals
-    amountB = BigInt(params.amountB!);
+    amountB = BigInt(params.amountB || "0");
 
     if (reserveABigInt === 0n || reserveBBigInt === 0n) {
       throw new Error("Pool does not exist. Please check context to get all available pairs.");

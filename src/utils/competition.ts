@@ -100,7 +100,7 @@ export async function getAgentData(agentId: string): Promise<AgentData> {
         maxBalance = balanceValue;
         dominantResource = symbol;
       }
-    } catch (error) {
+    } catch {
       // If we can't get a balance, default to 0 (graceful degradation)
       resourceBalances[symbol] = "0";
     }
@@ -262,7 +262,7 @@ export async function rankAgentsByHe3(): Promise<AgentRanking[]> {
         rank: 0, // Will be assigned after sorting
         progressToGoal,
       });
-    } catch (error) {
+    } catch {
       // If we can't get balance, assume 0 (graceful degradation)
       rankings.push({
         agentId,

@@ -199,7 +199,9 @@ export const autonomousCli = extension({
         }, updateInterval);
 
         // Keep the process running
-        return () => {};
+        return () => {
+          // This is an intentionally empty cleanup function since we want the process to keep running
+        };
       },
     }),
   },
@@ -214,7 +216,7 @@ export const autonomousCli = extension({
         const message = typeof content === "string" ? content : content.message;
 
         console.log(`${getTimestamp()} ${styles.agentLabel}: ${message}\n`);
-        console.log(styles.separator + "\n");
+        console.log(`${styles.separator}\n`);
 
         return {
           data: { message },
@@ -234,7 +236,7 @@ export const autonomousCli = extension({
 
         // Extract the content - either from data.message or from outputRef directly
         let message = "";
-        if (ref && ref.data) {
+        if (ref?.data) {
           message =
             typeof ref.data === "object" && ref.data.message ? ref.data.message : String(ref.data);
         }

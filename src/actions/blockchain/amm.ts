@@ -23,7 +23,8 @@ export const ammActions = [
   action({
     name: "getAmountOut",
     description: "Calculates the exact output amount for a token swap given an input amount.",
-    instructions: `Use this action when you need to know how much of a token you will receive for a specific amount of another token.`,
+    instructions:
+      "Use this action when you need to know how much of a token you will receive for a specific amount of another token.",
     schema: z.object({
       tokenIn: z
         .enum(availableTokenSymbols)
@@ -168,7 +169,7 @@ export const ammActions = [
   action({
     name: "quote",
     description: "Provides a quote for swapping tokens based on current pool reserves.",
-    instructions: `Use this action when you need a simple quote for token swap.`,
+    instructions: "Use this action when you need a simple quote for token swap.",
     schema: z.object({
       tokenIn: z
         .enum(availableTokenSymbols)
@@ -298,7 +299,8 @@ export const ammActions = [
   action({
     name: "swapTokens",
     description: "Executes a token swap",
-    instructions: `Use this action when you need to swap a specific amount of one token for another.`,
+    instructions:
+      "Use this action when you need to swap a specific amount of one token for another.",
     schema: z.object({
       tokenIn: z
         .enum(availableTokenSymbols)
@@ -443,7 +445,8 @@ export const ammActions = [
   action({
     name: "addLiquidity",
     description: "Adds liquidity to a liquidity pool",
-    instructions: `Use this action when you want to provide liquidity to a trading token pair.`,
+    instructions:
+      "Use this action when you want to provide liquidity to a trading token pair.",
     schema: z.object({
       tokenA: z
         .enum(availableTokenSymbols)
@@ -615,7 +618,8 @@ export const ammActions = [
   action({
     name: "removeLiquidity",
     description: "Removes liquidity from a liquidity pool",
-    instructions: `Use this action when you want to withdraw your liquidity from a liquidity pool.`,
+    instructions:
+      "Use this action when you want to withdraw your liquidity from a liquidity pool.",
     schema: z.object({
       tokenA: z
         .enum(availableTokenSymbols)

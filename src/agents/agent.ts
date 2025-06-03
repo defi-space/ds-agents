@@ -1,5 +1,5 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { createDreams, createContainer, LogLevel } from "@daydreamsai/core";
+import { createDreams, createContainer, LogLevel, type MemoryStore } from "@daydreamsai/core";
 import { createFirebaseMemoryStore } from "@daydreamsai/firebase";
 import { createChromaVectorStore } from "@daydreamsai/chromadb";
 import { autonomousCli, cli } from "../extensions";
@@ -55,7 +55,7 @@ export async function createAgent(config: AgentConfig) {
     StarknetConfigStore.getInstance().setConfig(config.id, config.starknetConfig);
   }
 
-  let memoryStore;
+  let memoryStore: MemoryStore;
 
   // Initialize Google model
   try {
