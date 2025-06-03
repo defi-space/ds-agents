@@ -586,7 +586,7 @@ export function createDreams<TContext extends AnyContext = AnyContext>(
           (maxSteps, ctxState) =>
             Math.max(
               maxSteps,
-              ctxState.settings.maxSteps ?? ctxState.context.maxSteps ?? 0
+              ctxState.settings.maxSteps ?? ctxState.context.maxSteps ?? 15
             ),
           5
         );
