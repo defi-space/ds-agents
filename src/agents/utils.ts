@@ -1,8 +1,7 @@
 import dotenv from "dotenv";
-import { request, gql } from "graphql-request";
 import { GET_GAME_SESSION_INFO } from "../utils/queries";
 import { executeQuery } from "../utils/graphql";
-import { getContractAddress } from "../utils/contracts";
+import { getCoreAddress } from "../utils/contracts";
 
 // Load environment variables
 dotenv.config();
@@ -198,7 +197,7 @@ export function getStarknetConfig(agentNumber: number): StarknetConfig {
 export async function getCollectionName(agentId: string): Promise<string> {
   try {
     // Get the current game session address from contracts
-    const gameSessionAddress = getContractAddress("gameSession", "current");
+    const gameSessionAddress = getCoreAddress("gameSession");
 
     // Query for game session info using the executeQuery pattern
     const result = await executeQuery(GET_GAME_SESSION_INFO, {

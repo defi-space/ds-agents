@@ -1,5 +1,5 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { createDreams, createContainer, LogLevel, Logger } from "@daydreamsai/core";
+import { createDreams, createContainer, LogLevel } from "@daydreamsai/core";
 import { createFirebaseMemoryStore } from "@daydreamsai/firebase";
 import { createChromaVectorStore } from "@daydreamsai/chromadb";
 import { autonomousCli, cli } from "../extensions";
