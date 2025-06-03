@@ -164,6 +164,7 @@ export const GET_GAME_SESSION_INFO = gql`
   query GetGameSessionInfo($address: String!) {
     gameSession(where: { address: { _eq: $address } }) {
       address
+      gameFactory
       gameSessionIndex
       tokenWinConditionAddress
       tokenWinConditionName
