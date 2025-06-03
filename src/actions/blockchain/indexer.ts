@@ -1,15 +1,13 @@
 import { action, z } from "@daydreamsai/core";
 import { executeQuery, getGameSessionId } from "../../utils/graphql";
-import { normalizeAddress, getCurrentAgentId } from "../../utils/starknet";
+import { normalizeAddress } from "../../utils/starknet";
 import {
   GET_PAIR_INFO,
   GET_FARM_INFO,
   GET_ALL_FARMS,
   GET_AGENT_LIQUIDITY_POSITIONS,
   GET_AGENT_FARM_POSITIONS,
-  GET_FARM_INDEX_BY_LP_TOKEN,
   GET_GAME_SESSION_STATUS,
-  GET_GAME_SESSION_INDEX_BY_ADDRESS,
 } from "../../utils/queries";
 import {
   availableTokenSymbols,
@@ -311,8 +309,7 @@ export const indexerActions = [
   action({
     name: "getGameSessionStatus",
     description: "Checks if a game session is active, suspended, or already over",
-    instructions:
-      "Use this action when you need to verify the current status of a game session",
+    instructions: "Use this action when you need to verify the current status of a game session",
     schema: z.object({
       message: z.string().describe("Not used - can be ignored").default("None"),
     }),

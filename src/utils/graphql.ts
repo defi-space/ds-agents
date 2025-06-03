@@ -53,7 +53,7 @@ export async function getGameSessionId() {
   return result.gameSession[0].gameSessionIndex;
 }
 
-export async function getFarmIndex(tokenA: string, tokenB: string) {
+export async function getFarmIndex(tokenA: string, tokenB?: string) {
   const farmAddress = getFarmAddress(tokenA, tokenB);
   const normalizedAddress = normalizeAddress(farmAddress);
   const gameSessionId = await getGameSessionId();
