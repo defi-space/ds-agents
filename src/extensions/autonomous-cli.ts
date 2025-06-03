@@ -1,4 +1,4 @@
-import * as readline from "readline/promises";
+import * as readline from "node:readline/promises";
 import { context, extension, formatMsg, input, output, service, z } from "@daydreamsai/core";
 import chalk from "chalk";
 import { PROMPTS } from "../prompts";
@@ -119,7 +119,7 @@ export const autonomousCli = extension({
        * @param {Object} param1 - Container object
        * @returns {Function} Cleanup function
        */
-      async subscribe(send, { container, emit }) {
+      async subscribe(send, { container }) {
         // Clear screen and show header
         clearScreen();
         displayHeader();
@@ -209,7 +209,7 @@ export const autonomousCli = extension({
       schema: z.object({
         message: z.string().describe("The message to send"),
       }),
-      handler(content, ctx, agent) {
+      handler(content, _ctx, _agent) {
         // If content is a string, convert it to the expected format
         const message = typeof content === "string" ? content : content.message;
 

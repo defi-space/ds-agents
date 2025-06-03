@@ -14,7 +14,7 @@ export const gameActions = [
     schema: z.object({
       message: z.string().describe("Not used - can be ignored").default("None"),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (_args, _ctx, _agent) => {
       try {
         const sessionAddress = getCoreAddress("gameSession");
         if (!sessionAddress) {
@@ -126,8 +126,8 @@ export const gameActions = [
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`End game action failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("End game action failed:", error);
       ctx.emit("endGameError", { action: ctx.call.name, error: error.message });
     },
   }),

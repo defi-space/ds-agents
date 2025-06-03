@@ -1,4 +1,4 @@
-import { spawn, ChildProcess } from "child_process";
+import { spawn, type ChildProcess } from "child_process";
 import path from "path";
 import chalk from "chalk";
 
@@ -26,7 +26,7 @@ function parseCommandLineArgs(): number {
     return DEFAULT_NUM_AGENTS;
   }
 
-  const parsedNum = parseInt(args[0], 10);
+  const parsedNum = Number.parseInt(args[0], 10);
 
   if (!isNaN(parsedNum) && parsedNum >= MIN_AGENTS && parsedNum <= MAX_AGENTS) {
     return parsedNum;

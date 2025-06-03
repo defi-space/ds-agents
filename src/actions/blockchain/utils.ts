@@ -20,7 +20,7 @@ export const utilsActions = [
         .enum(availableTokenSymbols)
         .describe(`Token symbol. Available tokens: ${availableTokenSymbols.join(", ")}`),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (args, _ctx, _agent) => {
       try {
         // Input validation
         const rawTokenAddress = getResourceAddress(args.token);
@@ -68,8 +68,8 @@ export const utilsActions = [
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Resource balance query failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Resource balance query failed:", error);
       ctx.emit("resourceBalanceError", { action: ctx.call.name, error: error.message });
     },
   }),
@@ -83,7 +83,7 @@ export const utilsActions = [
     schema: z.object({
       message: z.string().describe("Not used - can be ignored").default("None"),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (_args, _ctx, _agent) => {
       try {
         // Get agent address
         const agentAddress = getAgentAddress();
@@ -230,8 +230,8 @@ export const utilsActions = [
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Resource state query failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Resource state query failed:", error);
       ctx.emit("resourceStateError", { action: ctx.call.name, error: error.message });
     },
   }),

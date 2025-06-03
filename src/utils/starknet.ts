@@ -171,7 +171,7 @@ export const convertU256ToDecimal = (low: string, high: string) => {
  * @param withPrefix - Whether to include '0x' prefix
  * @returns Hexadecimal string
  */
-export const toHex = (value: bigint | string, withPrefix: boolean = true): string => {
+export const toHex = (value: bigint | string, withPrefix = true): string => {
   try {
     const bigIntValue = typeof value === "string" ? BigInt(value) : value;
     const hexString = bigIntValue.toString(16);
@@ -295,7 +295,7 @@ export const getTokenBalance = async (contractAddress: string, playerAddress: st
  * @returns Formatted balance string
  */
 export const formatTokenBalance = (rawBalance: bigint) => {
-  return (Number(rawBalance) / Math.pow(10, 18)).toString();
+  return (Number(rawBalance) / 10 ** 18).toString();
 };
 
 /**

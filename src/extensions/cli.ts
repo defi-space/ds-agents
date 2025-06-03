@@ -1,4 +1,4 @@
-import * as readline from "readline/promises";
+import * as readline from "node:readline/promises";
 import { context, extension, formatMsg, input, output, service, z } from "@daydreamsai/core";
 import chalk from "chalk";
 
@@ -139,7 +139,7 @@ export const cli = extension({
       schema: z.object({
         message: z.string().describe("The message to send"),
       }),
-      handler(content, ctx, agent) {
+      handler(content, _ctx, _agent) {
         // If content is a string, convert it to the expected format
         const message = typeof content === "string" ? content : content.message;
 
@@ -178,7 +178,7 @@ export const cli = extension({
   },
 
   // Add install function for one-time setup
-  async install(agent) {
+  async install(_agent) {
     console.log(chalk.cyan("Installing CLI extension..."));
 
     // Register cleanup handler

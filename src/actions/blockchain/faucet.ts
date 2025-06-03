@@ -48,7 +48,7 @@ export const faucetActions = [
     schema: z.object({
       message: z.string().describe("Not used - can be ignored").default("None"),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (_args, _ctx, _agent) => {
       try {
         // Get faucet address
         const faucetAddress = getCoreAddress("faucet");
@@ -132,8 +132,8 @@ export const faucetActions = [
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Faucet claim action failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Faucet claim action failed:", error);
       ctx.emit("faucetClaimError", { action: ctx.call.name, error: error.message });
     },
   }),
@@ -147,7 +147,7 @@ export const faucetActions = [
     schema: z.object({
       message: z.string().describe("Not used - can be ignored").default("None"),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (_args, _ctx, _agent) => {
       try {
         // Get faucet address
         const faucetAddress = getCoreAddress("faucet");
@@ -204,8 +204,8 @@ export const faucetActions = [
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Faucet status check failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Faucet status check failed:", error);
       ctx.emit("faucetStatusError", { action: ctx.call.name, error: error.message });
     },
   }),

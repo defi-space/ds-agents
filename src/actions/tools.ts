@@ -1,5 +1,4 @@
 import { action, z } from "@daydreamsai/core";
-import { uint256 } from "starknet";
 import { DS_CONTEXT } from "../contexts/ds-context";
 import { getCurrentAgentId } from "../utils/starknet";
 import {
@@ -18,7 +17,7 @@ export const toolActions = [
     schema: z.object({
       message: z.string().describe("Not used - can be ignored").default("None"),
     }),
-    handler(args, ctx, agent) {
+    handler(_args, _ctx, _agent) {
       return {
         success: true,
         message: "Successfully retrieved complete defi.space context",
@@ -27,8 +26,8 @@ export const toolActions = [
       };
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Context retrieval failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Context retrieval failed:", error);
       ctx.emit("contextRetrievalError", { action: ctx.call.name, error: error.message });
     },
   }),
@@ -45,7 +44,7 @@ export const toolActions = [
         .describe("Agent ID to analyze (defaults to current agent if not provided)")
         .optional(),
     }),
-    async handler(args, ctx, agent) {
+    async handler(args, _ctx, _agent) {
       try {
         const agentId = args.agentId || getCurrentAgentId();
 
@@ -83,8 +82,8 @@ export const toolActions = [
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Agent data query failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Agent data query failed:", error);
       ctx.emit("agentDataError", { action: ctx.call.name, error: error.message });
     },
   }),
@@ -97,7 +96,7 @@ export const toolActions = [
     schema: z.object({
       competitorAgentId: z.string().describe("Agent ID to compare"),
     }),
-    async handler(args, ctx, agent) {
+    async handler(args, _ctx, _agent) {
       try {
         const { competitorAgentId } = args;
 
@@ -142,8 +141,8 @@ export const toolActions = [
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Agent comparison failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Agent comparison failed:", error);
       ctx.emit("agentComparisonError", { action: ctx.call.name, error: error.message });
     },
   }),
@@ -156,7 +155,7 @@ export const toolActions = [
     schema: z.object({
       message: z.string().describe("Not used - can be ignored").default("None"),
     }),
-    async handler(args, ctx, agent) {
+    async handler(_args, _ctx, _agent) {
       try {
         const rankings = await rankAgentsByHe3();
 
@@ -188,8 +187,8 @@ export const toolActions = [
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`He3 ranking failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("He3 ranking failed:", error);
       ctx.emit("he3RankingError", { action: ctx.call.name, error: error.message });
     },
   }),
@@ -202,7 +201,7 @@ export const toolActions = [
     schema: z.object({
       message: z.string().describe("Not used - can be ignored").default("None"),
     }),
-    async handler(args, ctx, agent) {
+    async handler(_args, _ctx, _agent) {
       try {
         const progressionRankings = await rankAgentsByProgression();
 
@@ -246,8 +245,8 @@ export const toolActions = [
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Progression ranking failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Progression ranking failed:", error);
       ctx.emit("progressionRankingError", { action: ctx.call.name, error: error.message });
     },
   }),

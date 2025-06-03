@@ -47,7 +47,7 @@ export interface AgentConfig {
  */
 export async function createAgent(config: AgentConfig) {
   // Get Google API key - prioritize the agent-specific key
-  const agentNumber = parseInt(config.id.split("-")[1], 10);
+  const agentNumber = Number.parseInt(config.id.split("-")[1], 10);
   const googleApiKey = config.googleApiKey || getGoogleApiKey(config.id, agentNumber);
 
   // Store Starknet configuration if provided
@@ -69,7 +69,7 @@ export async function createAgent(config: AgentConfig) {
     const chromaDbUrl = getChromaDbUrl();
 
     // Get the collection name using the helper function
-    let collectionName = await getCollectionName(config.id);
+    const collectionName = await getCollectionName(config.id);
 
     // Create the Supabase memory store
     try {
@@ -155,7 +155,7 @@ export async function createAndStartAgent(agentNumber: number) {
 
 // If this file is run directly, start the agent based on the provided agent number
 if (require.main === module) {
-  const agentNumber = parseInt(process.env.AGENT_NUMBER || "1", 10);
+  const agentNumber = Number.parseInt(process.env.AGENT_NUMBER || "1", 10);
   createAndStartAgent(agentNumber).catch((error) => {
     console.error(`Failed to start agent: ${error.message}`);
     process.exit(1);

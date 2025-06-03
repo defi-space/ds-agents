@@ -33,7 +33,7 @@ export const indexerActions = [
           `Second token symbol for the pair. Available tokens: ${availableTokenSymbols.join(", ")}`
         ),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (args, _ctx, _agent) => {
       try {
         // Input validation
         if (args.tokenA === args.tokenB) {
@@ -77,8 +77,8 @@ export const indexerActions = [
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Pair info query failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Pair info query failed:", error);
       ctx.emit("pairInfoError", { action: ctx.call.name, error: error.message });
     },
   }),
@@ -100,7 +100,7 @@ export const indexerActions = [
           `Second token symbol for the farm. Available tokens: ${availableTokenSymbols.join(", ")}`
         ),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (args, _ctx, _agent) => {
       try {
         let farmAddress: string;
 
@@ -150,8 +150,8 @@ export const indexerActions = [
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Farm info query failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Farm info query failed:", error);
       ctx.emit("farmInfoError", { action: ctx.call.name, error: error.message });
     },
   }),
@@ -163,7 +163,7 @@ export const indexerActions = [
     schema: z.object({
       message: z.string().describe("Not used - can be ignored").default("None"),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (_args, _ctx, _agent) => {
       try {
         const gameSessionId = await getGameSessionId();
 
@@ -195,8 +195,8 @@ export const indexerActions = [
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Get all farms query failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Get all farms query failed:", error);
       ctx.emit("getAllfarmsError", { action: ctx.call.name, error: error.message });
     },
   }),
@@ -212,7 +212,7 @@ export const indexerActions = [
         .regex(/^0x[a-fA-F0-9]+$/)
         .describe("Agent address to query liquidity positions for."),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (args, _ctx, _agent) => {
       try {
         const normalizedAddress = normalizeAddress(args.agentAddress);
         const gameSessionId = await getGameSessionId();
@@ -247,8 +247,8 @@ export const indexerActions = [
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Liquidity positions query failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Liquidity positions query failed:", error);
       ctx.emit("liquidityPositionsError", { action: ctx.call.name, error: error.message });
     },
   }),
@@ -264,7 +264,7 @@ export const indexerActions = [
         .regex(/^0x[a-fA-F0-9]+$/)
         .describe("Agent address to query farm positions for."),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (args, _ctx, _agent) => {
       try {
         const normalizedAddress = normalizeAddress(args.agentAddress);
         const gameSessionId = await getGameSessionId();
@@ -299,8 +299,8 @@ export const indexerActions = [
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Farm positions query failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Farm positions query failed:", error);
       ctx.emit("farmPositionsError", { action: ctx.call.name, error: error.message });
     },
   }),
@@ -312,7 +312,7 @@ export const indexerActions = [
     schema: z.object({
       message: z.string().describe("Not used - can be ignored").default("None"),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (_args, _ctx, _agent) => {
       try {
         const sessionAddress = getCoreAddress("gameSession");
         if (!sessionAddress) {
@@ -360,8 +360,8 @@ export const indexerActions = [
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Game session status query failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Game session status query failed:", error);
       ctx.emit("gameSessionStatusError", { action: ctx.call.name, error: error.message });
     },
   }),

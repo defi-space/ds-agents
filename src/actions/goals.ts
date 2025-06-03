@@ -31,7 +31,7 @@ export const goalActions = [
         .default("long_term")
         .describe("Timeframe category for the task"),
     }),
-    handler(args, ctx, agent) {
+    handler(args, ctx, _agent) {
       if (!ctx.memory) {
         return {
           success: false,
@@ -89,8 +89,8 @@ export const goalActions = [
       };
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Task addition failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Task addition failed:", error);
       ctx.emit("taskAdditionError", { action: ctx.call.name, error: error.message });
     },
   }),
@@ -105,7 +105,7 @@ export const goalActions = [
         "Complete goal structure with long_term, medium_term, and short_term goals"
       ),
     }),
-    handler(args, ctx, agent) {
+    handler(args, ctx, _agent) {
       if (!ctx.memory) {
         return {
           success: false,
@@ -160,8 +160,8 @@ export const goalActions = [
       return `Goal plan updated with ${longTermCount} long-term, ${mediumTermCount} medium-term, and ${shortTermCount} short-term goals.`;
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Goal plan update failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Goal plan update failed:", error);
       ctx.emit("goalPlanError", { action: ctx.call.name, error: error.message });
     },
   }),
@@ -178,7 +178,7 @@ export const goalActions = [
         .optional()
         .describe("Timeframe category where the goal is located (if known)"),
     }),
-    handler(args, ctx, agent) {
+    handler(args, ctx, _agent) {
       if (!ctx.memory) {
         return {
           success: false,
@@ -244,8 +244,8 @@ export const goalActions = [
       };
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Goal update failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Goal update failed:", error);
       ctx.emit("goalUpdateError", { action: ctx.call.name, error: error.message });
     },
   }),
@@ -262,7 +262,7 @@ export const goalActions = [
         .optional()
         .describe("Timeframe category where the goal is located (if known)"),
     }),
-    handler(args, ctx, agent) {
+    handler(args, ctx, _agent) {
       if (!ctx.memory) {
         return {
           success: false,
@@ -323,8 +323,8 @@ export const goalActions = [
       };
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Goal deletion failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Goal deletion failed:", error);
       ctx.emit("goalDeletionError", { action: ctx.call.name, error: error.message });
     },
   }),

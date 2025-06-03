@@ -35,7 +35,7 @@ export const ammActions = [
         .describe(`Token symbol to receive. Available tokens: ${availableTokenSymbols.join(", ")}`),
       amountIn: z.string().describe("Amount of input tokens in a human readable format."),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (args, _ctx, _agent) => {
       try {
         // Input validation
         if (args.tokenIn === args.tokenOut) {
@@ -159,7 +159,7 @@ export const ammActions = [
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
+    onError: async (error, ctx, _agent) => {
       console.error(`Action ${ctx.call.name} failed:`, error);
       ctx.emit("actionError", { action: ctx.call.name, error: error.message });
     },
@@ -178,7 +178,7 @@ export const ammActions = [
         .describe(`Token name to receive. Available tokens: ${availableTokenSymbols.join(", ")}`),
       amountIn: z.string().describe("Amount of input tokens in a human readable format."),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (args, _ctx, _agent) => {
       try {
         // Input validation
         if (args.tokenIn === args.tokenOut) {
@@ -289,7 +289,7 @@ export const ammActions = [
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
+    onError: async (error, ctx, _agent) => {
       console.error(`Action ${ctx.call.name} failed:`, error);
       ctx.emit("actionError", { action: ctx.call.name, error: error.message });
     },
@@ -308,7 +308,7 @@ export const ammActions = [
         .describe(`Token name to receive. Available tokens: ${availableTokenSymbols.join(", ")}`),
       amountIn: z.string().describe("Amount of input tokens in a human readable format."),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (args, _ctx, _agent) => {
       try {
         // Input validation
         if (args.tokenIn === args.tokenOut) {
@@ -434,7 +434,7 @@ export const ammActions = [
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
+    onError: async (error, ctx, _agent) => {
       console.error(`Swap ${ctx.call.name} failed:`, error);
       ctx.emit("swapError", { action: ctx.call.name, error: error.message });
     },
@@ -459,7 +459,7 @@ export const ammActions = [
         .string()
         .describe("Desired amount of first token to deposit in the liquidity pool."),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (args, _ctx, _agent) => {
       try {
         // Input validation
         if (args.tokenA === args.tokenB) {
@@ -606,8 +606,8 @@ export const ammActions = [
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Add liquidity failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Add liquidity failed:", error);
       ctx.emit("addLiquidityError", { action: ctx.call.name, error: error.message });
     },
   }),
@@ -629,7 +629,7 @@ export const ammActions = [
         ),
       liquidity: z.string().describe("Amount of LP tokens to burn, in a human readable format."),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (args, _ctx, _agent) => {
       try {
         // Input validation
         if (args.tokenA === args.tokenB) {
@@ -746,8 +746,8 @@ export const ammActions = [
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Remove liquidity failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Remove liquidity failed:", error);
       ctx.emit("removeLiquidityError", { action: ctx.call.name, error: error.message });
     },
   }),

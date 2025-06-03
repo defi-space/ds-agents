@@ -73,7 +73,6 @@ export class ChromaVectorStore implements VectorStore {
         this.embedder = new GoogleGenerativeAiEmbeddingFunction({
           googleApiKey: apiKey,
           model: "text-embedding-004",
-          apiKeyEnvVar: "GOOGLE_API_KEY",
         });
       } catch (error) {
         // Log the specific error during embedding function creation

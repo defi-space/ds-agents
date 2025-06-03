@@ -36,7 +36,7 @@ export const yieldActions = [
         ),
       amount: z.string().describe("Amount of LP tokens to deposit, in a human readable format"),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (args, _ctx, _agent) => {
       try {
         let farmIndex: string;
 
@@ -143,8 +143,8 @@ export const yieldActions = [
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Farm deposit failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Farm deposit failed:", error);
       ctx.emit("farmDepositError", { action: ctx.call.name, error: error.message });
     },
   }),
@@ -167,7 +167,7 @@ export const yieldActions = [
         ),
       amount: z.string().describe("Amount of LP tokens to withdraw, in a human readable format"),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (args, _ctx, _agent) => {
       try {
         let farmIndex: string;
 
@@ -253,8 +253,8 @@ export const yieldActions = [
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Farm withdrawal failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Farm withdrawal failed:", error);
       ctx.emit("farmWithdrawalError", { action: ctx.call.name, error: error.message });
     },
   }),
@@ -276,7 +276,7 @@ export const yieldActions = [
           `Second token symbol for the farm. Available tokens: ${availableTokenSymbols.join(", ")}`
         ),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (args, _ctx, _agent) => {
       try {
         let farmIndex: string;
 
@@ -309,7 +309,7 @@ export const yieldActions = [
 
         // Get current staked amount for logging
         const agentAddress = getAgentAddress();
-        let stakedAmount: string = "unknown";
+        let stakedAmount = "unknown";
 
         try {
           const balance = await starknetChain.read({
@@ -359,8 +359,8 @@ export const yieldActions = [
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Farm exit failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Farm exit failed:", error);
       ctx.emit("farmExitError", { action: ctx.call.name, error: error.message });
     },
   }),
@@ -382,7 +382,7 @@ export const yieldActions = [
           `Second token symbol for the farm. Available tokens: ${availableTokenSymbols.join(", ")}`
         ),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (args, _ctx, _agent) => {
       try {
         // Input validation
         let farmIndex: string;
@@ -418,7 +418,7 @@ export const yieldActions = [
         // Fetch reward tokens for logging
         const agentAddress = getAgentAddress();
         let rewardTokens: string[] = [];
-        let pendingRewards: PendingRewards = {};
+        const pendingRewards: PendingRewards = {};
 
         try {
           // Get reward tokens
@@ -484,8 +484,8 @@ export const yieldActions = [
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Reward harvest failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Reward harvest failed:", error);
       ctx.emit("rewardHarvestError", { action: ctx.call.name, error: error.message });
     },
   }),
@@ -507,7 +507,7 @@ export const yieldActions = [
           `Second token symbol for the farm. Available tokens: ${availableTokenSymbols.join(", ")}`
         ),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (args, _ctx, _agent) => {
       try {
         // Input validation
         let farmIndex: string;
@@ -588,8 +588,8 @@ export const yieldActions = [
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Pending rewards check failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Pending rewards check failed:", error);
       ctx.emit("pendingRewardsError", { action: ctx.call.name, error: error.message });
     },
   }),
