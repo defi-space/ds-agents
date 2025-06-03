@@ -1,11 +1,6 @@
 import { action, z } from "@daydreamsai/core";
-import { executeQuery } from "../../utils/graphql";
-import {
-  normalizeAddress,
-  getStarknetChain,
-  getTokenBalance,
-  convertU256ToDecimal,
-} from "../../utils/starknet";
+import { executeQuery, normalizeAddress } from "../../utils/graphql";
+import { getStarknetChain, getTokenBalance, convertU256ToDecimal } from "../../utils/starknet";
 import { getCoreAddress, getAgentAddress, getResourceAddress } from "../../utils/contracts";
 import { GET_GAME_SESSION_STATUS } from "../../utils/queries";
 

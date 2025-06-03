@@ -1,6 +1,5 @@
 import { GraphQLClient } from "graphql-request";
 import { getCoreAddress, getFarmAddress } from "./contracts";
-import { normalizeAddress } from "./starknet";
 import { GET_FARM_INFO, GET_GAME_SESSION_INDEX_BY_ADDRESS } from "./queries";
 
 // Ensure INDEXER_URL is set
@@ -34,6 +33,22 @@ export async function executeQuery<T = any>(
     throw error;
   }
 }
+
+/**
+ * Normalizes a Starknet address by removing leading zeros and ensuring proper format
+ * @param address - The address to normalize
+ * @returns Normalized address string
+ */
+export const normalizeAddress = (address: string): string => {
+  // Ensure the address starts with '0x'
+  const prefixedAddress = address.startsWith("0x") ? address : `0x${address}`;
+
+  // Remove trailing zeros and maintain '0x' prefix
+  const normalized = prefixedAddress.toLowerCase().replace(/^0x0*/, "0x");
+
+  // If the result is just '0x', return '0x0'
+  return normalized === "0x" ? "0x0" : normalized;
+};
 
 export async function getGameSessionId() {
   const sessionAddress = getCoreAddress("gameSession");

@@ -1,6 +1,5 @@
 import { action, z } from "@daydreamsai/core";
-import { executeQuery, getGameSessionId } from "../../utils/graphql";
-import { normalizeAddress } from "../../utils/starknet";
+import { executeQuery, getGameSessionId, normalizeAddress } from "../../utils/graphql";
 import {
   GET_PAIR_INFO,
   GET_FARM_INFO,

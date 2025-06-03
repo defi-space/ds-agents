@@ -4,7 +4,7 @@ import {
   convertU256ToDecimal,
   formatTokenBalance,
   getTokenBalance,
-  starknetChain,
+  getStarknetChain,
   toHex,
   executeMultiCall,
   getApproveCall,
@@ -67,6 +67,7 @@ export const yieldActions = [
             timestamp: Date.now(),
           };
         }
+        const starknetChain = getStarknetChain();
 
         // Get farm address
         const farmAddress = toHex(
@@ -198,6 +199,8 @@ export const yieldActions = [
           };
         }
 
+        const starknetChain = getStarknetChain();
+
         const agentAddress = getAgentAddress();
         const rawBalance = await starknetChain.read({
           contractAddress: farmRouterAddress,
@@ -301,6 +304,8 @@ export const yieldActions = [
             timestamp: Date.now(),
           };
         }
+
+        const starknetChain = getStarknetChain();
 
         // Get current staked amount for logging
         const agentAddress = getAgentAddress();
@@ -407,6 +412,8 @@ export const yieldActions = [
             timestamp: Date.now(),
           };
         }
+
+        const starknetChain = getStarknetChain();
 
         // Fetch reward tokens for logging
         const agentAddress = getAgentAddress();
@@ -540,6 +547,8 @@ export const yieldActions = [
             timestamp: Date.now(),
           };
         }
+
+        const starknetChain = getStarknetChain();
 
         // Get reward token address
         const rewardTokenAddress = toHex(

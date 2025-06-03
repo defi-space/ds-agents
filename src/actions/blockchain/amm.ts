@@ -3,7 +3,7 @@ import {
   convertU256ToDecimal,
   formatTokenBalance,
   getTokenBalance,
-  starknetChain,
+  getStarknetChain,
   toHex,
   toUint256WithSpread,
   calculateOptimalLiquidity,
@@ -74,7 +74,7 @@ export const ammActions = [
             timestamp: Date.now(),
           };
         }
-
+        const starknetChain = getStarknetChain();
         // Get factory address
         const factoryAddress = toHex(
           await starknetChain.read({
@@ -216,7 +216,7 @@ export const ammActions = [
             timestamp: Date.now(),
           };
         }
-
+        const starknetChain = getStarknetChain();
         // Get Factory Address
         const factoryAddress = toHex(
           await starknetChain.read({
@@ -348,8 +348,9 @@ export const ammActions = [
             timestamp: Date.now(),
           };
         }
-        const agentAddress = await getAgentAddress();
+        const agentAddress = getAgentAddress();
 
+        const starknetChain = getStarknetChain();
         // Get factory address
         const factoryAddress = toHex(
           await starknetChain.read({
@@ -497,10 +498,10 @@ export const ammActions = [
             timestamp: Date.now(),
           };
         }
+        const starknetChain = getStarknetChain();
 
         // Get agent address
-        const agentAddress = await getAgentAddress();
-
+        const agentAddress = getAgentAddress();
         // Get factory address
         const factoryAddress = toHex(
           await starknetChain.read({
@@ -665,9 +666,10 @@ export const ammActions = [
             timestamp: Date.now(),
           };
         }
+        const starknetChain = getStarknetChain();
 
         // Get agent address
-        const agentAddress = await getAgentAddress();
+        const agentAddress = getAgentAddress();
 
         // Get pair address
         const pairAddress = toHex(
