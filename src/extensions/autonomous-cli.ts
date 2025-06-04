@@ -1,5 +1,5 @@
 import * as readline from "node:readline/promises";
-import { context, extension, formatMsg, input, output, service, z } from "@daydreamsai/core";
+import { context, extension, formatMsg, input, service, z } from "@daydreamsai/core";
 import chalk from "chalk";
 import { PROMPTS } from "../prompts";
 
@@ -49,14 +49,13 @@ const displayHeader = () => {
 
 /**
  * Readline service configuration
- * Sets up the readline interface for handling user input/output
+ * Sets up the readline interface for handling user input
  */
 const readlineService = service({
   register(container) {
     container.singleton("readline", () =>
       readline.createInterface({
         input: process.stdin,
-        output: process.stdout,
       })
     );
   },
@@ -90,7 +89,7 @@ const promptsService = service({
 
 /**
  * CLI extension configuration object that sets up the command line interface
- * Handles message input/output, system prompts, and periodic task execution
+ * Handles message input, system prompts, and periodic task execution
  */
 export const autonomousCli = extension({
   name: "autonomous-cli",
@@ -202,49 +201,6 @@ export const autonomousCli = extension({
         return () => {
           // This is an intentionally empty cleanup function since we want the process to keep running
         };
-      },
-    }),
-  },
-  outputs: {
-    "cli:message": output({
-      description: "Send messages to the user",
-      schema: z.object({
-        message: z.string().describe("The message to send"),
-      }),
-      handler(content, _ctx, _agent) {
-        // If content is a string, convert it to the expected format
-        const message = typeof content === "string" ? content : content.message;
-
-        console.log(`${getTimestamp()} ${styles.agentLabel}: ${message}\n`);
-        console.log(`${styles.separator}\n`);
-
-        return {
-          data: { message },
-          timestamp: Date.now(),
-        };
-      },
-      format: (outputRef) => {
-        if (!outputRef) {
-          return formatMsg({
-            role: "assistant",
-            content: "",
-          });
-        }
-
-        // Handle both array and single output case
-        const ref = Array.isArray(outputRef) ? outputRef[0] : outputRef;
-
-        // Extract the content - either from data.message or from outputRef directly
-        let message = "";
-        if (ref?.data) {
-          message =
-            typeof ref.data === "object" && ref.data.message ? ref.data.message : String(ref.data);
-        }
-
-        return formatMsg({
-          role: "assistant",
-          content: message,
-        });
       },
     }),
   },
