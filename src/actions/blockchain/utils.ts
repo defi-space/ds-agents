@@ -245,7 +245,7 @@ export const utilsActions = [
     }),
     handler(args, _ctx, _agent) {
       try {
-        const rawBalance = BigInt(Number(args.rawBalance));
+        const rawBalance = BigInt(args.rawBalance);
         const formattedBalance = (Number(rawBalance) / 10 ** 18).toString();
 
         return {
