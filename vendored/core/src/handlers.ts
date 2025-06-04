@@ -28,7 +28,7 @@ import type {
   WorkingMemory,
 } from "./types";
 import { randomUUIDv7 } from "./utils";
-import { parse } from "./xml";
+import { parse, type Node, type ElementNode, isElement } from "./xml";
 import { jsonPath } from "./jsonpath";
 import { jsonSchema } from "ai";
 
@@ -546,32 +546,95 @@ export function prepareOutputRef({
       "parse" in output.schema ? output.schema : z.object(output.schema)
     ) as z.AnyZodObject | z.ZodString;
 
-    let parsedContent = outputRef.content;
+    let parsedContent: string | Record<string, unknown> | unknown[] = outputRef.content;
 
     try {
       if (typeof parsedContent === "string") {
-        // First try to extract content schema if present
-        const schemaMatch = parsedContent.match(/<content_schema>(.*?)<\/content_schema>/s);
-        if (schemaMatch) {
+        // Parse XML content using the proper XML parser with children support
+        const nodes = parse(parsedContent, (node, parse) => {
+          if (isElement(node)) {
+            return { ...node, children: parse() };
+          }
+          return node;
+        });
+
+        // Handle both direct content_schema element and nested ones
+        const findNode = (nodes: Node[], name: string): ElementNode | undefined => {
+          for (const node of nodes) {
+            if (isElement(node)) {
+              if (node.name === name) return node;
+              if (node.children) {
+                const found = findNode(node.children, name);
+                if (found) return found;
+              }
+            }
+          }
+          return undefined;
+        };
+
+        // Look for content_schema element
+        const schemaNode = findNode(nodes, "content_schema");
+        
+        if (schemaNode) {
           try {
-            const schemaContent = JSON.parse(schemaMatch[1]);
-            outputRef.data = { schema: schemaContent };
+            // Handle both direct content and nested content in content_schema
+            const schemaContent = schemaNode.children?.length 
+              ? JSON.stringify(schemaNode.children.map((child: Node) => 
+                  isElement(child)
+                    ? { [child.name]: child.content }
+                    : child.content
+                ).filter(Boolean))
+              : schemaNode.content;
+
+            outputRef.data = { schema: JSON.parse(schemaContent) };
             return { output };
           } catch (schemaError) {
-            logger.warn("agent:output", "Failed to parse content schema", { error: schemaError });
+            logger.warn("agent:output", "Failed to parse content schema", { 
+              error: schemaError,
+              content: schemaNode.content 
+            });
           }
         }
         
-        // Then try to extract content from XML-like wrapper
-        const contentMatch = parsedContent.match(/<content>(.*?)<\/content>/s);
-        if (contentMatch) {
-          parsedContent = contentMatch[1];
+        // Look for content element
+        const contentNode = findNode(nodes, "content");
+        
+        if (contentNode) {
+          // Handle both direct content and nested elements
+          if (contentNode.children?.length) {
+            const contentObj = contentNode.children.map((child: Node) => 
+              isElement(child)
+                ? { [child.name]: child.content }
+                : child.content
+            ).filter(Boolean);
+            parsedContent = contentObj;
+          } else {
+            parsedContent = contentNode.content;
+          }
         }
         
-        parsedContent = parsedContent.trim();
+        if (typeof parsedContent === "string") {
+          parsedContent = parsedContent.trim();
+        }
         
         if (schema._def.typeName !== "ZodString") {
-          parsedContent = JSON.parse(parsedContent);
+          try {
+            if (typeof parsedContent === "string") {
+              parsedContent = JSON.parse(parsedContent);
+            }
+          } catch (error) {
+            // If JSON parsing fails but we have XML structure, try to convert it
+            if (nodes.length > 0) {
+              const xmlObj = nodes.map((node: Node) => 
+                isElement(node)
+                  ? { [node.name]: node.content }
+                  : node.content
+              ).filter(Boolean);
+              parsedContent = xmlObj.length === 1 ? xmlObj[0] : xmlObj;
+            } else {
+              throw error;
+            }
+          }
         }
       }
 
