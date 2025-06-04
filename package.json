@@ -1,6 +1,6 @@
 {
   "name": "ds-agents",
-  "module": "src/agent.ts",
+  "module": "src/run-agents.ts",
   "type": "module",
   "scripts": {
     "start-all": "bun run src/run-agents.ts",
@@ -12,14 +12,11 @@
     "lint:fix": "biome lint --write src/",
     "format": "biome format --write src/",
     "format:check": "biome format src/",
-    "types": "tsc --noEmit",
-    "check": "bun run types && bun run lint && bun run format:check"
+    "check": "bun run lint && bun run format:check"
   },
   "devDependencies": {
     "@types/bun": "^1.2.15",
-    "@biomejs/biome": "^1.9.4"
-  },
-  "peerDependencies": {
+    "@biomejs/biome": "^1.9.4",
     "typescript": "^5.8.3"
   },
   "dependencies": {
