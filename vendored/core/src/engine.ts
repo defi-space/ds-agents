@@ -338,22 +338,37 @@ export function createEngine({
         ...options.templateResolvers,
       };
 
-      const callCtx = await prepareActionCall({
-        agent,
-        call,
-        action,
-        state: actionCtxState,
-        workingMemory,
-        api: ctxStateApi,
-        abortSignal: controller.signal,
-        agentState: agentCtxState,
-        logger: agent.logger,
-        templateResolver: (key, path, callCtx) =>
-          templateResolver(key, path, callCtx, templateResolvers),
-      }).catch((err) => {
-        defer.reject(err);
-        throw err;
-      });
+      let callCtx: ActionCallContext;
+      try {
+        callCtx = await prepareActionCall({
+          agent,
+          call,
+          action,
+          state: actionCtxState,
+          workingMemory,
+          api: ctxStateApi,
+          abortSignal: controller.signal,
+          agentState: agentCtxState,
+          logger: agent.logger,
+          templateResolver: (key, path, callCtx) =>
+            templateResolver(key, path, callCtx, templateResolvers),
+        });
+      } catch (error) {
+        // Return error result for parsing/validation errors instead of throwing
+        const result: ActionResult = {
+          ref: "action_result",
+          id: randomUUIDv7(),
+          callId: call.id,
+          data: { error: formatError(error) },
+          name: call.name,
+          timestamp: Date.now(),
+          processed: false,
+        };
+        
+        defer.resolve(result);
+        __push(result, true, true);
+        return defer.promise;
+      }
 
       handleActionCall({
         call,
