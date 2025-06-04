@@ -10,7 +10,7 @@ import {
   getApproveCall,
   toUint256WithSpread,
 } from "../../utils/starknet";
-import { getCoreAddress, getAgentAddress, availableTokenSymbols } from "src/utils/contracts";
+import { getCoreAddress, getAgentAddress, availableTokenSymbols } from "../../utils/contracts";
 import { getFarmIndex } from "../../utils/graphql";
 
 // Define type for pending rewards

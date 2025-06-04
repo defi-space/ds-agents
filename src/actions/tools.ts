@@ -7,7 +7,7 @@ import {
   rankAgentsByHe3,
   rankAgentsByProgression,
 } from "../utils/competition";
-import { availableAgentIds } from "src/utils/contracts";
+import { availableAgentIds } from "../utils/contracts";
 import contractAddresses from "../../contracts.json";
 
 export const toolActions = [
