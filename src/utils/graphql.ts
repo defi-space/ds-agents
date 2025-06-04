@@ -1,6 +1,6 @@
 import { GraphQLClient } from "graphql-request";
 import { getCoreAddress, getFarmAddress } from "./contracts";
-import { GET_FARM_INFO, GET_GAME_SESSION_INDEX_BY_ADDRESS } from "./queries";
+import { GET_FARM_INDEX_BY_ADDRESS, GET_GAME_SESSION_INDEX_BY_ADDRESS } from "./queries";
 
 // Ensure INDEXER_URL is set
 const INDEXER_URL = process.env.INDEXER_URL as string;
@@ -77,7 +77,7 @@ export async function getFarmIndex(tokenA: string, tokenB?: string) {
   const normalizedAddress = normalizeAddress(farmAddress);
   const gameSessionId = await getGameSessionId();
 
-  const result = await executeQuery(GET_FARM_INFO, {
+  const result = await executeQuery(GET_FARM_INDEX_BY_ADDRESS, {
     address: normalizedAddress,
     gameSessionId: gameSessionId,
   });

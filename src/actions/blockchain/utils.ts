@@ -158,52 +158,38 @@ export const utilsActions = [
         // Process liquidity positions
         const formattedLiquidityPositions = liquidityPositions?.liquidityPosition
           ? liquidityPositions.liquidityPosition.map((pos: any) => ({
-              pairAddress: pos.pairAddress,
-              liquidity: pos.liquidity,
               depositsToken0: pos.depositsToken0,
               depositsToken1: pos.depositsToken1,
               withdrawalsToken0: pos.withdrawalsToken0,
               withdrawalsToken1: pos.withdrawalsToken1,
+              liquidity: pos.liquidity,
               pairInfo: pos.pair
                 ? {
-                    token0Address: pos.pair.token0Address,
-                    token1Address: pos.pair.token1Address,
-                    token0Name: pos.pair.token0Name,
+                    lpTokenName: pos.pair.lpTokenName,
                     token0Symbol: pos.pair.token0Symbol,
-                    token1Name: pos.pair.token1Name,
                     token1Symbol: pos.pair.token1Symbol,
                     reserve0: pos.pair.reserve0,
                     reserve1: pos.pair.reserve1,
                     totalSupply: pos.pair.totalSupply,
-                    gameSessionId: pos.pair.gameSessionId,
                   }
                 : null,
             }))
           : [];
 
-        // Process farm positions with pending rewards
+        // Process farm positions
         const formattedFarmPositions =
           farmPositions?.agentStake && Array.isArray(farmPositions.agentStake)
             ? farmPositions.agentStake.map((stake: any) => {
-                // Extract pending rewards from rewardStates
+                // Extract reward states
                 const rewardStates = stake.rewardStates || [];
-                const pendingRewards = rewardStates.map((rewardState: any) => ({
-                  farmAddress: stake.farmAddress,
-                  rewardTokenAddress: rewardState.rewardTokenAddress,
-                  pendingAmount: rewardState.lastPendingRewards, // This is the pending rewards amount
-                  rewardPerTokenPaid: rewardState.rewardPerTokenPaid,
-                  rewardToken: rewardState.reward
-                    ? {
-                        name: rewardState.reward.rewardTokenName,
-                        symbol: rewardState.reward.rewardTokenSymbol,
-                      }
-                    : null,
+                const rewards = rewardStates.map((rewardState: any) => ({
+                  rewardTokenSymbol: rewardState.reward?.rewardTokenSymbol,
                 }));
 
                 return {
-                  farmAddress: stake.farmAddress,
+                  lpTokenName: stake.farm?.lpTokenName,
                   stakedAmount: stake.stakedAmount,
-                  pendingRewards: pendingRewards, // All pending rewards for this farm position
+                  rewards,
                 };
               })
             : [];
