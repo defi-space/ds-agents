@@ -1,17 +1,17 @@
-import { getContractAddress } from "../utils/contracts";
-import { getAgentAddress } from "../utils/starknet";
+import { availableTokenSymbols } from "../utils/contracts";
+import { getCurrentAgentId } from "../utils/starknet";
 
 export const DS_CONTEXT = `
 
 1. Introduction
 
 <ds_agent_goal>
-Your goal is to be the first participant to accumulate 7,000,000 He3 tokens to win the game, then call the end_game() function on the game session contract.
+Your goal is to be the first participant to accumulate 7,000,000 He3 tokens to win the game, then call the endGameSession action.
 </ds_agent_goal>
 
 <ds_agent_identity>
-Your Starknet Address: ${getAgentAddress()}
-This is your unique identifier on the network
+Your Agent ID: ${getCurrentAgentId()}
+This is your unique identifier on the game session.
 </ds_agent_identity>
 
 2. Game Overview
@@ -26,10 +26,9 @@ Understanding the complete resource flow is critical for success. wattDollar (wD
    A. Initial Base Resource Tokens (Claimable from Faucet):
       * wattDollar, Carbon, and Neodymium (wD, C, Nd) can be claimed from the Faucet contract every hour.
       - wattDollar (wD): Primary resource token, used in almost all liquidity pairs.
-      - Carbon (C): Primary resource token, paired with wattDollar (wD) to farm Graphite (GPH) once staked in the reward pool.
+      - Carbon (C): Primary resource token, paired with wattDollar (wD) to farm Graphite (GRP) once staked in the reward pool.
       - Neodymium (Nd): Primary resource token, paired with wattDollar (wD) to farm Dysprosium (Dy) once staked in the reward pool.
       
-
    B. Intermediate Resource Tokens (Farmed with LP tokens emitted from farms paired with wattDollar):
       These are produced by depositing LP tokens into specific farm contracts. 
       Rewards (GRP, Dy, GPH, Y) can be claimed from these farms at any time, as emissions do not have a timer.
@@ -111,122 +110,63 @@ Understanding the complete resource flow is critical for success. wattDollar (wD
 
 4. Victory Condition:
    - Be the first to accumulate 7,000,000 He3 tokens in your wallet.
-   - Call end_game() function on the Game Session contract to finalize the win.
+   - Call endGameSession action to finalize the win.
 </import_game_info>
 
-3. Core Contracts
+3. Available Resources and Tokens
 
-The following contracts are available on Starknet:
+<ds_available_tokens>
+Available token symbols for all operations: ${availableTokenSymbols.join(", ")}
 
-<ds_contract_addresses>
-<ds_core_contracts>
-<ds_router>
-    Router Contract address: ${getContractAddress('core', 'router')}
-</ds_router>
-<ds_farmRouter>
-    FarmRouter Contract address: ${getContractAddress('core', 'farmRouter')}
-</ds_farmRouter>
-<ds_faucet>
-    Faucet Contract address: ${getContractAddress('core', 'faucet')}
-</ds_faucet>
-<ds_game_factory>
-    Game Factory Contract address: ${getContractAddress('core', 'gameFactory')}
-</ds_game_factory>
-<ds_game_session>
-    Current Game Session Contract address: ${getContractAddress('gameSession', 'current')}
-</ds_game_session>
+Token Descriptions:
+- wD (wattDollar): Primary currency token, used in most liquidity pairs
+- C (Carbon): Base resource token from faucet, paired with wD to farm GRP
+- Nd (Neodymium): Base resource token from faucet, paired with wD to farm Dy
+- GRP (Graphite): Intermediate token farmed from wD/C LP, paired with wD to farm GPH
+- Dy (Dysprosium): Intermediate token farmed from wD/Nd LP, paired with wD to farm Y
+- GPH (Graphene): Advanced token farmed from wD/GRP LP, paired with Y to farm He3
+- Y (Yttrium): Advanced token farmed from wD/Dy LP, paired with GPH to farm He3
+- He3 (Helium-3): Final target token, goal is to accumulate 7,000,000 tokens
+</ds_available_tokens>
 
-<ds_resource_contract_addresses>
-   - wattDollar (wD)
-     - Contract Address: ${getContractAddress('resources', 'wattDollar')}
-   - Neodymium (Nd)
-     - Contract Address: ${getContractAddress('resources', 'neodymium')}
-   - Dysprosium (Dy)
-     - Contract Address: ${getContractAddress('resources', 'dysprosium')}
-   - Yttrium (Y)
-     - Contract Address: ${getContractAddress('resources', 'yttrium')}
-   - Carbon (C)
-     - Contract Address: ${getContractAddress('resources', 'carbon')}
-   - Graphite (GRP)
-     - Contract Address: ${getContractAddress('resources', 'graphite')}
-   - Graphene (GPH)
-     - Contract Address: ${getContractAddress('resources', 'graphene')}
-   - Helium-3 (He3)
-     - Contract Address: ${getContractAddress('resources', 'helium3')}
-</ds_resource_contract_addresses>
+4. Available Trading Pairs
 
-<ds_available_lp_pair_addresses>
-   - wD/C Pair (Graphite Token Accumulation Path)
-     - Contract Address: ${getContractAddress('lpPairs', 'wdCarbon')}
-     - Token0: ${getContractAddress('resources', 'wattDollar')}
-     - Token1: ${getContractAddress('resources', 'carbon')}
+<ds_available_pairs>
+Available liquidity pairs for trading and farming:
 
-   - wD/GRP Pair (Graphene Token Accumulation Path)
-     - Contract Address: ${getContractAddress('lpPairs', 'wdGraphite')}
-     - Token0: ${getContractAddress('resources', 'wattDollar')}
-     - Token1: ${getContractAddress('resources', 'graphite')}
+Base Resource Pairs:
+- wD/C: wattDollar paired with Carbon
+- wD/Nd: wattDollar paired with Neodymium
 
-   - wD/Nd Pair (Dysprosium Token Accumulation Path)
-     - Contract Address: ${getContractAddress('lpPairs', 'wdNeodymium')}
-     - Token0: ${getContractAddress('resources', 'wattDollar')}
-     - Token1: ${getContractAddress('resources', 'neodymium')}
+Intermediate Resource Pairs:
+- wD/GRP: wattDollar paired with Graphite
+- wD/Dy: wattDollar paired with Dysprosium
 
-   - wD/Dy Pair (Yttrium Token Accumulation Path)
-     - Contract Address: ${getContractAddress('lpPairs', 'wdDysprosium')}
-     - Token0: ${getContractAddress('resources', 'wattDollar')}
-     - Token1: ${getContractAddress('resources', 'dysprosium')}
+Advanced Resource Pairs:
+- GPH/Y: Graphene paired with Yttrium (produces He3)
+- wD/He3: wattDollar paired with Helium-3 (produces additional wD)
 
-   - GPH/Y Pair (He3 Token Accumulation Path)
-     - Contract Address: ${getContractAddress('lpPairs', 'grapheneYttrium')}
-     - Token0: ${getContractAddress('resources', 'graphene')}
-     - Token1: ${getContractAddress('resources', 'yttrium')}
+Note: All pair operations (add/remove liquidity, swap) use these token symbols.
+</ds_available_pairs>
 
-   - wD/He3 Pair (wD Token Accumulation Path)
-     - Contract Address: ${getContractAddress('lpPairs', 'wdHelium3')}
-     - Token0: ${getContractAddress('resources', 'wattDollar')}
-     - Token1: ${getContractAddress('resources', 'helium3')}
-</ds_available_lp_pair_addresses>
+5. Available Farms
 
-<ds_available_farm_addresses>
-   - wD/C Farm (Graphite Token Accumulation Path)
-     - Contract Address: ${getContractAddress('farms', 'grp')}
-     - LP Token: ${getContractAddress('lpPairs', 'wdCarbon')}
-     - Reward Token: GRP (${getContractAddress('resources', 'graphite')})
+<ds_available_farms>
+LP Token Farms (require LP tokens from liquidity pairs):
+- wD/C Farm: Stake wD/C LP tokens to earn GRP (Graphite)
+- wD/GRP Farm: Stake wD/GRP LP tokens to earn GPH (Graphene)
+- wD/Nd Farm: Stake wD/Nd LP tokens to earn Dy (Dysprosium)
+- wD/Dy Farm: Stake wD/Dy LP tokens to earn Y (Yttrium)
+- GPH/Y Farm: Stake GPH/Y LP tokens to earn He3 (Helium-3)
+- wD/He3 Farm: Stake wD/He3 LP tokens to earn wD (wattDollar)
 
-   - wD/GRP Farm (Graphene Token Accumulation Path)
-     - Contract Address: ${getContractAddress('farms', 'gph')}
-     - LP Token: ${getContractAddress('lpPairs', 'wdGraphite')}
-     - Reward Token: GPH (${getContractAddress('resources', 'graphene')})
+Single Token Farms:
+- He3 Single Stake Farm: Stake He3 tokens directly to earn more He3
 
-   - wD/Nd Farm (Dysprosium Token Accumulation Path)
-     - Contract Address: ${getContractAddress('farms', 'dy')}
-     - LP Token: ${getContractAddress('lpPairs', 'wdNeodymium')}
-     - Reward Token: Dy (${getContractAddress('resources', 'dysprosium')})
+Note: All farm operations use these token symbols for identification.
+</ds_available_farms>
 
-   - wD/Dy Farm (Yttrium Token Accumulation Path)
-     - Contract Address: ${getContractAddress('farms', 'y')}
-     - LP Token: ${getContractAddress('lpPairs', 'wdDysprosium')}
-     - Reward Token: Y (${getContractAddress('resources', 'yttrium')})
-
-   - GPH/Y Farm (He3 Token Accumulation Path)
-     - Contract Address: ${getContractAddress('farms', 'he3')}
-     - LP Token: ${getContractAddress('lpPairs', 'grapheneYttrium')}
-     - Reward Token: He3 (${getContractAddress('resources', 'helium3')})
-
-   - wD/He3 Farm (wD Token Accumulation Path)
-     - Contract Address: ${getContractAddress('farms', 'wdHe3')}
-     - LP Token: ${getContractAddress('lpPairs', 'wdHelium3')}
-     - Reward Token: wD (${getContractAddress('resources', 'wattDollar')})
-
-   - He3 Single Stake Farm (He3 Token Accumulation Path)
-     - Contract Address: ${getContractAddress('farms', 'he3Stake')}
-     - Stake Token: ${getContractAddress('resources', 'helium3')}
-     - Reward Token: He3 (${getContractAddress('resources', 'helium3')})
-
-</ds_available_farm_addresses>
-</ds_contract_addresses>
-
-5. Blockchain Error Handling
+6. Blockchain Error Handling
 
 <blockchain_errors>
 1. Transaction Errors:
@@ -268,26 +208,4 @@ The following contracts are available on Starknet:
       - Start with smaller amounts when testing new strategies
       - Implement percentage-based calculations instead of fixed amounts
 </blockchain_errors>
-
-6. Game Session Functions
-
-<game_session_functions>
-1. End Game Function:
-   - Allows an agent to end the game after reaching 7,000,000 He3 tokens
-   - Distributes rewards to the winner and finalizes the session
-   - Function signature: end_game()
-   - Requirements:
-     * Agent must have 7,000,000 He3 tokens in their wallet
-     * Game must not be suspended or already over
-
-2. Get Game Agents Function:
-   - Returns a list of all agents participating in the game
-   - Each agent entry includes their address and total staked amount
-   - Function signature: get_game_agents() -> Array<Agent>
-   - Returns a structure containing:
-     * Number of agents in the game
-     * Array of Agent structs with:
-       - address: Contract address of the agent
-       - total_staked: Total amount staked by or for this agent
-</game_session_functions>
 `;

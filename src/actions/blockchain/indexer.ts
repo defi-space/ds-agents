@@ -1,541 +1,383 @@
-import { action } from "@daydreamsai/core";
-import { z } from "zod";
-import { executeQuery, getGameSessionId } from "../../utils/graphql";
-import { normalizeAddress, getCurrentAgentId } from "../../utils/starknet";
+import { action, z } from "@daydreamsai/core";
+import { executeQuery, getGameSessionId, normalizeAddress } from "../../utils/graphql";
 import {
   GET_PAIR_INFO,
   GET_FARM_INFO,
   GET_ALL_FARMS,
   GET_AGENT_LIQUIDITY_POSITIONS,
-  GET_AGENT_STAKE_POSITIONS,
-  GET_FARM_INDEX_BY_LP_TOKEN,
+  GET_AGENT_FARM_POSITIONS,
   GET_GAME_SESSION_STATUS,
-  GET_GAME_SESSION_INDEX_BY_ADDRESS,
-  GET_MOST_STAKED_AGENTS
 } from "../../utils/queries";
-import { getContractAddress } from "src/utils/contracts";
+import {
+  availableTokenSymbols,
+  getCoreAddress,
+  getFarmAddress,
+  getPairAddress,
+  availableAgentIds,
+  getAgentAddress,
+} from "../../utils/contracts";
 
 export const indexerActions = [
   action({
     name: "getPairInfo",
     description: "Retrieves detailed information about a specific liquidity pair",
-    instructions: "Use this action when an agent needs comprehensive data about a liquidity pair including reserves, volume, and fees",
+    instructions: "Use this action when you need comprehensive data about a liquidity pair",
     schema: z.object({
-      pairAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Pair contract address (must be a valid hex address starting with 0x)")
+      tokenA: z
+        .enum(availableTokenSymbols)
+        .describe(
+          `First token symbol for the pair. Available tokens: ${availableTokenSymbols.join(", ")}`
+        ),
+      tokenB: z
+        .enum(availableTokenSymbols)
+        .describe(
+          `Second token symbol for the pair. Available tokens: ${availableTokenSymbols.join(", ")}`
+        ),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (args, _ctx, _agent) => {
       try {
         // Input validation
-        if (!args.pairAddress) {
+        if (args.tokenA === args.tokenB) {
           return {
             success: false,
-            message: "Cannot retrieve pair information: pair address is missing",
-            timestamp: Date.now()
+            message: "Cannot retrieve pair information: tokenA and tokenB cannot be the same",
+            timestamp: Date.now(),
           };
         }
-        
-        const normalizedAddress = normalizeAddress(args.pairAddress);
+
+        const pairAddress = getPairAddress(args.tokenA, args.tokenB);
+        const normalizedAddress = normalizeAddress(pairAddress);
         const gameSessionId = await getGameSessionId();
-        
+
         const result = await executeQuery(GET_PAIR_INFO, {
           address: normalizedAddress,
-          gameSessionId: gameSessionId
+          gameSessionId: gameSessionId,
         });
-        
+
         if (!result || !result.pair) {
           return {
             success: false,
-            message: `No pair information found for address ${args.pairAddress}. Please check context to get available LP pairs.`,
-            timestamp: Date.now()
+            message: `No pair information found for ${args.tokenA}/${args.tokenB}.\nPlease check context to get available LP pairs.`,
+            timestamp: Date.now(),
           };
         }
-        
+
         return {
           success: true,
-          message: `Successfully retrieved information for LP pair at ${args.pairAddress}`,
+          message: `Successfully retrieved information for LP pair ${args.tokenA}/${args.tokenB}`,
           data: result,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
       } catch (error) {
-        console.error('Failed to get pair info:', error);
+        console.error("Failed to get pair info:", error);
         return {
           success: false,
           message: `Failed to retrieve LP pair information: ${(error as Error).message || "Unknown error"}`,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Pair info query failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Pair info query failed:", error);
       ctx.emit("pairInfoError", { action: ctx.call.name, error: error.message });
-    }
+    },
   }),
 
   action({
     name: "getFarmInfo",
     description: "Fetches detailed information about a specific farm and its rewards",
-    instructions: "Use this action when an agent needs data about a farm including its rewards, staked amounts, and other metrics",
+    instructions: "Use this action when an agent needs data about a farm",
     schema: z.object({
-      farmAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Farm contract address (must be a valid hex address starting with 0x)")
+      tokenA: z
+        .enum(availableTokenSymbols)
+        .describe(
+          `First token symbol for the farm. Available tokens: ${availableTokenSymbols.join(", ")}`
+        ),
+      tokenB: z
+        .enum(availableTokenSymbols)
+        .describe(
+          `Second token symbol for the farm. Available tokens: ${availableTokenSymbols.join(", ")}`
+        ),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (args, _ctx, _agent) => {
       try {
-        // Input validation
-        if (!args.farmAddress) {
-          return {
-            success: false,
-            message: "Cannot retrieve farm information: farm address is missing",
-            timestamp: Date.now()
-          };
+        let farmAddress: string;
+
+        // Single sided farm
+        if (args.tokenA === "He3" && args.tokenB === "He3") {
+          farmAddress = getFarmAddress(args.tokenA);
+        } else {
+          // Other farms should have different tokens
+          if (args.tokenA === args.tokenB) {
+            return {
+              success: false,
+              message: "Cannot retrieve farm information: tokenA and tokenB cannot be the same",
+              timestamp: Date.now(),
+            };
+          }
+          farmAddress = getFarmAddress(args.tokenA, args.tokenB);
         }
-        
-        const normalizedAddress = normalizeAddress(args.farmAddress);
+        const normalizedAddress = normalizeAddress(farmAddress);
         const gameSessionId = await getGameSessionId();
-        
+
         const result = await executeQuery(GET_FARM_INFO, {
           address: normalizedAddress,
-          gameSessionId: gameSessionId
+          gameSessionId: gameSessionId,
         });
-        
+
         if (!result || !result.farm) {
           return {
             success: false,
-            message: `No farm information found for address ${args.farmAddress}. Check the available farms in the Context`,
-            timestamp: Date.now()
+            message: `No farm information found for ${args.tokenA}/${args.tokenB}.\nCheck the available farms in the context`,
+            timestamp: Date.now(),
           };
         }
-        
+
         return {
           success: true,
-          message: `Successfully retrieved information for farm at ${args.farmAddress}`,
+          message: `Successfully retrieved information for farm ${args.tokenA}/${args.tokenB}`,
           data: result,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
       } catch (error) {
-        console.error('Failed to get farm info:', error);
+        console.error("Failed to get farm info:", error);
         return {
           success: false,
           message: `Failed to retrieve farm information: ${(error as Error).message || "Unknown error"}`,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Farm info query failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Farm info query failed:", error);
       ctx.emit("farmInfoError", { action: ctx.call.name, error: error.message });
-    }
+    },
   }),
 
   action({
-    name: "getAllfarms",
-    description: "Retrieves a list of all registered farms and pools during a game session",
-    instructions: "Use this action when an agent needs to discover all available farms, pools, and their additional data",
+    name: "getAllFarms",
+    description: "Retrieves a list of all farms available in the game",
+    instructions: "Use this action when you need to discover all available farms",
     schema: z.object({
       message: z.string().describe("Not used - can be ignored").default("None"),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (_args, _ctx, _agent) => {
       try {
         const gameSessionId = await getGameSessionId();
-        
+
         const result = await executeQuery(GET_ALL_FARMS, {
-          gameSessionId: gameSessionId
+          gameSessionId: gameSessionId,
         });
-        
+
         if (!result || !result.farm || !Array.isArray(result.farm)) {
           return {
             success: false,
             message: "Failed to retrieve farms list: no farms data returned from query",
-            timestamp: Date.now()
+            timestamp: Date.now(),
           };
         }
-        
+
         return {
           success: true,
           message: `Successfully retrieved information for ${result.farm.length} farms`,
           data: result,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
       } catch (error) {
-        console.error('Failed to get all farms:', error);
+        console.error("Failed to get all farms:", error);
         return {
           success: false,
           message: `Failed to retrieve farm list: ${(error as Error).message || "Unknown error"}`,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Get all farms query failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Get all farms query failed:", error);
       ctx.emit("getAllfarmsError", { action: ctx.call.name, error: error.message });
-    }
+    },
   }),
 
   action({
     name: "getAgentLiquidityPositions",
     description: "Fetches all active liquidity positions for a specific agent across all pools",
-    instructions: "Use this action when an agent needs to view its own or another agent's liquidity positions and pool shares",
+    instructions:
+      "Use this action when you need to view your own or another agent's liquidity positions",
     schema: z.object({
-      userAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Agent wallet address to query liquidity positions for (must be a valid hex address starting with 0x)")
+      agentIndex: z.enum(availableAgentIds).describe("Agent ID to query liquidity positions for."),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (args, _ctx, _agent) => {
       try {
-        // Input validation
-        if (!args.userAddress) {
+        const agentAddress = getAgentAddress(args.agentIndex);
+        if (!agentAddress) {
           return {
             success: false,
-            message: "Cannot retrieve liquidity positions: agent address is missing",
-            timestamp: Date.now()
+            message: `No agent address found for ${args.agentIndex}`,
+            timestamp: Date.now(),
           };
         }
-        
-        const normalizedAddress = normalizeAddress(args.userAddress);
+        const normalizedAddress = normalizeAddress(agentAddress);
         const gameSessionId = await getGameSessionId();
-        
+
         const result = await executeQuery(GET_AGENT_LIQUIDITY_POSITIONS, {
           agentAddress: normalizedAddress,
-          gameSessionId: gameSessionId
+          gameSessionId: gameSessionId,
         });
-        
+
         if (!result || !result.liquidityPosition || !Array.isArray(result.liquidityPosition)) {
           return {
             success: true,
-            message: `No liquidity positions found for address ${args.userAddress}`,
+            message: `No liquidity positions found for ${args.agentIndex}`,
             data: { liquidityPosition: [] },
-            timestamp: Date.now()
+            timestamp: Date.now(),
           };
         }
-        
+
         return {
           success: true,
-          message: `Successfully retrieved ${result.liquidityPosition.length} liquidity positions for address ${args.userAddress}`,
+          message: `Successfully retrieved ${result.liquidityPosition.length} liquidity positions for ${args.agentIndex}`,
           data: result,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
       } catch (error) {
-        console.error('Failed to get liquidity positions for address:', error);
+        console.error("Failed to get liquidity positions for agent:", error);
         return {
           success: false,
-          message: `Failed to retrieve address's liquidity positions: ${(error as Error).message || "Unknown error"}`,
-          timestamp: Date.now()
+          message: `Failed to retrieve agent's liquidity positions: ${(error as Error).message || "Unknown error"}`,
+          timestamp: Date.now(),
         };
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Liquidity positions query failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Liquidity positions query failed:", error);
       ctx.emit("liquidityPositionsError", { action: ctx.call.name, error: error.message });
-    }
+    },
   }),
 
   action({
-    name: "getAgentStakePositions",
-    description: "Retrieves all active staking positions for a specific agent",
-    instructions: "Use this action when an agent needs to view own or another agents staked amounts and earned rewards",
+    name: "getAgentFarmPositions",
+    description: "Retrieves all active farm positions for a specific agent",
+    instructions:
+      "Use this action when you need to view your own or another agent's farm positions",
     schema: z.object({
-      userAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Agent wallet address to query staking positions for (must be a valid hex address starting with 0x)")
+      agentIndex: z.enum(availableAgentIds).describe("Agent ID to query farm positions for."),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (args, _ctx, _agent) => {
       try {
-        // Input validation
-        if (!args.userAddress) {
+        const agentAddress = getAgentAddress(args.agentIndex);
+        if (!agentAddress) {
           return {
             success: false,
-            message: "Cannot retrieve stake positions: agent address is missing",
-            timestamp: Date.now()
+            message: `No agent address found for ${args.agentIndex}`,
+            timestamp: Date.now(),
           };
         }
-        
-        const normalizedAddress = normalizeAddress(args.userAddress);
+        const normalizedAddress = normalizeAddress(agentAddress);
         const gameSessionId = await getGameSessionId();
-        
-        const result = await executeQuery(GET_AGENT_STAKE_POSITIONS, {
+
+        const result = await executeQuery(GET_AGENT_FARM_POSITIONS, {
           agentAddress: normalizedAddress,
-          gameSessionId: gameSessionId
+          gameSessionId: gameSessionId,
         });
-        
+
         if (!result || !result.agentStake || !Array.isArray(result.agentStake)) {
           return {
             success: true,
-            message: `No stake positions found for address ${args.userAddress}`,
-            data: { agentStake: [] },
-            timestamp: Date.now()
+            message: `No farm positions found for ${args.agentIndex}`,
+            data: { farmPositions: [] },
+            timestamp: Date.now(),
           };
         }
-        
-        return {
-          success: true,
-          message: `Successfully retrieved ${result.agentStake.length} stake positions for address ${args.userAddress}`,
-          data: result,
-          timestamp: Date.now()
-        };
-      } catch (error) {
-        console.error('Failed to get agent stake positions:', error);
-        return {
-          success: false,
-          message: `Failed to retrieve agent stake positions: ${(error as Error).message || "Unknown error"}`,
-          timestamp: Date.now()
-        };
-      }
-    },
-    retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Stake positions query failed:`, error);
-      ctx.emit("stakePositionsError", { action: ctx.call.name, error: error.message });
-    }
-  }),
 
-  action({
-    name: "getFarmIndexByLpToken",
-    description: "Retrieves the farm index pool for a given LP token address",
-    instructions: "Use this action when an agent needs to find which farm corresponds to a specific LP token",
-    schema: z.object({
-      lpTokenAddress: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("LP token contract address (must be a valid hex address starting with 0x)")
-    }),
-    handler: async (args, ctx, agent) => {
-      try {
-        // Input validation
-        if (!args.lpTokenAddress) {
-          return {
-            success: false,
-            message: "Cannot retrieve farm index pool: LP token address is missing",
-            timestamp: Date.now()
-          };
-        }
-        
-        const normalizedAddress = normalizeAddress(args.lpTokenAddress);
-        const gameSessionId = await getGameSessionId();
-        
-        const result = await executeQuery(GET_FARM_INDEX_BY_LP_TOKEN, {
-          lpTokenAddress: normalizedAddress,
-          gameSessionId: gameSessionId
-        });
-        
-        const farmIndex = result?.farm?.[0]?.farmIndex ?? null;
-        
-        if (farmIndex === null) {
-          return {
-            success: false,
-            message: `No farm found for LP token address ${args.lpTokenAddress}. Please check context to get available LP tokens.`,
-            timestamp: Date.now()
-          };
-        }
-        
         return {
           success: true,
-          message: `LP token ${args.lpTokenAddress} corresponds to farm index pool ${farmIndex}`,
-          data: {
-            lpTokenAddress: args.lpTokenAddress,
-            farmIndex
-          },
-          timestamp: Date.now()
+          message: `Successfully retrieved ${result.agentStake.length} farm positions for ${args.agentIndex}`,
+          data: result,
+          timestamp: Date.now(),
         };
       } catch (error) {
-        console.error('Failed to get farm index pool by LP token:', error);
+        console.error("Failed to get agent farm positions:", error);
         return {
           success: false,
-          message: `Failed to retrieve farm index pool for LP token: ${(error as Error).message || "Unknown error"}`,
-          timestamp: Date.now()
+          message: `Failed to retrieve agent farm positions: ${(error as Error).message || "Unknown error"}`,
+          timestamp: Date.now(),
         };
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Farm index lookup failed:`, error);
-      ctx.emit("farmIndexLookupError", { action: ctx.call.name, error: error.message });
-    }
+    onError: async (error, ctx, _agent) => {
+      console.error("Farm positions query failed:", error);
+      ctx.emit("farmPositionsError", { action: ctx.call.name, error: error.message });
+    },
   }),
 
   action({
     name: "getGameSessionStatus",
     description: "Checks if a game session is active, suspended, or already over",
-    instructions: "Use this action when an agent needs to verify the current status of a game session before taking actions",
+    instructions: "Use this action when you need to verify the current status of a game session",
     schema: z.object({
       message: z.string().describe("Not used - can be ignored").default("None"),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (_args, _ctx, _agent) => {
       try {
-        const sessionAddress = getContractAddress('gameSession', 'current');
+        const sessionAddress = getCoreAddress("gameSession");
         if (!sessionAddress) {
           return {
             success: false,
             message: "Cannot retrieve game session status: address is missing",
-            timestamp: Date.now()
+            timestamp: Date.now(),
           };
         }
-        
+
         const normalizedAddress = normalizeAddress(sessionAddress);
-        
+
         const result = await executeQuery(GET_GAME_SESSION_STATUS, {
-          address: normalizedAddress
+          address: normalizedAddress,
         });
-        
+
         if (!result || !result.gameSession) {
           return {
             success: false,
             message: `No game session found for address ${sessionAddress}.`,
-            timestamp: Date.now()
+            timestamp: Date.now(),
           };
         }
-        
-        const isActive = !result.gameSession.gameSuspended && !result.gameSession.gameOver;
-        
+
+        // Handle the nested data structure correctly
+        const gameSession = result.gameSession["0"] || result.gameSession;
+        const isActive = !gameSession.gameSuspended && !gameSession.gameOver;
+        const status = gameSession.gameOver
+          ? "over"
+          : gameSession.gameSuspended
+            ? "suspended"
+            : "active";
+
         return {
           success: true,
-          message: isActive 
-            ? `Game session at ${sessionAddress} is active` 
-            : `Game session at ${sessionAddress} is not active (${result.gameSession.gameSuspended ? 'suspended' : 'over'})`,
+          message: `Game session is ${status}`,
           data: {
-            ...result.gameSession,
-            isActive
+            ...gameSession,
+            isActive,
           },
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
       } catch (error) {
-        console.error('Failed to get game session status:', error);
+        console.error("Failed to get game session status:", error);
         return {
           success: false,
           message: `Failed to retrieve game session status: ${(error as Error).message || "Unknown error"}`,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Game session status query failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Game session status query failed:", error);
       ctx.emit("gameSessionStatusError", { action: ctx.call.name, error: error.message });
-    }
-  }),
-
-  action({
-    name: "getGameSessionIndexByAddress",
-    description: "Retrieves the session index for a specific game session address",
-    instructions: "Use this action when an agent needs to find the numerical index of a game session from its contract address",
-    schema: z.object({
-      message: z.string().describe("Not used - can be ignored").default("None"),
-    }),
-    handler: async (args, ctx, agent) => {
-      try {
-        const sessionAddress = getContractAddress('gameSession', 'current');
-        if (!sessionAddress) {
-          return {
-            success: false,
-            message: "Cannot retrieve game session index: address is missing",
-            timestamp: Date.now()
-          };
-        }
-        
-        const normalizedAddress = normalizeAddress(sessionAddress);
-        
-        const result = await executeQuery(GET_GAME_SESSION_INDEX_BY_ADDRESS, {
-          address: normalizedAddress
-        });
-        
-        if (!result?.gameSession || !result.gameSession[0].gameSessionIndex) {
-          return {
-            success: false,
-            message: `No game session index found for address ${sessionAddress}.`,
-            timestamp: Date.now()
-          };
-        }
-        
-        return {
-          success: true,
-          message: `Game session at ${sessionAddress} has index ${result.gameSession[0].gameSessionIndex}`,
-          data: {
-            sessionAddress: sessionAddress,
-            sessionIndex: result.gameSession[0].gameSessionIndex
-          },
-          timestamp: Date.now()
-        };
-      } catch (error) {
-        console.error('Failed to get game session index:', error);
-        return {
-          success: false,
-          message: `Failed to retrieve game session index: ${(error as Error).message || "Unknown error"}`,
-          timestamp: Date.now()
-        };
-      }
     },
-    retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Game session index lookup failed:`, error);
-      ctx.emit("gameSessionIndexError", { action: ctx.call.name, error: error.message });
-    }
   }),
-
-  action({
-    name: "getMostStakedAgents",
-    description: "Retrieves the agents with the highest stakes in a game session",
-    instructions: "Use this action when an agent needs to identify the leading agents in a game session based on their stake amounts",
-    schema: z.object({
-      message: z.string().describe("Not used - can be ignored").default("None"),
-    }),
-    handler: async (args, ctx, agent) => {
-      try {
-        const sessionAddress = getContractAddress('gameSession', 'current');
-        if (!sessionAddress) {
-          return {
-            success: false,
-            message: "Cannot retrieve most staked agents: session address is missing",
-            timestamp: Date.now()
-          };
-        }
-        
-        const normalizedAddress = normalizeAddress(sessionAddress);
-        
-        const result = await executeQuery(GET_MOST_STAKED_AGENTS, {
-          sessionAddress: normalizedAddress,
-          limit: 5
-        });
-        
-        if (!result || !result.userStake || !Array.isArray(result.userStake)) {
-          return {
-            success: false,
-            message: "Failed to retrieve most staked agents: no data returned from query",
-            timestamp: Date.now()
-          };
-        }
-        
-        // Get current agent address for comparison
-        const agentId =  getCurrentAgentId();
-        
-        // Add rank and check if current agent is among top stakers
-        const topAgents = result.userStake.map((stake: any, index: number) => ({
-          ...stake,
-          rank: index + 1,
-          isCurrentAgent: agentId ? 
-            stake.agentIndex === agentId : false
-        }));
-        
-        const currentAgentInList = topAgents.find((agent: any) => agent.isCurrentAgent);
-        
-        return {
-          success: true,
-          message: `Successfully retrieved ${topAgents.length} most staked agents${
-            currentAgentInList ? `. Your agent ranks #${currentAgentInList.rank}` : ''
-          }`,
-          data: {
-            topAgents,
-            currentAgentRank: currentAgentInList ? currentAgentInList.rank : null
-          },
-          timestamp: Date.now()
-        };
-      } catch (error) {
-        console.error('Failed to get most staked agents:', error);
-        return {
-          success: false,
-          message: `Failed to retrieve most staked agents: ${(error as Error).message || "Unknown error"}`,
-          timestamp: Date.now()
-        };
-      }
-    },
-    retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Get most staked agents query failed:`, error);
-      ctx.emit("mostStakedAgentsError", { action: ctx.call.name, error: error.message });
-    }
-  }),
-]; 
+];

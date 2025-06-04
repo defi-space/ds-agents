@@ -1,6 +1,5 @@
-import * as readline from "readline/promises";
-import { z } from "zod";
-import { context, extension, formatMsg, input, output, service } from "@daydreamsai/core";
+import * as readline from "node:readline/promises";
+import { context, extension, formatMsg, input, output, service, z } from "@daydreamsai/core";
 import chalk from "chalk";
 
 const cliContext = context({
@@ -11,12 +10,12 @@ const cliContext = context({
 
 // CLI styling configuration
 const styles = {
-  prompt: chalk.blue.bold('You ⪧ '),
-  userLabel: chalk.blue.bold('You'),
-  agentLabel: chalk.green.bold('Agent'),
-  separator: chalk.gray('─'.repeat(50)),
+  prompt: chalk.blue.bold("You ⪧ "),
+  userLabel: chalk.blue.bold("You"),
+  agentLabel: chalk.green.bold("Agent"),
+  separator: chalk.gray("─".repeat(50)),
   errorText: chalk.red,
-  exitCommand: chalk.yellow.italic('exit'),
+  exitCommand: chalk.yellow.italic("exit"),
   timestamp: chalk.gray,
   header: chalk.cyan.bold,
 };
@@ -47,18 +46,18 @@ const readlineService = service({
       })
     );
   },
-  
+
   // Add boot phase to initialize the readline service
   async boot(container) {
     const rl = container.resolve<readline.Interface>("readline");
     // Configure readline with custom handling
-    rl.on('SIGINT', () => {
-      console.log(chalk.yellow('\nCaught interrupt signal. Exiting gracefully...'));
+    rl.on("SIGINT", () => {
+      console.log(chalk.yellow("\nCaught interrupt signal. Exiting gracefully..."));
       process.exit(0);
     });
-    
-    console.log('CLI readline service initialized');
-  }
+
+    console.log("CLI readline service initialized");
+  },
 });
 
 const getTimestamp = () => {
@@ -85,7 +84,7 @@ export const cli = extension({
             user: "unknown",
           });
         }
-        
+
         return formatMsg({
           role: "user",
           content: inputRef.data.text,
@@ -99,33 +98,30 @@ export const cli = extension({
         // Clear screen and show header
         clearScreen();
         displayHeader();
-        
-        console.log(chalk.cyan.bold('\nWelcome to the DS Agents CLI!'));
+
+        console.log(chalk.cyan.bold("\nWelcome to the DS Agents CLI!"));
         console.log(styles.separator);
         console.log(chalk.gray(`Type ${styles.exitCommand} to quit\n`));
 
-        new Promise<void>(async (resolve) => {
-          while (!controller.signal.aborted) {
-            const question = await rl.question(styles.prompt);
-            
-            if (question.toLowerCase() === 'exit') {
-              console.log(chalk.yellow('\nGoodbye! 👋\n'));
-              break;
-            }
-
-            console.log(`${getTimestamp()} ${styles.userLabel}: ${question}\n`);
-            
-            send(
-              cliContext,
-              { user: "admin" },
-              {
-                user: "admin",
-                text: question,
+        new Promise<void>((resolve) => {
+          const processInput = async () => {
+            while (!controller.signal.aborted) {
+              try {
+                const line = await rl.question(styles.prompt);
+                if (line === styles.exitCommand) {
+                  controller.abort();
+                  break;
+                }
+                send(cliContext, { user: "user" }, { user: "user", text: line });
+              } catch (error) {
+                if (error instanceof Error) {
+                  console.error(chalk.red("Error:"), error.message);
+                }
               }
-            );
-          }
-
-          resolve();
+            }
+            resolve();
+          };
+          processInput();
         });
 
         return () => {
@@ -140,13 +136,13 @@ export const cli = extension({
       schema: z.object({
         message: z.string().describe("The message to send"),
       }),
-      handler(content, ctx, agent) {
+      handler(content, _ctx, _agent) {
         // If content is a string, convert it to the expected format
-        const message = typeof content === 'string' ? content : content.message;
-        
+        const message = typeof content === "string" ? content : content.message;
+
         console.log(`${getTimestamp()} ${styles.agentLabel}: ${message}\n`);
-        console.log(styles.separator + '\n');
-        
+        console.log(`${styles.separator}\n`);
+
         return {
           data: { message },
           timestamp: Date.now(),
@@ -159,16 +155,17 @@ export const cli = extension({
             content: "",
           });
         }
-        
+
         // Handle both array and single output case
         const ref = Array.isArray(outputRef) ? outputRef[0] : outputRef;
-        
+
         // Extract the content - either from data.message or from outputRef directly
         let message = "";
-        if (ref && ref.data) {
-          message = typeof ref.data === 'object' && ref.data.message ? ref.data.message : String(ref.data);
+        if (ref?.data) {
+          message =
+            typeof ref.data === "object" && ref.data.message ? ref.data.message : String(ref.data);
         }
-        
+
         return formatMsg({
           role: "assistant",
           content: message,
@@ -176,17 +173,17 @@ export const cli = extension({
       },
     }),
   },
-  
+
   // Add install function for one-time setup
-  async install(agent) {
-    console.log(chalk.cyan('Installing CLI extension...'));
-    
+  async install(_agent) {
+    console.log(chalk.cyan("Installing CLI extension..."));
+
     // Register cleanup handler
-    process.on('exit', () => {
-      console.log(chalk.yellow('\nShutting down CLI extension...'));
+    process.on("exit", () => {
+      console.log(chalk.yellow("\nShutting down CLI extension..."));
       // Any cleanup needed when the process exits
     });
-    
+
     // No return value needed (void)
-  }
+  },
 });

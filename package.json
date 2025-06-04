@@ -1,30 +1,33 @@
 {
   "name": "ds-agents",
-  "module": "src/agent.ts",
+  "module": "src/run-agents.ts",
   "type": "module",
   "scripts": {
     "start-all": "bun run src/run-agents.ts",
-    "start-one": "bun run src/run-agents.ts 1",
-    "start-agents-2": "bun run src/run-agents.ts 2",
-    "start-agents-3": "bun run src/run-agents.ts 3",
-    "start-agents-4": "bun run src/run-agents.ts 4"
+    "start-1": "bun run src/run-agents.ts 1",
+    "start-2": "bun run src/run-agents.ts 2",
+    "start-3": "bun run src/run-agents.ts 3",
+    "start-4": "bun run src/run-agents.ts 4",
+    "lint": "biome lint src/",
+    "lint:fix": "biome lint --write src/",
+    "format": "biome format --write src/",
+    "format:check": "biome format src/",
+    "check": "bun run lint && bun run format:check"
   },
   "devDependencies": {
-    "@types/bun": "^1.2.3"
-  },
-  "peerDependencies": {
-    "typescript": "^5.7.3"
+    "@types/bun": "^1.2.15",
+    "@biomejs/biome": "^1.9.4",
+    "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@ai-sdk/google": "^1.2.11",
+    "@ai-sdk/google": "^1.2.19",
     "@daydreamsai/chromadb": "workspace:vendored/chroma",
     "@daydreamsai/core": "workspace:vendored/core",
     "@daydreamsai/defai": "workspace:vendored/defai",
     "@daydreamsai/firebase": "workspace:vendored/firebase",
-    "dotenv": "^16.4.7",
-    "graphql": "^16.10.0",
-    "graphql-request": "^7.1.2",
-    "starknet": "^6.23.1",
-    "zod": "^3.24.2"
+    "dotenv": "^16.5.0",
+    "graphql": "^16.11.0",
+    "graphql-request": "^7.2.0",
+    "starknet": "^6.24.1"
   }
 }

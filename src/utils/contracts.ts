@@ -1,121 +1,160 @@
-import contractAddresses from '../../contracts.json';
+import contractAddresses from "../../contracts.json";
+import { getCurrentAgentId } from "./starknet";
 
-export type ContractCategory = 'core' | 'resources' | 'lpPairs' | 'farms' | 'agents' | 'gameSession';
-export type ContractName = keyof typeof contractAddresses[ContractCategory];
+export type ContractCategory = "core" | "resources" | "pairs" | "farms" | "agents";
+
+export const availableTokenSymbols = ["wD", "Nd", "Dy", "Y", "C", "GRP", "GPH", "He3"] as const;
+
+export const availableAgentIds = ["agent-1", "agent-2", "agent-3", "agent-4"] as const;
+
+export type TokenSymbol = (typeof availableTokenSymbols)[number];
+export type AgentId = (typeof availableAgentIds)[number];
 
 /**
- * Get a contract address from the contracts.json file
- * @param category The category of the contract (core, resources, lpPairs, farms, agents, gameSessions)
- * @param name The name of the contract within the category
+ * Get a trading pair address by token symbols
+ * @param tokenA First token symbol
+ * @param tokenB Second token symbol
+ * @returns The pair contract address
+ */
+export function getPairAddress(tokenA: string, tokenB: string): string {
+  // Try both combinations since pairs can be listed as A/B or B/A
+  const pairKey1 = `${tokenA}/${tokenB}`;
+  const pairKey2 = `${tokenB}/${tokenA}`;
+
+  const pairs = contractAddresses.pairs as Record<string, string>;
+
+  const address = pairs[pairKey1] || pairs[pairKey2];
+
+  if (!address) {
+    throw new Error(
+      `Pair ${tokenA}/${tokenB} not found. Check context to get all available pairs.`
+    );
+  }
+
+  return address;
+}
+
+/**
+ * Get a farm address by LP token symbols
+ * @param tokenA First token symbol of the LP pair
+ * @param tokenB Second token symbol of the LP pair (optional for single token farms)
+ * @returns The farm contract address
+ */
+export function getFarmAddress(tokenA: string, tokenB?: string): string {
+  const farms = contractAddresses.farms as Record<string, string>;
+
+  if (!tokenB) {
+    // Single token farm
+    const address = farms[tokenA];
+    if (!address) {
+      throw new Error(
+        `Single token farm ${tokenA} not found. Check context to get all available farms.`
+      );
+    }
+    return address;
+  }
+
+  // LP token farm - try both combinations
+  const farmKey1 = `${tokenA}/${tokenB}`;
+  const farmKey2 = `${tokenB}/${tokenA}`;
+
+  const address = farms[farmKey1] || farms[farmKey2];
+
+  if (!address) {
+    throw new Error(
+      `Farm ${tokenA}/${tokenB} not found. Check context to get all available farms.`
+    );
+  }
+
+  return address;
+}
+
+/**
+ * Get an agent address by agent identifier
+ * @param agentId The agent identifier (e.g., "agent-1", "agent-2")
+ * @returns The agent contract address
+ */
+export function getAgentAddress(agentId?: string): string {
+  const agents = contractAddresses.agents as Record<string, string>;
+
+  if (!agentId) {
+    // If no agent ID provided, return the current agent's address
+    const currentId = getCurrentAgentId();
+    const address = agents[currentId];
+    if (!address) {
+      throw new Error(`Current agent ${currentId} not found`);
+    }
+    return address;
+  }
+
+  const address = agents[agentId];
+  if (!address) {
+    throw new Error(`Agent ${agentId} not found`);
+  }
+
+  return address;
+}
+
+/**
+ * Get a resource token address by symbol
+ * @param symbol The token symbol (e.g., "wD", "GRP", "He3")
+ * @returns The token contract address
+ */
+export function getResourceAddress(symbol: TokenSymbol): string {
+  const resources = contractAddresses.resources as Record<string, string>;
+
+  const address = resources[symbol];
+  if (!address) {
+    throw new Error(`Resource token ${symbol} not found`);
+  }
+
+  return address;
+}
+
+/**
+ * Get a core contract address by name
+ * @param contractName The core contract name (e.g., "ammRouter", "farmRouter", "faucet", "gameSession")
  * @returns The contract address
- * @throws Error if the contract address is not found
  */
-export function getContractAddress(category: ContractCategory, name: string): string {
-    try {
-        const categoryAddresses = contractAddresses[category];
-        if (!categoryAddresses) {
-            throw new Error(`Contract category ${category} not found`);
-        }
+export function getCoreAddress(contractName: string): string {
+  const core = contractAddresses.core as Record<string, string>;
 
-        const address = categoryAddresses[name as keyof typeof categoryAddresses];
-        if (!address) {
-            if (category === 'agents') {
-                console.warn(`Agent address for ${name} not found. This may be expected during initialization.`);
-                return "[Address will be available when agent is fully initialized]";
-            }
-            throw new Error(`Contract ${name} not found in category ${category}`);
-        }
+  const address = core[contractName];
+  if (!address) {
+    throw new Error(`Core contract ${contractName} not found`);
+  }
 
-        return address;
-    } catch (error) {
-        if (category === 'agents') {
-            console.warn(`Error getting agent address: ${error instanceof Error ? error.message : 'Unknown error'}`);
-            return "[Address will be available when agent is fully initialized]";
-        }
-        throw error;
-    }
+  return address;
 }
 
 /**
- * Get all contract addresses for a specific category
- * @param category The category of contracts to retrieve
- * @returns An object containing all contract addresses for the specified category
+ * Get all available pairs
+ * @returns Array of pair identifiers
  */
-export function getCategoryAddresses(category: ContractCategory): Record<string, string> {
-    const categoryAddresses = contractAddresses[category];
-    if (!categoryAddresses) {
-        throw new Error(`Contract category ${category} not found`);
-    }
-    return categoryAddresses;
+export function getAvailablePairs(): string[] {
+  return Object.keys(contractAddresses.pairs);
 }
 
 /**
- * Get all contract addresses
+ * Get all available farms
+ * @returns Array of farm identifiers
+ */
+export function getAvailableFarms(): string[] {
+  return Object.keys(contractAddresses.farms);
+}
+
+/**
+ * Get all available agents
+ * @returns Array of agent identifiers
+ */
+export function getAvailableAgents(): string[] {
+  return Object.keys(contractAddresses.agents);
+}
+
+/**
+ * Get all contract addresses (for debugging/inspection)
  * @returns The complete contract addresses object
  */
 export function getAllContractAddresses() {
-    return contractAddresses;
+  return contractAddresses;
 }
-
-/**
- * Check if an address belongs to a specific token or contract type
- * @param address The address to check
- * @param category The category to check against (e.g., 'resources', 'lpPairs')
- * @param tokenType Optional specific token type within the category
- * @returns Boolean indicating if the address belongs to the specified category/type
- */
-export function isAddressOfType(address: string, category: ContractCategory, tokenType?: string): boolean {
-  try {
-    const categoryAddresses = contractAddresses[category];
-    if (!categoryAddresses) {
-      return false;
-    }
-
-    // Normalize the address for comparison
-    const normalizedAddress = address.toLowerCase();
-    
-    // If a specific token type is provided, check only that one
-    if (tokenType) {
-      const tokenAddress = categoryAddresses[tokenType as keyof typeof categoryAddresses];
-      return tokenAddress && normalizedAddress === (tokenAddress as string).toLowerCase();
-    }
-    
-    // Otherwise check if the address matches any in the category
-    return Object.values(categoryAddresses).some(
-      (addr: any) => addr && addr.toLowerCase && addr.toLowerCase() === normalizedAddress
-    );
-  } catch (error) {
-    console.error(`Error checking address type: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    return false;
-  }
-}
-
-/**
- * Get the token type for a given address
- * @param address The address to check
- * @param category The category to check against (e.g., 'resources', 'lpPairs')
- * @returns The token type or null if not found
- */
-export function getTokenTypeForAddress(address: string, category: ContractCategory): string | null {
-  try {
-    const categoryAddresses = contractAddresses[category];
-    if (!categoryAddresses) {
-      return null;
-    }
-
-    // Normalize the address for comparison
-    const normalizedAddress = address.toLowerCase();
-    
-    // Find the token type for this address
-    for (const [tokenType, tokenAddress] of Object.entries(categoryAddresses)) {
-      if ((tokenAddress as string).toLowerCase() === normalizedAddress) {
-        return tokenType;
-      }
-    }
-    
-    return null;
-  } catch (error) {
-    console.error(`Error getting token type: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    return null;
-  }
-} 

@@ -39,7 +39,7 @@ import type {
   ActionCallContext,
 } from "./types";
 import pDefer, { type DeferredPromise } from "p-defer";
-import { pushToWorkingMemory } from "./context";
+import { pushToWorkingMemory, limitWorkingMemorySize, saveContextWorkingMemory } from "./context";
 import { createEventRef, randomUUIDv7 } from "./utils";
 import { ZodError, type ZodIssue } from "zod";
 
@@ -230,7 +230,15 @@ export function createEngine({
   ): Promise<any> {
     try {
       if (done) {
-        return await pushLog(log);
+        const result = await pushLog(log);
+        
+        // After processing a log, limit the working memory size
+        if (log.ref !== "output") {
+          limitWorkingMemorySize(workingMemory, agent.logger);
+          await saveContextWorkingMemory(agent, ctxState.id, workingMemory);
+        }
+        
+        return result;
       } else {
         pushLogToSubscribers(log, false);
       }

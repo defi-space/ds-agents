@@ -1,28 +1,23 @@
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import {
-  createDreams,
-  createContainer,
-  LogLevel,
-  Logger,
-} from "@daydreamsai/core";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createDreams, createContainer, LogLevel, type MemoryStore } from "@daydreamsai/core";
 import { createFirebaseMemoryStore } from "@daydreamsai/firebase";
 import { createChromaVectorStore } from "@daydreamsai/chromadb";
 import { autonomousCli, cli } from "../extensions";
 import { actions } from "../actions";
 import { setCurrentAgentId } from "../utils/starknet";
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 
-import { 
-  StarknetConfigStore, 
-  validateAgentNumber, 
-  getAgentId, 
+import {
+  StarknetConfigStore,
+  validateAgentNumber,
+  getAgentId,
   isManualMode,
   getGoogleApiKey,
   getStarknetConfig,
   getChromaDbUrl,
   getFirebaseConfig,
-  getCollectionName
-} from './utils';
+  getCollectionName,
+} from "./utils";
 
 // Load environment variables
 dotenv.config();
@@ -52,16 +47,16 @@ export interface AgentConfig {
  */
 export async function createAgent(config: AgentConfig) {
   // Get Google API key - prioritize the agent-specific key
-  const agentNumber = parseInt(config.id.split('-')[1], 10);
+  const agentNumber = Number.parseInt(config.id.split("-")[1], 10);
   const googleApiKey = config.googleApiKey || getGoogleApiKey(config.id, agentNumber);
-  
+
   // Store Starknet configuration if provided
   if (config.starknetConfig) {
     StarknetConfigStore.getInstance().setConfig(config.id, config.starknetConfig);
   }
 
-  let memoryStore;
-  
+  let memoryStore: MemoryStore;
+
   // Initialize Google model
   try {
     const google = createGoogleGenerativeAI({
@@ -69,33 +64,30 @@ export async function createAgent(config: AgentConfig) {
       baseURL: "https://generativelanguage.googleapis.com/v1",
     });
     const model = google("gemini-2.0-flash");
-    
+
     // Get the service URLs
     const chromaDbUrl = getChromaDbUrl();
-    
+
     // Get the collection name using the helper function
-    let collectionName = await getCollectionName(config.id);
-    
+    const collectionName = await getCollectionName(config.id);
+
     // Create the Supabase memory store
     try {
       const firebaseOptions = config.firebaseConfig || getFirebaseConfig();
-      
+
       // Create the Supabase memory store with verbose logging enabled
       // The enhanced createSupabaseMemory will handle table creation internally
-      memoryStore = await createFirebaseMemoryStore(
-        {
-          serviceAccount: {
-            projectId: firebaseOptions.projectId,
-            clientEmail: firebaseOptions.clientEmail,
-            privateKey: firebaseOptions.privateKey || '',
-          },
-          collectionName,
-        }
-      );
+      memoryStore = await createFirebaseMemoryStore({
+        serviceAccount: {
+          projectId: firebaseOptions.projectId,
+          clientEmail: firebaseOptions.clientEmail,
+          privateKey: firebaseOptions.privateKey || "",
+        },
+        collectionName,
+      });
     } catch (firebaseError) {
-      const errorMessage = firebaseError instanceof Error 
-        ? firebaseError.message 
-        : String(firebaseError);
+      const errorMessage =
+        firebaseError instanceof Error ? firebaseError.message : String(firebaseError);
       throw new Error(`Failed to connect to Firebase for agent ${config.id}: ${errorMessage}`);
     }
 
@@ -117,10 +109,10 @@ export async function createAgent(config: AgentConfig) {
 
     // Create the agent
     const agent = createDreams(agentConfig);
-    
+
     // Set the current agent ID as an environment variable
     process.env.CURRENT_AGENT_ID = config.id;
-    
+
     // Return the agent
     return agent;
   } catch (error) {
@@ -147,7 +139,7 @@ export async function createAndStartAgent(agentNumber: number) {
     id: AGENT_ID,
     googleApiKey: process.env[`AGENT${agentNumber}_API_KEY`] || process.env.GOOGLE_API_KEY,
     starknetConfig: getStarknetConfig(agentNumber),
-    firebaseConfig: getFirebaseConfig()
+    firebaseConfig: getFirebaseConfig(),
   };
 
   // Create agent with specific configuration
@@ -163,9 +155,9 @@ export async function createAndStartAgent(agentNumber: number) {
 
 // If this file is run directly, start the agent based on the provided agent number
 if (require.main === module) {
-  const agentNumber = parseInt(process.env.AGENT_NUMBER || "1", 10);
-  createAndStartAgent(agentNumber).catch(error => {
+  const agentNumber = Number.parseInt(process.env.AGENT_NUMBER || "1", 10);
+  createAndStartAgent(agentNumber).catch((error) => {
     console.error(`Failed to start agent: ${error.message}`);
     process.exit(1);
   });
-} 
+}

@@ -1,64 +1,105 @@
-import { action } from "@daydreamsai/core";
-import { z } from "zod";
-import { convertU256ToDecimal, getTokenBalance, starknetChain, toHex } from "../../utils/starknet";
-import { toUint256WithSpread, calculateOptimalLiquidity } from "../../utils/starknet";
-import { executeMultiCall, getApproveCall } from '../../utils/starknet';
-import { getContractAddress } from "../../utils/contracts";
-import { getAgentAddress } from "../../utils/starknet";
+import { action, z } from "@daydreamsai/core";
+import {
+  convertU256ToDecimal,
+  formatTokenBalance,
+  getTokenBalance,
+  getStarknetChain,
+  toHex,
+  toUint256WithSpread,
+  calculateOptimalLiquidity,
+  convertToContractValue,
+  executeMultiCall,
+  getApproveCall,
+} from "../../utils/starknet";
+import {
+  getCoreAddress,
+  getResourceAddress,
+  availableTokenSymbols,
+  getAgentAddress,
+} from "../../utils/contracts";
 
 export const ammActions = [
   // Router Operations - Price Calculations
   action({
     name: "getAmountOut",
-    description: "Calculates the exact output amount for a token swap given an input amount using the AMM's constant product formula (x * y = k).",
-    instructions: "Use this action when an agent needs to know how much of a token they will receive for a specific amount of another token.",
+    description: "Calculates the exact output amount for a token swap given an input amount.",
+    instructions:
+      "Use this action when you need to know how much of a token you will receive for a specific amount of another token.",
     schema: z.object({
-      tokenIn: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Token contract address to swap from (must be a valid hex address starting with 0x)"),
-      tokenOut: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Token contract address to receive (must be a valid hex address starting with 0x)"),
-      amountIn: z.string().describe("Amount of input tokens as a string in base units (e.g., '1000000000000000000' for 1 token with 18 decimals)"),
+      tokenIn: z
+        .enum(availableTokenSymbols)
+        .describe(
+          `Token symbol to swap from. Available tokens: ${availableTokenSymbols.join(", ")}`
+        ),
+      tokenOut: z
+        .enum(availableTokenSymbols)
+        .describe(`Token symbol to receive. Available tokens: ${availableTokenSymbols.join(", ")}`),
+      amountIn: z.string().describe("Amount of input tokens, in a human readable format."),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (args, _ctx, _agent) => {
       try {
         // Input validation
         if (args.tokenIn === args.tokenOut) {
           return {
             success: false,
             message: "Cannot calculate amount out: input and output tokens are the same",
-            timestamp: Date.now()
+            timestamp: Date.now(),
           };
         }
-        
-        const { tokenIn, tokenOut, amountIn } = args;
-        
+
+        // Get token addresses
+        const tokenInAddress = getResourceAddress(args.tokenIn);
+        if (!tokenInAddress) {
+          return {
+            success: false,
+            message: `Cannot calculate amount out: token ${args.tokenIn} not found`,
+            timestamp: Date.now(),
+          };
+        }
+        const tokenOutAddress = getResourceAddress(args.tokenOut);
+        if (!tokenOutAddress) {
+          return {
+            success: false,
+            message: `Cannot calculate amount out: token ${args.tokenOut} not found`,
+            timestamp: Date.now(),
+          };
+        }
+        const amountIn = convertToContractValue(args.amountIn, 18);
+
         // Get contract addresses
-        const routerAddress = getContractAddress('core', 'router');
+        const routerAddress = getCoreAddress("ammRouter");
         if (!routerAddress) {
           return {
             success: false,
             message: "Cannot calculate amount out: router contract address not found",
-            timestamp: Date.now()
+            timestamp: Date.now(),
           };
         }
-
+        const starknetChain = getStarknetChain();
         // Get factory address
-        const factoryAddress = toHex(await starknetChain.read({
-          contractAddress: routerAddress,
-          entrypoint: "factory",
-          calldata: []
-        }));
-        
+        const factoryAddress = toHex(
+          await starknetChain.read({
+            contractAddress: routerAddress,
+            entrypoint: "factory",
+            calldata: [],
+          })
+        );
+
         // Get pair address
-        const pairAddress = toHex(await starknetChain.read({
-          contractAddress: factoryAddress,
-          entrypoint: "get_pair",
-          calldata: [tokenIn, tokenOut]
-        }));
-        
+        const pairAddress = toHex(
+          await starknetChain.read({
+            contractAddress: factoryAddress,
+            entrypoint: "get_pair",
+            calldata: [tokenInAddress, tokenOutAddress],
+          })
+        );
+
+        // Check if pair exists
         if (pairAddress === "0x0" || pairAddress === "0x00") {
           return {
             success: false,
-            message: `Cannot calculate amount out: no liquidity pair exists for ${tokenIn} and ${tokenOut}. Please check context to get available pairs.`,
-            timestamp: Date.now()
+            message: `Cannot calculate amount out: no liquidity pair exists for ${args.tokenIn} and ${args.tokenOut}.\nPlease check context to get available pairs.`,
+            timestamp: Date.now(),
           };
         }
 
@@ -66,21 +107,21 @@ export const ammActions = [
         const reserves = await starknetChain.read({
           contractAddress: pairAddress,
           entrypoint: "get_reserves",
-          calldata: []
+          calldata: [],
         });
-        
+
         const reserveIn = convertU256ToDecimal(reserves[0], reserves[1]);
         const reserveOut = convertU256ToDecimal(reserves[2], reserves[3]);
-        
-        // Check if reserves are sufficient - fix for type error
+
+        // Check if reserves are sufficient
         if (reserveIn.toString() === "0" || reserveOut.toString() === "0") {
           return {
             success: false,
             message: "Cannot calculate amount out: insufficient liquidity in the pool",
-            timestamp: Date.now()
+            timestamp: Date.now(),
           };
         }
-        
+
         // Calculate amount out
         const result = await starknetChain.read({
           contractAddress: routerAddress,
@@ -88,426 +129,515 @@ export const ammActions = [
           calldata: [
             ...toUint256WithSpread(amountIn),
             ...toUint256WithSpread(reserveIn.toString()),
-            ...toUint256WithSpread(reserveOut.toString())
-          ]
+            ...toUint256WithSpread(reserveOut.toString()),
+          ],
         });
-        
+
+        // Convert to human readable format
         const amountOut = convertU256ToDecimal(result[0], result[1]);
-        
+        const formattedAmountOut = formatTokenBalance(amountOut);
+
         return {
           success: true,
-          message: `For ${amountIn} of token ${tokenIn}, you will receive approximately ${amountOut} of token ${tokenOut}`,
+          message: `For ${args.amountIn} of ${args.tokenIn}, you will receive approximately ${formattedAmountOut} of ${args.tokenOut}`,
           data: {
-            amountOut,
-            reserveIn,
-            reserveOut,
-            pairAddress
+            tokenIn: args.tokenIn,
+            tokenOut: args.tokenOut,
+            amountIn: args.amountIn,
+            amountOut: formattedAmountOut,
           },
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
       } catch (error) {
-        console.error('Failed to get amount out:', error);
+        console.error("Failed to get amount out:", error);
         return {
           success: false,
           message: `Failed to calculate swap output amount: ${(error as Error).message}`,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
+    onError: async (error, ctx, _agent) => {
       console.error(`Action ${ctx.call.name} failed:`, error);
       ctx.emit("actionError", { action: ctx.call.name, error: error.message });
-    }
+    },
   }),
-
   action({
-    name: "quote",
-    description: "Provides a price quote for exchanging tokens based on current pool reserves without considering fees or slippage.",
-    instructions: "Use this action when an agent needs a simple price estimate for token exchange based on current market conditions.",
+    name: "swapTokens",
+    description: "Executes a token swap",
+    instructions:
+      "Use this action when you need to swap a specific amount of one token for another.",
     schema: z.object({
-      tokenIn: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Token contract address to swap from (must be a valid hex address starting with 0x)"),
-      tokenOut: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Token contract address to receive (must be a valid hex address starting with 0x)"),
-      amountIn: z.string().describe("Amount of input tokens as a string in base units (e.g., '1000000000000000000' for 1 token with 18 decimals)"),
+      tokenIn: z
+        .enum(availableTokenSymbols)
+        .describe(
+          `Token symbol to swap from. Available tokens: ${availableTokenSymbols.join(", ")}`
+        ),
+      tokenOut: z
+        .enum(availableTokenSymbols)
+        .describe(`Token symbol to receive. Available tokens: ${availableTokenSymbols.join(", ")}`),
+      amountIn: z.string().describe("Amount of input tokens, in a human readable format."),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (args, _ctx, _agent) => {
       try {
-        const routerAddress = getContractAddress('core', 'router');
-
-        const factoryAddress = toHex(await starknetChain.read({
-          contractAddress: routerAddress,
-          entrypoint: "factory",
-          calldata: []
-        }));
-  
-        const pairAddress = toHex(await starknetChain.read({
-          contractAddress: factoryAddress,
-          entrypoint: "get_pair",
-          calldata: [args.tokenIn, args.tokenOut]
-        }));
-
-        if (pairAddress === "0x0" || pairAddress === "0x00") {
+        // Input validation
+        if (args.tokenIn === args.tokenOut) {
           return {
             success: false,
-            message: `Cannot calculate quote: no liquidity pair exists for ${args.tokenIn} and ${args.tokenOut}. Please check context to get available pairs.`,
+            message: "Cannot execute swap: input and output tokens are the same",
             timestamp: Date.now(),
           };
         }
 
-        const reserves = await starknetChain.read({
-          contractAddress: pairAddress,
-          entrypoint: "get_reserves",
-          calldata: []
-        });
-        const reserveIn = convertU256ToDecimal(reserves[0], reserves[1]);
-        const reserveOut = convertU256ToDecimal(reserves[2], reserves[3]);
-        const result = await starknetChain.read({
-          contractAddress: routerAddress,
-          entrypoint: "quote",
-          calldata: [
-            ...toUint256WithSpread(args.amountIn),
-            ...toUint256WithSpread(reserveIn.toString()),
-            ...toUint256WithSpread(reserveOut.toString())
-          ]
-        });
-        const amountOut = convertU256ToDecimal(result[0], result[1]);
-        return {
-          success: true,
-          message: `For ${args.amountIn} of token ${args.tokenIn}, you will receive approximately ${amountOut} of token ${args.tokenOut}`,
-          data: { amountOut },
-          timestamp: Date.now(),
-        };
-      } catch (error) {
-        console.error('Failed to calculate quote:', error);
-        return {
-          success: false,
-          message: error instanceof Error ? error.message : 'Failed to calculate quote',
-          timestamp: Date.now(),
-        };
-      }
-    },
-    retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Action ${ctx.call.name} failed:`, error);
-      ctx.emit("actionError", { action: ctx.call.name, error: error.message });
-    }
-  }),
+        // Get token addresses
+        const tokenInAddress = getResourceAddress(args.tokenIn);
+        if (!tokenInAddress) {
+          return {
+            success: false,
+            message: `Cannot execute swap: token ${args.tokenIn} not found`,
+            timestamp: Date.now(),
+          };
+        }
+        const tokenOutAddress = getResourceAddress(args.tokenOut);
+        if (!tokenOutAddress) {
+          return {
+            success: false,
+            message: `Cannot execute swap: token ${args.tokenOut} not found`,
+            timestamp: Date.now(),
+          };
+        }
+        const amountIn = convertToContractValue(args.amountIn, 18);
 
-  action({
-    name: "swapExactTokensForTokens",
-    description: "Executes a token swap with exact input amount, handling approvals and execution in a single transaction.",
-    instructions: "Use this action when an agent needs to swap a specific amount of one token for another. The system automatically handles approvals and finds the best exchange rate.",
-    schema: z.object({
-      tokenIn: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Token contract address to swap from (must be a valid hex address starting with 0x)"),
-      tokenOut: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Token contract address to receive (must be a valid hex address starting with 0x)"),
-      amountIn: z.string().describe("Exact amount of tokens to swap as a string in base units (e.g., '1000000000000000000' for 1 token with 18 decimals)"),
-    }),
-    handler: async (args, ctx, agent) => {
-      try {
-        // Construct the path array - for now using direct path, TODO: implement path finding
-        const path = [args.tokenIn, args.tokenOut];
-        const routerAddress = getContractAddress('core', 'router');
-        const agentAddress = await getAgentAddress();
-        
+        // Construct the path array
+        const path = [tokenInAddress, tokenOutAddress];
+        const routerAddress = getCoreAddress("ammRouter");
+        if (!routerAddress) {
+          return {
+            success: false,
+            message: "Cannot execute swap: router contract address not found",
+            timestamp: Date.now(),
+          };
+        }
+        const agentAddress = getAgentAddress();
+
+        const starknetChain = getStarknetChain();
         // Get factory address
-        const factoryAddress = toHex(await starknetChain.read({
-          contractAddress: routerAddress,
-          entrypoint: "factory",
-          calldata: []
-        }));
-        
+        const factoryAddress = toHex(
+          await starknetChain.read({
+            contractAddress: routerAddress,
+            entrypoint: "factory",
+            calldata: [],
+          })
+        );
+
         // Check if pair exists
-        const pairAddress = toHex(await starknetChain.read({
-          contractAddress: factoryAddress,
-          entrypoint: "get_pair",
-          calldata: [args.tokenIn, args.tokenOut]
-        }));
-        
+        const pairAddress = toHex(
+          await starknetChain.read({
+            contractAddress: factoryAddress,
+            entrypoint: "get_pair",
+            calldata: [tokenInAddress, tokenOutAddress],
+          })
+        );
+
+        // Check if pair exists
         if (pairAddress === "0x0" || pairAddress === "0x00") {
           return {
             success: false,
-            message: `Cannot execute swap: no liquidity pair exists for ${args.tokenIn} and ${args.tokenOut}. Please check context to get available pairs.`,
-            timestamp: Date.now()
+            message: `Cannot execute swap: no liquidity pair exists for ${args.tokenIn} and ${args.tokenOut}.\nPlease check context to get available pairs.`,
+            timestamp: Date.now(),
           };
         }
 
-        const balance = await getTokenBalance(args.tokenIn, agentAddress);
-        if (BigInt(args.amountIn) > balance) {
+        // Get balance of input token
+        const balance = await getTokenBalance(tokenInAddress, agentAddress);
+        if (BigInt(amountIn) > balance) {
           return {
             success: false,
-            message: `Cannot execute swap: insufficient balance for ${args.tokenIn}. amountIn: ${args.amountIn}, balance: ${balance}`,
-            timestamp: Date.now()
+            message: `Cannot execute swap: insufficient balance for ${args.tokenIn}. amountIn: ${args.amountIn}, balance: ${formatTokenBalance(balance)}`,
+            timestamp: Date.now(),
           };
         }
-        
+
         // Create approve args for input token
-        const approveCall = getApproveCall(
-          args.tokenIn,
-          routerAddress,
-          args.amountIn
-        );
-        
+        const approveCall = getApproveCall(tokenInAddress, routerAddress, amountIn);
+
         // Create swap args
         const swapCall = {
           contractAddress: routerAddress,
           entrypoint: "swap_exact_tokens_for_tokens",
           calldata: [
-            ...toUint256WithSpread(args.amountIn),
+            ...toUint256WithSpread(amountIn),
             ...toUint256WithSpread("0"),
             path.length.toString(),
             ...path,
             agentAddress,
-            Date.now() + 1000 * 60 * 10 // 10 minutes from now
-          ]
+            Date.now() + 1000 * 60 * 10, // 10 minutes from now
+          ],
         };
 
         // Execute both calls using multicall
         const result = await executeMultiCall([approveCall, swapCall]);
-        
-        if (result.receipt?.statusReceipt !== 'success') {
+
+        if (result.receipt?.statusReceipt !== "success") {
           return {
             success: false,
-            message: result.error || 'Transaction failed',
+            message: result.error || "Transaction failed",
             receipt: result.receipt,
             timestamp: Date.now(),
           };
         }
 
+        // Return result
         return {
           success: true,
-          message: `Swap executed successfully`,
+          message: `Swap executed successfully: ${args.tokenIn} → ${args.tokenOut}`,
+          data: {
+            tokenIn: args.tokenIn,
+            tokenOut: args.tokenOut,
+            amountIn: args.amountIn,
+          },
           txHash: result.transactionHash,
           timestamp: Date.now(),
         };
       } catch (error) {
-        console.error('Failed to execute swap:', error);
+        console.error("Failed to execute swap:", error);
         return {
           success: false,
-          message: error instanceof Error ? error.message : 'Failed to execute swap',
+          message: error instanceof Error ? error.message : "Failed to execute swap",
           timestamp: Date.now(),
         };
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
+    onError: async (error, ctx, _agent) => {
       console.error(`Swap ${ctx.call.name} failed:`, error);
       ctx.emit("swapError", { action: ctx.call.name, error: error.message });
-    }
+    },
   }),
 
   action({
     name: "addLiquidity",
-    description: "Adds liquidity to an AMM pool by depositing a pair of tokens with optimal ratios calculated automatically.",
-    instructions: "Use this action when an agent wants to provide liquidity to a trading pair. The system calculates the optimal token amounts and handles all approvals.",
+    description: "Adds liquidity to a liquidity pool",
+    instructions: "Use this action when you want to provide liquidity to a token pair.",
     schema: z.object({
-      tokenA: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("First token contract address in the liquidity pair (must be a valid hex address starting with 0x)"),
-      tokenB: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Second token contract address in the liquidity pair (must be a valid hex address starting with 0x)"),
-      amountADesired: z.string().describe("Desired amount of first token to contribute as a string in base units (e.g., '1000000000000000000' for 1 token with 18 decimals)"),
+      tokenA: z
+        .enum(availableTokenSymbols)
+        .describe(
+          `First token symbol in the liquidity pair. Available tokens: ${availableTokenSymbols.join(", ")}`
+        ),
+      tokenB: z
+        .enum(availableTokenSymbols)
+        .describe(
+          `Second token symbol in the liquidity pair. Available tokens: ${availableTokenSymbols.join(", ")}`
+        ),
+      amountADesired: z
+        .string()
+        .describe(
+          "Desired amount of first token to deposit in the liquidity pool, in a human readable format."
+        ),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (args, _ctx, _agent) => {
       try {
-        const routerAddress = getContractAddress('core', 'router');
-        const agentAddress = await getAgentAddress();
-        
-        // Get factory address and check if pair exists
-        const factoryAddress = toHex(await starknetChain.read({
-          contractAddress: routerAddress,
-          entrypoint: "factory",
-          calldata: []
-        }));
-        
-        // Check if pair exists
-        const pairAddress = toHex(await starknetChain.read({
-          contractAddress: factoryAddress,
-          entrypoint: "get_pair",
-          calldata: [args.tokenA, args.tokenB]
-        }));
-        
-        const optimalAmounts = await calculateOptimalLiquidity({
+        // Input validation
+        if (args.tokenA === args.tokenB) {
+          return {
+            success: false,
+            message: "Cannot add liquidity: input and output tokens are the same",
+            timestamp: Date.now(),
+          };
+        }
+
+        // Get token addresses
+        const tokenAAddress = getResourceAddress(args.tokenA);
+        if (!tokenAAddress) {
+          return {
+            success: false,
+            message: `Cannot add liquidity: token ${args.tokenA} not found`,
+            timestamp: Date.now(),
+          };
+        }
+        const tokenBAddress = getResourceAddress(args.tokenB);
+        if (!tokenBAddress) {
+          return {
+            success: false,
+            message: `Cannot add liquidity: token ${args.tokenB} not found`,
+            timestamp: Date.now(),
+          };
+        }
+        const amountADesired = convertToContractValue(args.amountADesired, 18);
+
+        // Get router address
+        const routerAddress = getCoreAddress("ammRouter");
+        if (!routerAddress) {
+          return {
+            success: false,
+            message: "Cannot add liquidity: router contract address not found",
+            timestamp: Date.now(),
+          };
+        }
+        const starknetChain = getStarknetChain();
+
+        // Get agent address
+        const agentAddress = getAgentAddress();
+        // Get factory address
+        const factoryAddress = toHex(
+          await starknetChain.read({
             contractAddress: routerAddress,
-            tokenA: args.tokenA,
-            tokenB: args.tokenB,
-            amountA: args.amountADesired
+            entrypoint: "factory",
+            calldata: [],
+          })
+        );
+
+        // Check if pair exists
+        const pairAddress = toHex(
+          await starknetChain.read({
+            contractAddress: factoryAddress,
+            entrypoint: "get_pair",
+            calldata: [tokenAAddress, tokenBAddress],
+          })
+        );
+
+        // Get optimal amounts
+        const optimalAmounts = await calculateOptimalLiquidity({
+          contractAddress: routerAddress,
+          tokenA: tokenAAddress,
+          tokenB: tokenBAddress,
+          amountA: amountADesired,
         });
-        
-        // If this is not the first liquidity provision, check if pair exists
+
+        // Check if pair exists
         if (!optimalAmounts.isFirstProvision && (pairAddress === "0x0" || pairAddress === "0x00")) {
           return {
             success: false,
-            message: `Cannot add liquidity: no liquidity pair exists for ${args.tokenA} and ${args.tokenB}. Please check context to get available pairs.`,
-            timestamp: Date.now()
+            message: `Cannot add liquidity: no liquidity pair exists for ${args.tokenA} and ${args.tokenB}.\nPlease check context to get available pairs.`,
+            timestamp: Date.now(),
           };
         }
-        
+
+        // Get balances
         const amountA = optimalAmounts.amountA;
         const amountB = optimalAmounts.amountB;
-        const balanceA = await getTokenBalance(args.tokenA, agentAddress);
-        const balanceB = await getTokenBalance(args.tokenB, agentAddress);
+        const balanceA = await getTokenBalance(tokenAAddress, agentAddress);
+        const balanceB = await getTokenBalance(tokenBAddress, agentAddress);
+
+        // Check if balances are sufficient
         if (balanceA < BigInt(amountA)) {
           return {
             success: false,
-            message: `Insufficient balance for token A, consider decreasing amountADesired. amountA: ${amountA}, balance: ${balanceA}`,
+            message: `Insufficient balance for ${args.tokenA}, consider decreasing amountADesired. amount: ${formatTokenBalance(BigInt(amountA))} ${args.tokenA}, balance: ${formatTokenBalance(balanceA)} ${args.tokenA}.`,
             timestamp: Date.now(),
           };
         }
         if (balanceB < BigInt(amountB)) {
           return {
             success: false,
-            message: `Insufficient balance for token B, consider decreasing amountADesired. amountB: ${amountB}, balance: ${balanceB}`,
+            message: `Insufficient balance for ${args.tokenB}, consider decreasing amountADesired. amount: ${formatTokenBalance(BigInt(amountB))} ${args.tokenB}, balance: ${formatTokenBalance(balanceB)} ${args.tokenB}.`,
             timestamp: Date.now(),
           };
         }
         // Create approve calls for both tokens
-        const approveCallA = getApproveCall(
-          args.tokenA,
-          routerAddress,
-          amountA
-        );
-        const approveCallB = getApproveCall(
-          args.tokenB,
-          routerAddress,
-          amountB
-        );
+        const approveCallA = getApproveCall(tokenAAddress, routerAddress, amountA);
+        const approveCallB = getApproveCall(tokenBAddress, routerAddress, amountB);
         // Create add liquidity args
         const addLiquidityCall = {
           contractAddress: routerAddress,
           entrypoint: "add_liquidity",
           calldata: [
-            args.tokenA,
-            args.tokenB,
+            tokenAAddress,
+            tokenBAddress,
             ...toUint256WithSpread(amountA),
             ...toUint256WithSpread(amountB),
             ...toUint256WithSpread("0"),
             ...toUint256WithSpread("0"),
             agentAddress,
-            Date.now() + 1000 * 60 * 10 // 10 minutes from now
-          ]
+            Date.now() + 1000 * 60 * 10, // 10 minutes from now
+          ],
         };
 
-        // Execute all calls using multicall
+        // Execute calls using multicall
         const result = await executeMultiCall([approveCallA, approveCallB, addLiquidityCall]);
-        
-        if (result.receipt?.statusReceipt !== 'success') {
+
+        if (result.receipt?.statusReceipt !== "success") {
           return {
             success: false,
-            message: result.error || 'Transaction failed',
+            message: result.error || "Transaction failed",
             receipt: result.receipt,
             timestamp: Date.now(),
           };
         }
 
+        // Return result
         return {
           success: true,
-          message: `Liquidity added successfully`,
+          message: `Liquidity added successfully for ${args.tokenA}/${args.tokenB} pair`,
+          data: {
+            tokenA: args.tokenA,
+            tokenB: args.tokenB,
+            amountA: formatTokenBalance(BigInt(amountA)),
+            amountB: formatTokenBalance(BigInt(amountB)),
+          },
           txHash: result.transactionHash,
           timestamp: Date.now(),
         };
       } catch (error) {
-        console.error('Failed to add liquidity:', error);
+        console.error("Failed to add liquidity:", error);
         return {
           success: false,
-          message: error instanceof Error ? error.message : 'Failed to add liquidity',
+          message: error instanceof Error ? error.message : "Failed to add liquidity",
           timestamp: Date.now(),
         };
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Add liquidity failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Add liquidity failed:", error);
       ctx.emit("addLiquidityError", { action: ctx.call.name, error: error.message });
     },
   }),
 
   action({
     name: "removeLiquidity",
-    description: "Removes liquidity from an AMM pool by burning LP tokens and withdrawing the underlying assets.",
-    instructions: "Use this action when an agent needs to withdraw their liquidity from a pool to get back both tokens.",
+    description: "Removes liquidity from a liquidity pool",
+    instructions: "Use this action when you want to withdraw your liquidity from a liquidity pool.",
     schema: z.object({
-      tokenA: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("First token contract address to receive back (must be a valid hex address starting with 0x)"),
-      tokenB: z.string().regex(/^0x[a-fA-F0-9]+$/).describe("Second token contract address to receive back (must be a valid hex address starting with 0x)"),
-      liquidity: z.string().describe("Amount of LP tokens to burn as a string in base units (e.g., '1000000000000000000' for 1 LP token with 18 decimals)"),
+      tokenA: z
+        .enum(availableTokenSymbols)
+        .describe(
+          `First token symbol to receive back. Available tokens: ${availableTokenSymbols.join(", ")}`
+        ),
+      tokenB: z
+        .enum(availableTokenSymbols)
+        .describe(
+          `Second token symbol to receive back. Available tokens: ${availableTokenSymbols.join(", ")}`
+        ),
+      liquidity: z.string().describe("Amount of LP tokens to burn, in a human readable format."),
     }),
-    handler: async (args, ctx, agent) => {
+    handler: async (args, _ctx, _agent) => {
       try {
-        const routerAddress = getContractAddress('core', 'router');
-        const agentAddress = await getAgentAddress();
-
-        const pairAddress = toHex(await starknetChain.read({
-          contractAddress: routerAddress,
-          entrypoint: "get_pair_address",
-          calldata: [args.tokenA, args.tokenB]
-        }));
-
-        if (pairAddress === "0x0" || pairAddress === "0x00") {
+        // Input validation
+        if (args.tokenA === args.tokenB) {
           return {
             success: false,
-            message: `Cannot remove liquidity: no liquidity pair exists for ${args.tokenA} and ${args.tokenB}. Please check context to get available pairs.`,
-            timestamp: Date.now()
+            message: "Cannot remove liquidity: input and output tokens are the same",
+            timestamp: Date.now(),
           };
         }
 
-        const balance = await getTokenBalance(pairAddress, agentAddress);
-        if (BigInt(args.liquidity) > balance) {
+        // Get token addresses
+        const tokenAAddress = getResourceAddress(args.tokenA);
+        if (!tokenAAddress) {
           return {
             success: false,
-            message: `Cannot remove liquidity: insufficient balance for ${args.tokenA}. liquidity: ${args.liquidity}, balance: ${balance}`,
-            timestamp: Date.now()
+            message: `Cannot remove liquidity: token ${args.tokenA} not found`,
+            timestamp: Date.now(),
+          };
+        }
+        const tokenBAddress = getResourceAddress(args.tokenB);
+        if (!tokenBAddress) {
+          return {
+            success: false,
+            message: `Cannot remove liquidity: token ${args.tokenB} not found`,
+            timestamp: Date.now(),
+          };
+        }
+        const liquidity = convertToContractValue(args.liquidity, 18);
+        const routerAddress = getCoreAddress("ammRouter");
+        if (!routerAddress) {
+          return {
+            success: false,
+            message: "Cannot remove liquidity: router contract address not found",
+            timestamp: Date.now(),
+          };
+        }
+        const starknetChain = getStarknetChain();
+
+        // Get agent address
+        const agentAddress = getAgentAddress();
+
+        // Get pair address
+        const pairAddress = toHex(
+          await starknetChain.read({
+            contractAddress: routerAddress,
+            entrypoint: "get_pair_address",
+            calldata: [tokenAAddress, tokenBAddress],
+          })
+        );
+
+        // Check if pair exists
+        if (pairAddress === "0x0" || pairAddress === "0x00") {
+          return {
+            success: false,
+            message: `Cannot remove liquidity: no liquidity pair exists for ${args.tokenA} and ${args.tokenB}.\nPlease check context to get available pairs.`,
+            timestamp: Date.now(),
+          };
+        }
+
+        // Get balance of LP token
+        const balance = await getTokenBalance(pairAddress, agentAddress);
+        if (BigInt(liquidity) > balance) {
+          return {
+            success: false,
+            message: `Cannot remove liquidity: insufficient LP token balance for ${args.tokenA}/${args.tokenB} pair. liquidity: ${args.liquidity}, balance: ${formatTokenBalance(balance)}`,
+            timestamp: Date.now(),
           };
         }
 
         // Create approve args for LP token
-        const approveCall = getApproveCall(
-          pairAddress,
-          routerAddress,
-          args.liquidity
-        );
+        const approveCall = getApproveCall(pairAddress, routerAddress, args.liquidity);
 
         // Create remove liquidity args
         const removeLiquidityCall = {
           contractAddress: routerAddress,
           entrypoint: "remove_liquidity",
           calldata: [
-            args.tokenA,
-            args.tokenB,
+            tokenAAddress,
+            tokenBAddress,
             ...toUint256WithSpread(args.liquidity),
             ...toUint256WithSpread("0"),
             ...toUint256WithSpread("0"),
             agentAddress,
-            Date.now() + 1000 * 60 * 10 // 10 minutes from now
-          ]
+            Date.now() + 1000 * 60 * 10, // 10 minutes from now
+          ],
         };
 
         // Execute both calls using multicall
         const result = await executeMultiCall([approveCall, removeLiquidityCall]);
 
-        if (result.receipt?.statusReceipt !== 'success') {
+        if (result.receipt?.statusReceipt !== "success") {
           return {
             success: false,
-            message: result.error || 'Transaction failed',
+            message: result.error || "Transaction failed",
             receipt: result.receipt,
             timestamp: Date.now(),
           };
         }
 
+        // Return result
         return {
           success: true,
-          message: `Liquidity removed successfully`,
+          message: `Liquidity removed successfully from ${args.tokenA}/${args.tokenB} pair`,
+          data: {
+            tokenA: args.tokenA,
+            tokenB: args.tokenB,
+            liquidity: args.liquidity,
+          },
           txHash: result.transactionHash,
           timestamp: Date.now(),
         };
       } catch (error) {
-        console.error('Failed to remove liquidity:', error);
+        console.error("Failed to remove liquidity:", error);
         return {
           success: false,
-          message: error instanceof Error ? error.message : 'Failed to remove liquidity',
+          message: error instanceof Error ? error.message : "Failed to remove liquidity",
           timestamp: Date.now(),
         };
       }
     },
     retry: 3,
-    onError: async (error, ctx, agent) => {
-      console.error(`Remove liquidity failed:`, error);
+    onError: async (error, ctx, _agent) => {
+      console.error("Remove liquidity failed:", error);
       ctx.emit("removeLiquidityError", { action: ctx.call.name, error: error.message });
     },
   }),
-]; 
+];
