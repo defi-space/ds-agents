@@ -245,7 +245,8 @@ export const toolActions = [
   action({
     name: "formatTokenBalance",
     description: "Converts a raw token balance to a human readable format",
-    instructions: "Use this action when you need to convert a raw token balance from contract format to a human readable decimal format",
+    instructions:
+      "Use this action when you need to convert a raw token balance from contract format to a human readable decimal format",
     schema: z.object({
       rawBalance: z.string().describe("The raw token balance"),
     }),
@@ -281,7 +282,8 @@ export const toolActions = [
   action({
     name: "convertToContractValue",
     description: "Converts a human readable decimal value to contract value format",
-    instructions: "Use this action when you need to convert a human readable decimal amount to contract format",
+    instructions:
+      "Use this action when you need to convert a human readable decimal amount to contract format",
     schema: z.object({
       value: z.string().describe("The value to format"),
     }),
@@ -329,7 +331,7 @@ export const toolActions = [
 
       return {
         success: true,
-        message: isInPast 
+        message: isInPast
           ? `Timestamp is in the past (${minutesDiff} minutes ago)`
           : `Timestamp is in the future (in ${minutesDiff} minutes)`,
         data: {
@@ -350,5 +352,3 @@ export const toolActions = [
     },
   }),
 ];
-
-
