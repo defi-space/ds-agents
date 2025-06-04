@@ -161,7 +161,7 @@ LP Token Farms (require LP tokens from liquidity pairs):
 - wD/He3 Farm: Stake wD/He3 LP tokens to earn wD (wattDollar)
 
 Single Token Farms:
-- He3 Single Stake Farm: Stake He3 tokens directly to earn more He3
+- He3/He3 Single Stake Farm: Stake He3 tokens directly to earn more He3
 
 Note: All farm operations use these token symbols for identification.
 </ds_available_farms>
