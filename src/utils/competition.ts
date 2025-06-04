@@ -6,7 +6,7 @@ import {
 } from "./contracts";
 import type { TokenSymbol } from "./contracts";
 import { executeQuery, getGameSessionId, normalizeAddress } from "./graphql";
-import { formatTokenBalance, getCurrentAgentId, getTokenBalance } from "./starknet";
+import { getTokenBalance } from "./starknet";
 import { GET_AGENT_LIQUIDITY_POSITIONS, GET_AGENT_FARM_POSITIONS } from "./queries";
 
 /**
@@ -14,7 +14,6 @@ import { GET_AGENT_LIQUIDITY_POSITIONS, GET_AGENT_FARM_POSITIONS } from "./queri
  */
 export interface AgentData {
   agentId: string; // Agent identifier
-  address: string; // Agent's blockchain address
   resourceBalances: Record<TokenSymbol, string>; // All resource token balances
   liquidityPositions: number; // Count of liquidity positions
   farmPositions: number; // Count of farm positions
@@ -128,7 +127,6 @@ export async function getAgentData(agentId: string): Promise<AgentData> {
   // Return complete agent data structure
   return {
     agentId,
-    address: agentAddress,
     resourceBalances,
     liquidityPositions: liquidityPositions?.liquidityPosition?.length || 0,
     farmPositions: farmPositions?.agentStake?.length || 0,

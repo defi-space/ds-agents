@@ -158,19 +158,19 @@ export const utilsActions = [
         // Process liquidity positions
         const formattedLiquidityPositions = liquidityPositions?.liquidityPosition
           ? liquidityPositions.liquidityPosition.map((pos: any) => ({
-              depositsToken0: pos.depositsToken0,
-              depositsToken1: pos.depositsToken1,
-              withdrawalsToken0: pos.withdrawalsToken0,
-              withdrawalsToken1: pos.withdrawalsToken1,
-              liquidity: pos.liquidity,
+              depositsToken0: formatTokenBalance(BigInt(pos.depositsToken0)),
+              depositsToken1: formatTokenBalance(BigInt(pos.depositsToken1)),
+              withdrawalsToken0: formatTokenBalance(BigInt(pos.withdrawalsToken0)),
+              withdrawalsToken1: formatTokenBalance(BigInt(pos.withdrawalsToken1)),
+              liquidity: formatTokenBalance(BigInt(pos.liquidity)),
               pairInfo: pos.pair
                 ? {
                     lpTokenName: pos.pair.lpTokenName,
                     token0Symbol: pos.pair.token0Symbol,
                     token1Symbol: pos.pair.token1Symbol,
-                    reserve0: pos.pair.reserve0,
-                    reserve1: pos.pair.reserve1,
-                    totalSupply: pos.pair.totalSupply,
+                    reserve0: formatTokenBalance(BigInt(pos.pair.reserve0)),
+                    reserve1: formatTokenBalance(BigInt(pos.pair.reserve1)),
+                    totalSupply: formatTokenBalance(BigInt(pos.pair.totalSupply)),
                   }
                 : null,
             }))
@@ -188,7 +188,7 @@ export const utilsActions = [
 
                 return {
                   lpTokenName: stake.farm?.lpTokenName,
-                  stakedAmount: stake.stakedAmount,
+                  stakedAmount: formatTokenBalance(BigInt(stake.stakedAmount)),
                   rewards,
                 };
               })
