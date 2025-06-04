@@ -26,7 +26,9 @@ export function getPairAddress(tokenA: string, tokenB: string): string {
   const address = pairs[pairKey1] || pairs[pairKey2];
 
   if (!address) {
-    throw new Error(`Pair ${tokenA}/${tokenB} not found`);
+    throw new Error(
+      `Pair ${tokenA}/${tokenB} not found. Check context to get all available pairs.`
+    );
   }
 
   return address;
@@ -45,7 +47,9 @@ export function getFarmAddress(tokenA: string, tokenB?: string): string {
     // Single token farm
     const address = farms[tokenA];
     if (!address) {
-      throw new Error(`Single token farm ${tokenA} not found`);
+      throw new Error(
+        `Single token farm ${tokenA} not found. Check context to get all available farms.`
+      );
     }
     return address;
   }
@@ -57,7 +61,9 @@ export function getFarmAddress(tokenA: string, tokenB?: string): string {
   const address = farms[farmKey1] || farms[farmKey2];
 
   if (!address) {
-    throw new Error(`Farm ${tokenA}/${tokenB} not found`);
+    throw new Error(
+      `Farm ${tokenA}/${tokenB} not found. Check context to get all available farms.`
+    );
   }
 
   return address;

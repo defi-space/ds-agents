@@ -82,7 +82,11 @@ export async function getFarmIndex(tokenA: string, tokenB?: string) {
     gameSessionId: gameSessionId,
   });
 
-  if (!result?.farm?.[0]?.farmIndex) {
+  if (
+    !result?.farm?.[0] ||
+    result.farm[0].farmIndex === undefined ||
+    result.farm[0].farmIndex === null
+  ) {
     throw new Error(`No farm index found for address ${farmAddress}`);
   }
   return result.farm[0].farmIndex;

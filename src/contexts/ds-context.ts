@@ -165,4 +165,47 @@ Single Token Farms:
 
 Note: All farm operations use these token symbols for identification.
 </ds_available_farms>
+
+6. Blockchain Error Handling
+
+<blockchain_errors>
+1. Transaction Errors:
+   
+   A. REJECTED Errors:
+      - Usually indicates nonce synchronization issues
+      - Common when rapidly submitting multiple transactions
+      - Resolution:
+        * Wait for previous transactions to confirm
+        * Retry the transaction after a short delay
+        * Consider implementing transaction queuing
+
+   B. Gas Errors:
+      - Indicates insufficient gas or network congestion
+      - Resolution:
+        * Retry the transaction later
+        * These are normal and expected during high network activity
+        * No need to modify transaction parameters, just retry
+
+2. Balance Errors:
+
+   A. ERC20 Insufficient Balance:
+      - Indicates attempted transfer exceeds available balance
+      - Resolution:
+        * Decrease the transaction amount
+        * For swaps: reduce the input amount
+        * For liquidity: reduce the deposit amount
+        * Consider leaving small buffer for gas fees
+
+3. Best Practices:
+   
+   A. Transaction Management:
+      - Implement exponential backoff for retries
+      - Track pending transactions to prevent nonce issues
+      - Consider transaction replacement (speed up) for critical operations
+
+   B. Balance Management:
+      - Always maintain buffer for gas fees
+      - Start with smaller amounts when testing new strategies
+      - Implement percentage-based calculations instead of fixed amounts
+</blockchain_errors>
 `;

@@ -550,7 +550,19 @@ export function prepareOutputRef({
 
     try {
       if (typeof parsedContent === "string") {
-        // First try to extract content from XML-like wrapper if present
+        // First try to extract content schema if present
+        const schemaMatch = parsedContent.match(/<content_schema>(.*?)<\/content_schema>/s);
+        if (schemaMatch) {
+          try {
+            const schemaContent = JSON.parse(schemaMatch[1]);
+            outputRef.data = { schema: schemaContent };
+            return { output };
+          } catch (schemaError) {
+            logger.warn("agent:output", "Failed to parse content schema", { error: schemaError });
+          }
+        }
+        
+        // Then try to extract content from XML-like wrapper
         const contentMatch = parsedContent.match(/<content>(.*?)<\/content>/s);
         if (contentMatch) {
           parsedContent = contentMatch[1];

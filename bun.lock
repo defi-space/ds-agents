@@ -4,7 +4,7 @@
     "": {
       "name": "ds-agents",
       "dependencies": {
-        "@ai-sdk/google": "^1.2.18",
+        "@ai-sdk/google": "^1.2.19",
         "@daydreamsai/chromadb": "workspace:vendored/chroma",
         "@daydreamsai/core": "workspace:vendored/core",
         "@daydreamsai/defai": "workspace:vendored/defai",
@@ -17,9 +17,7 @@
       "devDependencies": {
         "@biomejs/biome": "^1.9.4",
         "@types/bun": "^1.2.15",
-      },
-      "peerDependencies": {
-        "typescript": "^5.7.3",
+        "typescript": "^5.8.3",
       },
     },
     "vendored/chroma": {

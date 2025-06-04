@@ -548,14 +548,15 @@ export const yieldActions = [
 
         const starknetChain = getStarknetChain();
 
-        // Get reward token address
-        const rewardTokenAddress = toHex(
-          await starknetChain.read({
-            contractAddress: farmRouterAddress,
-            entrypoint: "get_reward_tokens",
-            calldata: [...toUint256WithSpread(farmIndex)],
-          })
-        );
+        // Get reward token address - get the first reward token
+        const rewardTokens = await starknetChain.read({
+          contractAddress: farmRouterAddress,
+          entrypoint: "get_reward_tokens",
+          calldata: [...toUint256WithSpread(farmIndex)],
+        });
+
+        // Use the first reward token address
+        const rewardTokenAddress = rewardTokens[0];
 
         // Get earned amount
         const earned = await starknetChain.read({
@@ -564,14 +565,14 @@ export const yieldActions = [
           calldata: [...toUint256WithSpread(farmIndex), agentAddress, rewardTokenAddress],
         });
 
-        const earnedAmount = convertU256ToDecimal(earned[0], earned[1]).toString();
+        const earnedAmount = convertU256ToDecimal(earned[0], earned[1]);
 
         return {
           success: true,
-          message: `You have ${formatTokenBalance(BigInt(earnedAmount))} of reward pending in farm ${args.tokenA}/${args.tokenB}`,
+          message: `You have ${formatTokenBalance(earnedAmount)} of reward pending in farm ${args.tokenA}/${args.tokenB}`,
           data: {
             farm: `${args.tokenA}/${args.tokenB}`,
-            earnedAmount: formatTokenBalance(BigInt(earnedAmount)),
+            pendingRewards: formatTokenBalance(earnedAmount),
           },
           timestamp: Date.now(),
         };

@@ -7,7 +7,8 @@ import {
   rankAgentsByHe3,
   rankAgentsByProgression,
 } from "../utils/competition";
-import { availableAgentIds, getAgentAddress } from "src/utils/contracts";
+import { availableAgentIds } from "src/utils/contracts";
+import contractAddresses from "../../contracts.json";
 
 export const toolActions = [
   action({
@@ -241,80 +242,6 @@ export const toolActions = [
       ctx.emit("progressionRankingError", { action: ctx.call.name, error: error.message });
     },
   }),
-
-  action({
-    name: "formatTokenBalance",
-    description: "Converts a raw token balance to a human readable format",
-    instructions:
-      "Use this action when you need to convert a raw token balance from contract format to a human readable decimal format",
-    schema: z.object({
-      rawBalance: z.string().describe("The raw token balance"),
-    }),
-    handler(args, _ctx, _agent) {
-      try {
-        const rawBalance = BigInt(Number(args.rawBalance));
-        const formattedBalance = (Number(rawBalance) / 10 ** 18).toString();
-
-        return {
-          success: true,
-          message: "Successfully formatted token balance",
-          data: {
-            rawBalance: args.rawBalance,
-            formattedBalance,
-          },
-          timestamp: Date.now(),
-        };
-      } catch (error) {
-        return {
-          success: false,
-          message: `Failed to format token balance: ${(error as Error).message}`,
-          timestamp: Date.now(),
-        };
-      }
-    },
-    retry: 3,
-    onError: async (error, ctx, _agent) => {
-      console.error("Token balance formatting failed:", error);
-      ctx.emit("formatTokenBalanceError", { action: ctx.call.name, error: error.message });
-    },
-  }),
-
-  action({
-    name: "convertToContractValue",
-    description: "Converts a human readable decimal value to contract value format",
-    instructions:
-      "Use this action when you need to convert a human readable decimal amount to contract format",
-    schema: z.object({
-      value: z.string().describe("The value to format"),
-    }),
-    handler(args, _ctx, _agent) {
-      try {
-        const contractValue = BigInt(Math.floor(Number(args.value) * 10 ** 18)).toString();
-
-        return {
-          success: true,
-          message: "Successfully converted to contract value",
-          data: {
-            originalValue: args.value,
-            contractValue,
-          },
-          timestamp: Date.now(),
-        };
-      } catch (error) {
-        return {
-          success: false,
-          message: `Failed to convert to contract value: ${(error as Error).message}`,
-          timestamp: Date.now(),
-        };
-      }
-    },
-    retry: 3,
-    onError: async (error, ctx, _agent) => {
-      console.error("Convert to contract value failed:", error);
-      ctx.emit("convertToContractValueError", { action: ctx.call.name, error: error.message });
-    },
-  }),
-
   action({
     name: "compareTimestamps",
     description: "Gets current timestamp and compares it with a provided timestamp",
@@ -349,6 +276,51 @@ export const toolActions = [
     onError: async (error, ctx, _agent) => {
       console.error("Compare timestamps failed:", error);
       ctx.emit("compareTimestampsError", { action: ctx.call.name, error: error.message });
+    },
+  }),
+  action({
+    name: "getContractName",
+    description: "Finds the contract name for a given contract address",
+    instructions:
+      "Use this action when you need to identify what a contract address represents in the system",
+    schema: z.object({
+      address: z
+        .string()
+        .regex(/^0x[a-fA-F0-9]+$/)
+        .describe("The contract address to look up"),
+    }),
+    handler(args, _ctx, _agent) {
+      // Search through all categories in contracts.json
+      const allContracts = contractAddresses as Record<string, Record<string, string>>;
+
+      for (const category of Object.keys(allContracts)) {
+        const contracts = allContracts[category];
+        for (const [key, value] of Object.entries(contracts)) {
+          if (value.toLowerCase() === args.address.toLowerCase()) {
+            return {
+              success: true,
+              message: `Found contract: ${key} in category ${category}`,
+              data: {
+                name: key,
+                category,
+                address: value,
+              },
+              timestamp: Date.now(),
+            };
+          }
+        }
+      }
+
+      return {
+        success: false,
+        message: `No contract found with address ${args.address}`,
+        timestamp: Date.now(),
+      };
+    },
+    retry: 3,
+    onError: async (error, ctx, _agent) => {
+      console.error("Contract name lookup failed:", error);
+      ctx.emit("contractNameError", { action: ctx.call.name, error: error.message });
     },
   }),
 ];

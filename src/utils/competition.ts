@@ -132,7 +132,7 @@ export async function getAgentData(agentId: string): Promise<AgentData> {
     resourceBalances,
     liquidityPositions: liquidityPositions?.liquidityPosition?.length || 0,
     farmPositions: farmPositions?.agentStake?.length || 0,
-    totalResourceValue: formatTokenBalance(totalResourceValue),
+    totalResourceValue: totalResourceValue.toString(),
     he3Balance: resourceBalances.He3, // He3 is the most important resource
     dominantResource,
     gameStage,

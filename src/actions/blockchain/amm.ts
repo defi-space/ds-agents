@@ -163,143 +163,6 @@ export const ammActions = [
       ctx.emit("actionError", { action: ctx.call.name, error: error.message });
     },
   }),
-
-  action({
-    name: "quote",
-    description: "Provides a quote for adding liquidity to a token pair.",
-    instructions:
-      "Use this action when you need to know how much of a token you need to add to a pair to get a specific amount of the other token.",
-    schema: z.object({
-      tokenIn: z
-        .enum(availableTokenSymbols)
-        .describe(
-          `Token symbol to swap from. Available tokens: ${availableTokenSymbols.join(", ")}`
-        ),
-      tokenOut: z
-        .enum(availableTokenSymbols)
-        .describe(`Token symbol to receive. Available tokens: ${availableTokenSymbols.join(", ")}`),
-      amountIn: z.string().describe("Amount of input tokens, in a human readable format."),
-    }),
-    handler: async (args, _ctx, _agent) => {
-      try {
-        // Input validation
-        if (args.tokenIn === args.tokenOut) {
-          return {
-            success: false,
-            message: "Cannot calculate quote: input and output tokens are the same",
-            timestamp: Date.now(),
-          };
-        }
-        // Get token addresses
-        const tokenInAddress = getResourceAddress(args.tokenIn);
-        if (!tokenInAddress) {
-          return {
-            success: false,
-            message: `Cannot calculate quote: token ${args.tokenIn} not found`,
-            timestamp: Date.now(),
-          };
-        }
-        const tokenOutAddress = getResourceAddress(args.tokenOut);
-        if (!tokenOutAddress) {
-          return {
-            success: false,
-            message: `Cannot calculate quote: token ${args.tokenOut} not found`,
-            timestamp: Date.now(),
-          };
-        }
-        const amountIn = convertToContractValue(args.amountIn, 18);
-
-        // Get Router Address
-        const routerAddress = getCoreAddress("ammRouter");
-        if (!routerAddress) {
-          return {
-            success: false,
-            message: "Cannot calculate quote: router contract address not found",
-            timestamp: Date.now(),
-          };
-        }
-        const starknetChain = getStarknetChain();
-        // Get Factory Address
-        const factoryAddress = toHex(
-          await starknetChain.read({
-            contractAddress: routerAddress,
-            entrypoint: "factory",
-            calldata: [],
-          })
-        );
-
-        // Get Pair Address
-        const pairAddress = toHex(
-          await starknetChain.read({
-            contractAddress: factoryAddress,
-            entrypoint: "get_pair",
-            calldata: [tokenInAddress, tokenOutAddress],
-          })
-        );
-
-        // Check if pair exists
-        if (pairAddress === "0x0" || pairAddress === "0x00") {
-          return {
-            success: false,
-            message: `Cannot calculate quote: no liquidity pair exists for ${args.tokenIn} and ${args.tokenOut}.\nPlease check context to get available pairs.`,
-            timestamp: Date.now(),
-          };
-        }
-
-        // Get Reserves
-        const reserves = await starknetChain.read({
-          contractAddress: pairAddress,
-          entrypoint: "get_reserves",
-          calldata: [],
-        });
-        const reserveIn = convertU256ToDecimal(reserves[0], reserves[1]);
-        const reserveOut = convertU256ToDecimal(reserves[2], reserves[3]);
-
-        // Get Quote
-        const result = await starknetChain.read({
-          contractAddress: routerAddress,
-          entrypoint: "quote",
-          calldata: [
-            ...toUint256WithSpread(amountIn),
-            ...toUint256WithSpread(reserveIn.toString()),
-            ...toUint256WithSpread(reserveOut.toString()),
-          ],
-        });
-
-        // Convert to human readable format
-        const amountOut = convertU256ToDecimal(result[0], result[1]);
-        const formattedAmountOut = formatTokenBalance(amountOut);
-
-        // Return result
-        return {
-          success: true,
-          message: `For ${args.amountIn} of ${args.tokenIn}, you need to add ${formattedAmountOut} of ${args.tokenOut}`,
-          data: {
-            tokenIn: args.tokenIn,
-            tokenOut: args.tokenOut,
-            amountIn: args.amountIn,
-            amountOut: formattedAmountOut,
-            reserveIn: formatTokenBalance(reserveIn),
-            reserveOut: formatTokenBalance(reserveOut),
-          },
-          timestamp: Date.now(),
-        };
-      } catch (error) {
-        console.error("Failed to calculate quote:", error);
-        return {
-          success: false,
-          message: error instanceof Error ? error.message : "Failed to calculate quote",
-          timestamp: Date.now(),
-        };
-      }
-    },
-    retry: 3,
-    onError: async (error, ctx, _agent) => {
-      console.error(`Action ${ctx.call.name} failed:`, error);
-      ctx.emit("actionError", { action: ctx.call.name, error: error.message });
-    },
-  }),
-
   action({
     name: "swapTokens",
     description: "Executes a token swap",
@@ -562,14 +425,14 @@ export const ammActions = [
         if (balanceA < BigInt(amountA)) {
           return {
             success: false,
-            message: `Insufficient balance for ${args.tokenA}, consider decreasing amountADesired. amount: ${formatTokenBalance(BigInt(amountA))} ${args.tokenA}, balance: ${formatTokenBalance(balanceA)} ${args.tokenA}.\nCall quote action to get the exact amountADesired to add.`,
+            message: `Insufficient balance for ${args.tokenA}, consider decreasing amountADesired. amount: ${formatTokenBalance(BigInt(amountA))} ${args.tokenA}, balance: ${formatTokenBalance(balanceA)} ${args.tokenA}.`,
             timestamp: Date.now(),
           };
         }
         if (balanceB < BigInt(amountB)) {
           return {
             success: false,
-            message: `Insufficient balance for ${args.tokenB}, consider decreasing amountADesired. amount: ${formatTokenBalance(BigInt(amountB))} ${args.tokenB}, balance: ${formatTokenBalance(balanceB)} ${args.tokenB}.\nCall quote action to get the exact amountADesired to add.`,
+            message: `Insufficient balance for ${args.tokenB}, consider decreasing amountADesired. amount: ${formatTokenBalance(BigInt(amountB))} ${args.tokenB}, balance: ${formatTokenBalance(balanceB)} ${args.tokenB}.`,
             timestamp: Date.now(),
           };
         }

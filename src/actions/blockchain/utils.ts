@@ -235,4 +235,40 @@ export const utilsActions = [
       ctx.emit("resourceStateError", { action: ctx.call.name, error: error.message });
     },
   }),
+  action({
+    name: "formatTokenBalance",
+    description: "Converts a raw token balance to a human readable format",
+    instructions:
+      "Use this action when you need to convert a raw token balance from contract format to a human readable decimal format",
+    schema: z.object({
+      rawBalance: z.string().describe("The raw token balance"),
+    }),
+    handler(args, _ctx, _agent) {
+      try {
+        const rawBalance = BigInt(Number(args.rawBalance));
+        const formattedBalance = (Number(rawBalance) / 10 ** 18).toString();
+
+        return {
+          success: true,
+          message: "Successfully formatted token balance",
+          data: {
+            rawBalance: args.rawBalance,
+            formattedBalance,
+          },
+          timestamp: Date.now(),
+        };
+      } catch (error) {
+        return {
+          success: false,
+          message: `Failed to format token balance: ${(error as Error).message}`,
+          timestamp: Date.now(),
+        };
+      }
+    },
+    retry: 3,
+    onError: async (error, ctx, _agent) => {
+      console.error("Token balance formatting failed:", error);
+      ctx.emit("formatTokenBalanceError", { action: ctx.call.name, error: error.message });
+    },
+  }),
 ];
