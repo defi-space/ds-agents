@@ -243,36 +243,112 @@ export const toolActions = [
   }),
 
   action({
+    name: "formatTokenBalance",
+    description: "Converts a raw token balance to a human readable format",
+    instructions: "Use this action when you need to convert a raw token balance from contract format to a human readable decimal format",
+    schema: z.object({
+      rawBalance: z.string().describe("The raw token balance"),
+    }),
+    handler(args, _ctx, _agent) {
+      try {
+        const rawBalance = BigInt(Number(args.rawBalance));
+        const formattedBalance = (Number(rawBalance) / 10 ** 18).toString();
+
+        return {
+          success: true,
+          message: "Successfully formatted token balance",
+          data: {
+            rawBalance: args.rawBalance,
+            formattedBalance,
+          },
+          timestamp: Date.now(),
+        };
+      } catch (error) {
+        return {
+          success: false,
+          message: `Failed to format token balance: ${(error as Error).message}`,
+          timestamp: Date.now(),
+        };
+      }
+    },
+    retry: 3,
+    onError: async (error, ctx, _agent) => {
+      console.error("Token balance formatting failed:", error);
+      ctx.emit("formatTokenBalanceError", { action: ctx.call.name, error: error.message });
+    },
+  }),
+
+  action({
+    name: "convertToContractValue",
+    description: "Converts a human readable decimal value to contract value format",
+    instructions: "Use this action when you need to convert a human readable decimal amount to contract format",
+    schema: z.object({
+      value: z.string().describe("The value to format"),
+    }),
+    handler(args, _ctx, _agent) {
+      try {
+        const contractValue = BigInt(Math.floor(Number(args.value) * 10 ** 18)).toString();
+
+        return {
+          success: true,
+          message: "Successfully converted to contract value",
+          data: {
+            originalValue: args.value,
+            contractValue,
+          },
+          timestamp: Date.now(),
+        };
+      } catch (error) {
+        return {
+          success: false,
+          message: `Failed to convert to contract value: ${(error as Error).message}`,
+          timestamp: Date.now(),
+        };
+      }
+    },
+    retry: 3,
+    onError: async (error, ctx, _agent) => {
+      console.error("Convert to contract value failed:", error);
+      ctx.emit("convertToContractValueError", { action: ctx.call.name, error: error.message });
+    },
+  }),
+
+  action({
     name: "compareTimestamps",
     description: "Gets current timestamp and compares it with a provided timestamp",
     instructions: "Use this action when you need to check time differences or validate timestamps",
     schema: z.object({
-      timestamp: z.number().describe("Timestamp to compare with current time (in milliseconds)"),
+      timestamp: z.number().describe("Timestamp to compare with current time in milliseconds"),
     }),
     handler(args, _ctx, _agent) {
       const currentTimestamp = Date.now();
       const timeDiffMs = currentTimestamp - args.timestamp;
+      const minutesDiff = Math.ceil(Math.abs(timeDiffMs) / (1000 * 60));
 
       const isInPast = timeDiffMs > 0;
-      const isInFuture = timeDiffMs < 0;
 
       return {
         success: true,
-        message: "Successfully compared timestamps",
+        message: isInPast 
+          ? `Timestamp is in the past (${minutesDiff} minutes ago)`
+          : `Timestamp is in the future (in ${minutesDiff} minutes)`,
         data: {
           currentTimestamp,
+          currentDate: new Date(currentTimestamp).toISOString(),
           providedTimestamp: args.timestamp,
+          providedDate: new Date(args.timestamp).toISOString(),
           difference: timeDiffMs,
-          isInPast,
-          isInFuture,
+          minutesDifference: minutesDiff,
         },
         timestamp: Date.now(),
       };
     },
     retry: 3,
     onError: async (error, ctx, _agent) => {
-      console.error("Timestamp comparison failed:", error);
-      ctx.emit("timestampComparisonError", { action: ctx.call.name, error: error.message });
+      console.error("Compare timestamps failed:", error);
+      ctx.emit("compareTimestampsError", { action: ctx.call.name, error: error.message });
     },
   }),
 ];
+
+
