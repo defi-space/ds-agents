@@ -13,11 +13,6 @@ import {
 import { getCoreAddress, getAgentAddress, availableTokenSymbols } from "../../utils/contracts";
 import { getFarmIndex } from "../../utils/graphql";
 
-// Define type for pending rewards
-interface PendingRewards {
-  [tokenAddress: string]: string;
-}
-
 export const yieldActions = [
   action({
     name: "depositToFarm",
@@ -416,31 +411,28 @@ export const yieldActions = [
 
         // Fetch reward tokens for logging
         const agentAddress = getAgentAddress();
-        let rewardTokens: string[] = [];
-        const pendingRewards: PendingRewards = {};
+        let pendingRewardsAmount = "0";
 
         try {
-          // Get reward tokens
-          const rewardTokensResponse = await starknetChain.read({
+          // Get reward token address - get the first reward token
+          const rewardTokens = await starknetChain.read({
             contractAddress: farmRouterAddress,
             entrypoint: "get_reward_tokens",
             calldata: [...toUint256WithSpread(farmIndex)],
           });
 
-          rewardTokens = Array.isArray(rewardTokensResponse)
-            ? rewardTokensResponse
-            : [rewardTokensResponse];
+          // Use the first reward token address
+          const rewardTokenAddress = rewardTokens[1];
 
-          // Get pending amounts for each token
-          for (const token of rewardTokens) {
-            const earned = await starknetChain.read({
-              contractAddress: farmRouterAddress,
-              entrypoint: "earned",
-              calldata: [...toUint256WithSpread(farmIndex), agentAddress, token],
-            });
+          // Get earned amount
+          const earned = await starknetChain.read({
+            contractAddress: farmRouterAddress,
+            entrypoint: "earned",
+            calldata: [...toUint256WithSpread(farmIndex), agentAddress, rewardTokenAddress],
+          });
 
-            pendingRewards[token] = convertU256ToDecimal(earned[0], earned[1]).toString();
-          }
+          const earnedAmount = convertU256ToDecimal(earned[0], earned[1]);
+          pendingRewardsAmount = earnedAmount.toString();
         } catch (e) {
           // Non-critical error, continue with harvest
           console.warn("Could not fetch pending rewards before harvest:", e);
@@ -468,7 +460,7 @@ export const yieldActions = [
           txHash: result.transactionHash,
           data: {
             farm: `${args.tokenA}/${args.tokenB}`,
-            harvestedAmounts: formatTokenBalance(BigInt(pendingRewards[rewardTokens[0]])),
+            harvestedAmounts: formatTokenBalance(BigInt(pendingRewardsAmount)),
           },
           timestamp: Date.now(),
         };
@@ -556,8 +548,7 @@ export const yieldActions = [
         });
 
         // Use the first reward token address
-        const rewardTokenAddress = rewardTokens[0];
-
+        const rewardTokenAddress = rewardTokens[1];
         // Get earned amount
         const earned = await starknetChain.read({
           contractAddress: farmRouterAddress,
