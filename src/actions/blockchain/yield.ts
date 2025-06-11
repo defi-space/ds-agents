@@ -438,6 +438,14 @@ export const yieldActions = [
           console.warn("Could not fetch pending rewards before harvest:", e);
         }
 
+        if (pendingRewardsAmount === "0") {
+          return {
+            success: false,
+            message: `No rewards to harvest from farm ${args.tokenA}/${args.tokenB}. You need to deposit tokens to the farm first.`,
+            timestamp: Date.now(),
+          };
+        }
+
         // Execute harvest
         const result = await starknetChain.write({
           contractAddress: farmRouterAddress,
