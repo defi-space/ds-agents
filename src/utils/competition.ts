@@ -87,7 +87,7 @@ export interface AgentComparison {
 /**
  * Get pending rewards from a farm using existing farm logic
  */
-async function getFarmPendingRewards(agentAddress: string, farmKey: string): Promise<number> {
+async function getFarmPendingRewards(agentAddress: string, farmKey: string): Promise<bigint> {
   const chain = getStarknetChain();
   const farmRouterAddress = contractAddresses.core.farmRouter;
 
@@ -118,11 +118,11 @@ async function getFarmPendingRewards(agentAddress: string, farmKey: string): Pro
 
     const earnedAmount = convertU256ToDecimal(earned[0], earned[1]);
     if (earnedAmount > 0n) {
-      return Number(formatTokenBalance(earnedAmount));
+      return earnedAmount;
     }
   }
 
-  return 0;
+  return 0n;
 }
 
 /**
@@ -147,7 +147,7 @@ async function calculateResourceBalanceScore(
       const score = normalizedBalance * weight;
       totalScore += score;
 
-      balances[symbol] = balance.toString();
+      balances[symbol] = normalizedBalance.toString();
     } else {
       balances[symbol] = "0";
     }
@@ -178,7 +178,7 @@ async function calculateLpBalanceScore(
       const score = normalizedBalance * weight;
       totalScore += score;
 
-      balances[pairKey] = lpBalance.toString();
+      balances[pairKey] = normalizedBalance.toString();
     } else {
       balances[pairKey] = "0";
     }
@@ -211,12 +211,12 @@ async function calculatePendingRewardsScore(
       } else if (farmKey.includes("Y")) {
         tokenSymbol = "Y";
       }
-
+      const normalizedRewardAmount = Number(formatTokenBalance(rewardAmount));
       const weight = TOKEN_WEIGHTS[tokenSymbol] || 1;
-      const score = rewardAmount * weight;
+      const score = normalizedRewardAmount * weight;
       totalScore += score;
 
-      rewards[farmKey] = rewardAmount.toString();
+      rewards[farmKey] = normalizedRewardAmount.toString();
     } else {
       rewards[farmKey] = "0";
     }
