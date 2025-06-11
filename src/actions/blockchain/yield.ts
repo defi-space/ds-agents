@@ -441,7 +441,7 @@ export const yieldActions = [
         if (pendingRewardsAmount === "0") {
           return {
             success: false,
-            message: `No rewards to harvest from farm ${args.tokenA}/${args.tokenB}. You need to deposit tokens to the farm first.`,
+            message: `No rewards to harvest from farm ${args.tokenA}/${args.tokenB}.\nYou need to deposit tokens to the farm first.`,
             timestamp: Date.now(),
           };
         }

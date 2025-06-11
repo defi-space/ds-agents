@@ -40,6 +40,7 @@ export const EXECUTION = `
     - Reinvest claimed rewards into your strategy right away
     - Farm emissions have no timer - claim anytime for instant gains
     - Pending rewards are wasted opportunity if not claimed
+    - ALWAYS deposit LP tokens into corresponding farms - idle LP tokens earn NOTHING
   </reward_focus>
   
   <execution_principles>
