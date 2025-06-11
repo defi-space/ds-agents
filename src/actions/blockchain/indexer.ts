@@ -57,7 +57,7 @@ export const indexerActions = [
         if (!result || !result.pair) {
           return {
             success: false,
-            message: `No pair information found for ${args.tokenA}/${args.tokenB}.\nPlease check context to get available LP pairs.`,
+            message: `No pair information found for ${args.tokenA}/${args.tokenB}. Please check context to get available LP pairs.`,
             timestamp: Date.now(),
           };
         }
@@ -129,7 +129,7 @@ export const indexerActions = [
         if (!result || !result.farm) {
           return {
             success: false,
-            message: `No farm information found for ${args.tokenA}/${args.tokenB}.\nCheck the available farms in the context`,
+            message: `No farm information found for ${args.tokenA}/${args.tokenB}. Check the available farms in the context`,
             timestamp: Date.now(),
           };
         }

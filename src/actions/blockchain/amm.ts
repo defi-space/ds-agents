@@ -98,7 +98,7 @@ export const ammActions = [
         if (pairAddress === "0x0" || pairAddress === "0x00") {
           return {
             success: false,
-            message: `Cannot calculate amount out: no liquidity pair exists for ${args.tokenIn} and ${args.tokenOut}.\nPlease check context to get available pairs.`,
+            message: `Cannot calculate amount out: no liquidity pair exists for ${args.tokenIn} and ${args.tokenOut}. Please check context to get available pairs.`,
             timestamp: Date.now(),
           };
         }
@@ -244,7 +244,7 @@ export const ammActions = [
         if (pairAddress === "0x0" || pairAddress === "0x00") {
           return {
             success: false,
-            message: `Cannot execute swap: no liquidity pair exists for ${args.tokenIn} and ${args.tokenOut}.\nPlease check context to get available pairs.`,
+            message: `Cannot execute swap: no liquidity pair exists for ${args.tokenIn} and ${args.tokenOut}. Please check context to get available pairs.`,
             timestamp: Date.now(),
           };
         }
@@ -410,7 +410,7 @@ export const ammActions = [
         if (!optimalAmounts.isFirstProvision && (pairAddress === "0x0" || pairAddress === "0x00")) {
           return {
             success: false,
-            message: `Cannot add liquidity: no liquidity pair exists for ${args.tokenA} and ${args.tokenB}.\nPlease check context to get available pairs.`,
+            message: `Cannot add liquidity: no liquidity pair exists for ${args.tokenA} and ${args.tokenB}. Please check context to get available pairs.`,
             timestamp: Date.now(),
           };
         }
@@ -568,7 +568,7 @@ export const ammActions = [
         if (pairAddress === "0x0" || pairAddress === "0x00") {
           return {
             success: false,
-            message: `Cannot remove liquidity: no liquidity pair exists for ${args.tokenA} and ${args.tokenB}.\nPlease check context to get available pairs.`,
+            message: `Cannot remove liquidity: no liquidity pair exists for ${args.tokenA} and ${args.tokenB}. Please check context to get available pairs.`,
             timestamp: Date.now(),
           };
         }

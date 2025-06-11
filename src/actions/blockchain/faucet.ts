@@ -76,7 +76,7 @@ export const faucetActions = [
         if (!status.canClaim) {
           return {
             success: false,
-            message: `Cannot claim yet.\nPlease wait approximately ${status.minutesLeft} minutes before claiming again.`,
+            message: `Cannot claim yet. Please wait approximately ${status.minutesLeft} minutes before claiming again.`,
             data: {
               secondsLeft: status.timeLeft / 1000,
               minutesLeft: status.minutesLeft,
@@ -98,7 +98,7 @@ export const faucetActions = [
           return {
             success: false,
             message:
-              "Failed to claim tokens from faucet.\nThe transaction was submitted but did not complete successfully.",
+              "Failed to claim tokens from faucet. The transaction was submitted but did not complete successfully.",
             receipt: result,
             timestamp: Date.now(),
           };
