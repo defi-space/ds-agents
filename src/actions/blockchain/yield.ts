@@ -565,6 +565,13 @@ export const yieldActions = [
         });
 
         const earnedAmount = convertU256ToDecimal(earned[0], earned[1]);
+        if (earnedAmount === 0n) {
+          return {
+            success: true,
+            message: `No pending rewards in farm ${args.tokenA}/${args.tokenB}.\nYou need to deposit tokens to the farm first.`,
+            timestamp: Date.now(),
+          };
+        }
 
         return {
           success: true,
