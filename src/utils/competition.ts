@@ -12,7 +12,7 @@ import contractAddresses from "../../contracts.json";
 // Token weights configuration
 export const TOKEN_WEIGHTS: Record<string, number> = {
   // High value tokens
-  He3: 100,
+  He3: 500,
 
   // Medium value tokens
   GPH: 50,
