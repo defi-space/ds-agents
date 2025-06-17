@@ -6,11 +6,9 @@ import {
   GET_ALL_FARMS,
   GET_AGENT_LIQUIDITY_POSITIONS,
   GET_AGENT_FARM_POSITIONS,
-  GET_GAME_SESSION_STATUS,
 } from "../../utils/queries";
 import {
   availableTokenSymbols,
-  getCoreAddress,
   getFarmAddress,
   getPairAddress,
   availableAgentIds,
@@ -312,72 +310,6 @@ export const indexerActions = [
     onError: async (error, ctx, _agent) => {
       console.error("Farm positions query failed:", error);
       ctx.emit("farmPositionsError", { action: ctx.call.name, error: error.message });
-    },
-  }),
-
-  action({
-    name: "getGameSessionStatus",
-    description: "Checks if a game session is active, suspended, or already over",
-    instructions: "Use this action when you need to verify the current status of a game session",
-    schema: z.object({
-      message: z.string().describe("Not used - can be ignored").default("None"),
-    }),
-    handler: async (_args, _ctx, _agent) => {
-      try {
-        const sessionAddress = getCoreAddress("gameSession");
-        if (!sessionAddress) {
-          return {
-            success: false,
-            message: "Cannot retrieve game session status: address is missing",
-            timestamp: Date.now(),
-          };
-        }
-
-        const normalizedAddress = normalizeAddress(sessionAddress);
-
-        const result = await executeQuery(GET_GAME_SESSION_STATUS, {
-          address: normalizedAddress,
-        });
-
-        if (!result || !result.gameSession) {
-          return {
-            success: false,
-            message: `No game session found for address ${sessionAddress}.`,
-            timestamp: Date.now(),
-          };
-        }
-
-        // Handle the nested data structure correctly
-        const gameSession = result.gameSession["0"] || result.gameSession;
-        const isActive = !gameSession.gameSuspended && !gameSession.gameOver;
-        const status = gameSession.gameOver
-          ? "over"
-          : gameSession.gameSuspended
-            ? "suspended"
-            : "active";
-
-        return {
-          success: true,
-          message: `Game session is ${status}`,
-          data: {
-            ...gameSession,
-            isActive,
-          },
-          timestamp: Date.now(),
-        };
-      } catch (error) {
-        console.error("Failed to get game session status:", error);
-        return {
-          success: false,
-          message: `Failed to retrieve game session status: ${(error as Error).message || "Unknown error"}`,
-          timestamp: Date.now(),
-        };
-      }
-    },
-    retry: 3,
-    onError: async (error, ctx, _agent) => {
-      console.error("Game session status query failed:", error);
-      ctx.emit("gameSessionStatusError", { action: ctx.call.name, error: error.message });
     },
   }),
 ];

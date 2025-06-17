@@ -1,6 +1,10 @@
 import { GraphQLClient } from "graphql-request";
 import { getCoreAddress, getFarmAddress } from "./contracts";
-import { GET_FARM_INDEX_BY_ADDRESS, GET_GAME_SESSION_INDEX_BY_ADDRESS } from "./queries";
+import {
+  GET_FARM_INDEX_BY_ADDRESS,
+  GET_GAME_SESSION_INDEX_BY_ADDRESS,
+  GET_GAME_SESSION_STATUS,
+} from "./queries";
 
 // Ensure INDEXER_URL is set
 const INDEXER_URL = process.env.INDEXER_URL as string;
@@ -90,4 +94,46 @@ export async function getFarmIndex(tokenA: string, tokenB?: string) {
     throw new Error(`No farm index found for address ${farmAddress}`);
   }
   return result.farm[0].farmIndex;
+}
+
+/**
+ * Checks if the game session is active and exits the process if not
+ * This should be called before any indexer action to ensure the game is running
+ * @throws Process exits with code 1 if game session is not active
+ */
+export async function checkGameSessionActiveOrExit(): Promise<void> {
+  try {
+    const sessionAddress = getCoreAddress("gameSession");
+    if (!sessionAddress) {
+      console.error("Cannot check game session status: address is missing");
+      process.exit(1);
+    }
+
+    const normalizedAddress = normalizeAddress(sessionAddress);
+
+    const result = await executeQuery(GET_GAME_SESSION_STATUS, {
+      address: normalizedAddress,
+    });
+
+    if (!result || !result.gameSession) {
+      console.error(`No game session found for address ${sessionAddress}`);
+      process.exit(1);
+    }
+
+    // Handle the nested data structure correctly
+    const gameSession = result.gameSession["0"] || result.gameSession;
+    const isActive = !gameSession.gameSuspended && !gameSession.gameOver;
+
+    if (!isActive) {
+      const status = gameSession.gameOver ? "over" : "suspended";
+      console.error(`Game session is ${status}. Agent process terminating.`);
+      process.exit(1);
+    }
+
+    // If we reach here, the game session is active
+    console.log("Game session is active - proceeding with action");
+  } catch (error) {
+    console.error("Failed to check game session status:", error);
+    process.exit(1);
+  }
 }

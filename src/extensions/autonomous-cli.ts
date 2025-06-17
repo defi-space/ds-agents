@@ -2,6 +2,7 @@ import * as readline from "node:readline/promises";
 import { context, extension, formatMsg, input, service, z } from "@daydreamsai/core";
 import chalk from "chalk";
 import { PROMPTS } from "../prompts";
+import { checkGameSessionActiveOrExit } from "../utils/graphql";
 
 /**
  * CLI context configuration
@@ -111,6 +112,7 @@ export const autonomousCli = extension({
         }),
       /**
        * Subscribes to CLI input and sets up the system
+       * - Checks if game session is active (exits if not)
        * - Clears screen and shows header
        * - Sends initial strategic prompt
        * - Sets up periodic task execution and goal updates
@@ -119,6 +121,9 @@ export const autonomousCli = extension({
        * @returns {Function} Cleanup function
        */
       async subscribe(send, { container }) {
+        // Check if game session is active before starting
+        await checkGameSessionActiveOrExit();
+
         // Clear screen and show header
         clearScreen();
         displayHeader();
@@ -153,8 +158,10 @@ export const autonomousCli = extension({
         // Set up separate timers for execution and updates
         setTimeout(() => {
           // Start execution cycle (every 5 minutes)
-          const runExecutionCycle = () => {
+          const runExecutionCycle = async () => {
             console.log(`${getTimestamp()} Running execution cycle`);
+
+            await checkGameSessionActiveOrExit();
 
             // Send the execution prompt
             send(
@@ -176,8 +183,10 @@ export const autonomousCli = extension({
 
         setTimeout(() => {
           // Start update cycle (every 30 minutes)
-          const runUpdateCycle = () => {
+          const runUpdateCycle = async () => {
             console.log(`${getTimestamp()} Running update cycle`);
+
+            await checkGameSessionActiveOrExit();
 
             // Send the update prompt
             send(
