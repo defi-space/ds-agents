@@ -1,5 +1,5 @@
 import * as readline from "node:readline/promises";
-import { context, extension, formatMsg, input, service, z } from "@daydreamsai/core";
+import { context, extension, formatMsg, input, output, service, z } from "@daydreamsai/core";
 import chalk from "chalk";
 import { PROMPTS } from "../prompts";
 import { checkGameSessionActiveOrExit } from "../utils/graphql";
@@ -12,6 +12,22 @@ const cliContext = context({
   type: "cli",
   key: ({ user }) => user.toString(),
   schema: z.object({ user: z.string() }),
+  outputs: {
+    "cli:message": output({
+      description: "Send messages to the user",
+      instructions: "Use plain text",
+      schema: z.string(),
+      handler(data) {
+        console.log(`${getTimestamp()} ${styles.agentLabel}:`, data);
+        return {
+          data,
+        };
+      },
+      examples: [
+        `<output type="cli:message">Analyzing market conditions and executing trading strategy...</output>`,
+      ],
+    }),
+  },
 });
 
 /**

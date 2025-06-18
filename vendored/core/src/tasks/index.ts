@@ -114,7 +114,7 @@ export const runGenerate = task({
             } satisfies GoogleGenerativeAIProviderOptions,
           },
           messages,
-          temperature: 1,
+          temperature: 0.2,
         });
 
         let getTextResponse = async () => response.text;
@@ -133,7 +133,7 @@ export const runGenerate = task({
           },
           messages,
           stopSequences: ["\n</response>"],
-          temperature: 1,
+          temperature: 0.5,
           abortSignal,
           // experimental_transform: smoothStream({
           //   chunking: "word",
