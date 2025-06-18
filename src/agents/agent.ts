@@ -61,7 +61,6 @@ export async function createAgent(config: AgentConfig) {
   try {
     const google = createGoogleGenerativeAI({
       apiKey: googleApiKey,
-      baseURL: "https://generativelanguage.googleapis.com/v1",
     });
     const model = google("gemini-2.5-flash-lite-preview-06-17");
 
