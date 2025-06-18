@@ -18,6 +18,7 @@ import type { Logger } from "../logger";
 import { wrapStream } from "../streaming";
 import { modelsResponseConfig, reasoningModels } from "../configs";
 import { generateText } from "ai";
+import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 /**
  * Prepares a stream response by handling the stream result and parsing it.
  *
@@ -105,8 +106,15 @@ export const runGenerate = task({
       if (!streaming) {
         const response = await generateText({
           model,
+          providerOptions: {
+            google: {
+              thinkingConfig: {
+                thinkingBudget: 24576,
+              },
+            } satisfies GoogleGenerativeAIProviderOptions,
+          },
           messages,
-          temperature: 0.2,
+          temperature: 1,
         });
 
         let getTextResponse = async () => response.text;
@@ -116,9 +124,16 @@ export const runGenerate = task({
       } else {
         const stream = streamText({
           model,
+          providerOptions: {
+            google: {
+              thinkingConfig: {
+                thinkingBudget: 24576,
+              },
+            } satisfies GoogleGenerativeAIProviderOptions,
+          },
           messages,
           stopSequences: ["\n</response>"],
-          temperature: 0.5,
+          temperature: 1,
           abortSignal,
           // experimental_transform: smoothStream({
           //   chunking: "word",
