@@ -62,7 +62,7 @@ export async function createAgent(config: AgentConfig) {
     const google = createGoogleGenerativeAI({
       apiKey: googleApiKey,
     });
-    const model = google("gemini-2.5-flash-lite-preview-06-17");
+    const model = google("gemini-2.5-flash");
 
     // Get the service URLs
     const chromaDbUrl = getChromaDbUrl();

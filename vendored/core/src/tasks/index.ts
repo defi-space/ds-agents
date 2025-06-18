@@ -106,13 +106,6 @@ export const runGenerate = task({
       if (!streaming) {
         const response = await generateText({
           model,
-          providerOptions: {
-            google: {
-              thinkingConfig: {
-                thinkingBudget: 24576,
-              },
-            } satisfies GoogleGenerativeAIProviderOptions,
-          },
           messages,
           temperature: 0.2,
         });
@@ -124,13 +117,6 @@ export const runGenerate = task({
       } else {
         const stream = streamText({
           model,
-          providerOptions: {
-            google: {
-              thinkingConfig: {
-                thinkingBudget: 24576,
-              },
-            } satisfies GoogleGenerativeAIProviderOptions,
-          },
           messages,
           stopSequences: ["\n</response>"],
           temperature: 0.5,
