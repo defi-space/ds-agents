@@ -63,7 +63,7 @@ export async function createAgent(config: AgentConfig) {
       apiKey: googleApiKey,
       baseURL: "https://generativelanguage.googleapis.com/v1",
     });
-    const model = google("gemini-2.0-flash");
+    const model = google("gemini-2.5-flash-lite-preview-06-17");
 
     // Get the service URLs
     const chromaDbUrl = getChromaDbUrl();
