@@ -1,3 +1,22 @@
+/**
+ * Agent Competition Scoring System
+ *
+ * 🎯 SCORING METHODOLOGY:
+ * Total Score = Resource Balance Score + LP Token Balance Score + Farming Score
+ *
+ * 📊 1. RESOURCE BALANCE SCORE
+ *    Formula: Σ(token_balance × token_weight)
+ *    Token Weights: He3: 100, GPH/Y: 5, GRP/Dy: 2, wD/C/Nd: 1
+ *
+ * 💧 2. LP TOKEN BALANCE SCORE
+ *    Formula: Σ(lp_balance × pool_weight)
+ *    Pool Weights: wD/He3: 10, GPH/Y: 5, wD/GRP: 2, wD/Dy: 2, wD/C: 1, wD/Nd: 1
+ *
+ * 🚜 3. FARMING SCORE
+ *    Formula: Σ((pending_rewards × token_weight) × farm_multiplier)
+ *    Where farm_multiplier = 1 + Σ(reward_token_weight / 10)
+ */
+
 import {
   getStarknetChain,
   getTokenBalance,
@@ -5,37 +24,43 @@ import {
   formatTokenBalance,
   toUint256WithSpread,
 } from "./starknet";
-import { getAgentAddress, availableTokenSymbols, getResourceAddress } from "./contracts";
-import { getFarmIndex } from "./graphql";
+import {
+  getAgentAddress,
+  availableTokenSymbols,
+  getResourceAddress,
+  getFarmAddress,
+} from "./contracts";
+import { getFarmIndex, executeQuery, getGameSessionId, normalizeAddress } from "./graphql";
+import { GET_FARM_INFO } from "./queries";
 import contractAddresses from "../../contracts.json";
 
 // Token weights configuration
 export const TOKEN_WEIGHTS: Record<string, number> = {
-  // High value tokens
-  He3: 500,
+  // Highest value token
+  He3: 100,
 
   // Medium value tokens
-  GPH: 50,
-  Y: 50,
+  GPH: 5,
+  Y: 5,
 
   // Lower value tokens
-  GRP: 25,
-  Dy: 25,
+  GRP: 2,
+  Dy: 2,
 
   // Base tokens
-  wD: 5,
-  C: 5,
-  Nd: 5,
+  wD: 1,
+  C: 1,
+  Nd: 1,
 };
 
-// LP Pool weights for LP token balances - matches contracts.json pairs exactly
+// LP Pool weights for LP token balances - matches actual pools in contracts.json
 const LP_POOL_WEIGHTS: Record<string, number> = {
-  "wD/C": 20,
-  "wD/GRP": 25,
-  "wD/Nd": 20,
-  "wD/Dy": 25,
-  "GPH/Y": 40,
-  "wD/He3": 50,
+  "wD/He3": 10, // premium pool
+  "GPH/Y": 5, // medium value pool
+  "wD/GRP": 2, // lower value pools
+  "wD/Dy": 2,
+  "wD/C": 1, // base pools
+  "wD/Nd": 1,
 };
 
 /**
@@ -82,6 +107,41 @@ export interface AgentComparison {
     agent1Breakdown: string;
     agent2Breakdown: string;
   };
+}
+
+/**
+ * Get farm reward token information using GraphQL
+ */
+async function getFarmRewardToken(farmKey: string): Promise<string | null> {
+  try {
+    let farmAddress: string;
+
+    // Single sided farm
+    if (farmKey === "He3") {
+      farmAddress = getFarmAddress("He3");
+    } else {
+      const [tokenA, tokenB] = farmKey.split("/");
+      farmAddress = getFarmAddress(tokenA, tokenB);
+    }
+
+    const normalizedAddress = normalizeAddress(farmAddress);
+    const gameSessionId = await getGameSessionId();
+
+    const result = await executeQuery(GET_FARM_INFO, {
+      address: normalizedAddress,
+      gameSessionId: gameSessionId,
+    });
+
+    if (!result?.farm?.[0]?.rewards?.[0]) {
+      return null;
+    }
+
+    // Return the single reward token symbol
+    return result.farm[0].rewards[0].rewardTokenSymbol;
+  } catch (error) {
+    console.warn(`Failed to get reward token for farm ${farmKey}:`, error);
+    return null;
+  }
 }
 
 /**
@@ -174,7 +234,8 @@ async function calculateLpBalanceScore(
       const normalizedBalance = Number(formatTokenBalance(lpBalance));
 
       // Get pool weight
-      const weight = LP_POOL_WEIGHTS[pairKey] || 10;
+      const weight = LP_POOL_WEIGHTS[pairKey] || 1; // Default to 1 if pool not found
+
       const score = normalizedBalance * weight;
       totalScore += score;
 
@@ -188,7 +249,9 @@ async function calculateLpBalanceScore(
 }
 
 /**
- * Calculate pending rewards score using farm reward logic
+ * Calculate pending rewards score using farm reward logic with farm multipliers
+ * Formula: Σ((pending_rewards × token_weight) × farm_multiplier)
+ * Where farm_multiplier = 1 + Σ(reward_token_weight / 10)
  */
 async function calculatePendingRewardsScore(
   agentAddress: string
@@ -202,18 +265,21 @@ async function calculatePendingRewardsScore(
     const rewardAmount = await getFarmPendingRewards(agentAddress, farmKey);
 
     if (rewardAmount > 0) {
-      // Get token symbol from farm key for weight calculation
-      let tokenSymbol = "wD"; // Default weight token
-      if (farmKey.includes("He3")) {
-        tokenSymbol = "He3";
-      } else if (farmKey.includes("GPH")) {
-        tokenSymbol = "GPH";
-      } else if (farmKey.includes("Y")) {
-        tokenSymbol = "Y";
-      }
       const normalizedRewardAmount = Number(formatTokenBalance(rewardAmount));
-      const weight = TOKEN_WEIGHTS[tokenSymbol] || 1;
-      const score = normalizedRewardAmount * weight;
+
+      // Get actual reward token from GraphQL
+      const rewardTokenSymbol = await getFarmRewardToken(farmKey);
+
+      // Get reward token weight (default to wD weight if not found)
+      const rewardTokenWeight = rewardTokenSymbol
+        ? TOKEN_WEIGHTS[rewardTokenSymbol] || 1
+        : TOKEN_WEIGHTS.wD || 1;
+
+      // Calculate farm multiplier: 1 + (reward_token_weight / 10)
+      const farmMultiplier = 1 + rewardTokenWeight / 10;
+
+      // Apply the new formula: (pending_rewards × token_weight) × farm_multiplier
+      const score = normalizedRewardAmount * rewardTokenWeight * farmMultiplier;
       totalScore += score;
 
       rewards[farmKey] = normalizedRewardAmount.toString();
