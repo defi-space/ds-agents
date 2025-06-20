@@ -7,11 +7,12 @@ import {
   render,
   xml,
 } from "../formatters";
-import type { Prompt } from "../prompt";
 import type {
   AnyAction,
   AnyContext,
+  AnyRef,
   ContextState,
+  Log,
   Output,
   WorkingMemory,
 } from "../types";
@@ -28,58 +29,57 @@ import type {
 
 export const templateSections = {
   intro: `\
-  You are an autonomous agent with your own identity and perspective. You analyze inputs, formulate outputs, and initiate actions based on the given contexts.
-  You will be provided with a set of available actions, outputs, and contexts.
-  Always communicate in first-person perspective, expressing your thoughts, decisions, and actions as "I" statements.`,
+  You are tasked with analyzing inputs, formulating outputs, and initiating actions based on the given contexts. 
+  You will be provided with a set of available actions, outputs, and contexts. 
+  Your instructions are to analyze the situation and respond appropriately.`,
   instructions: `\
 Follow these steps to process the updates:
 
 1. Analyze the updates and available data:
-   Express your reasoning process in <reasoning> tags using first-person perspective. Consider:
+   Wrap your reasoning process in <reasoning> tags. Consider:
 
-   - I will check the available data to avoid redundant action calls
-   - I have access to these contexts and their state
-   - I can use these available actions, noting their asynchronous nature
-   - I need to process the content of new updates
-   - I must consider potential dependencies between actions
+   - Check the available data to avoid redundant action calls
+   - The availabe contexts and their state
+   - The available actions and their asynchronous nature
+   - The content of the new updates
+   - Potential dependencies between actions
 
    Response determination guidelines:
 
-   a) First I will check if required state exists in the available contexts
-   b) I will respond to direct questions or requests for information
+   a) First check if required state exists in the available contexts
+   b) Respond to direct questions or requests for information
 
 2. Plan actions:
-   Before formulating my response, I will consider:
+   Before formulating a response, consider:
 
-   - What data is already available to me
-   - Which actions I need to initiate
+   - What data is already available
+   - Which actions need to be initiated
    - The order of dependencies between actions
-   - How I will handle potential action failures
-   - What information I should provide while actions are processing
+   - How to handle potential action failures
+   - What information to provide while actions are processing
 
 3. Formulate a output (if needed):
-   If I decide to respond to the message, I will use <output> tags to enclose my output.
-   I will consider:
+   If you decide to respond to the message, use <output> tags to enclose your output.
+   Consider:
 
    - Using available data when possible
-   - Acknowledging when certain information may not be immediately available
+   - Acknowledging that certain information may not be immediately available
    - Setting appropriate expectations about action processing time
    - Indicating what will happen after actions complete
-   - I can only use outputs listed in the <available_outputs> section
-   - I must follow the schemas provided for each output
+   - You can only use outputs listed in the <available_outputs> section
+   - Follow the schemas provided for each output
   
 4. Initiate actions (if needed):
-   I will use <action_call> tags to initiate actions. I understand that:
+   Use <action_call> tags to initiate actions. Remember:
 
-   - Actions are processed asynchronously after my response
+   - Actions are processed asynchronously after your response
    - Results will not be immediately available
-   - I can only use actions listed in the <available_actions> section
-   - I must follow the schemas provided for each action
-   - I should use actions when necessary to fulfill requests or provide information that cannot be conveyed through a simple response
-   - If an action belongs to a context and there are many instances of the context, I must use <action_call contextKey="[Context key]">
+   - You can only use actions listed in the <available_actions> section
+   - Follow the schemas provided for each action
+   - Actions should be used when necessary to fulfill requests or provide information that cannot be conveyed through a simple response
 
 5. No output or action:
-   If I determine that no output or action is necessary, I won't respond to that message.`,
+   If you determine that no output or action is necessary, don't respond to that message.`,
   /*
    */
   /*
@@ -93,14 +93,11 @@ Configuration: Access pre-defined configuration values using {{config.key.name}}
 Here are the available actions you can initiate:
 {{actions}}
 
-Here are the available outputs you can use (full details):
+Here are the available outputs you can use:
 {{outputs}}
 
 Here is the current contexts:
 {{contexts}}
-
-Here is a summary of the available output types you can use:
-{{output_types_summary}}
 
 <template-engine>
 Purpose: Utilize the template engine ({{...}} syntax) primarily to streamline workflows by transferring data between different components within the same turn. This includes passing outputs from actions into subsequent action arguments, or embedding data from various sources directly into response outputs. This enhances efficiency and reduces interaction latency.
@@ -127,18 +124,18 @@ Here's how you structure your response:
 </reasoning>
 
 [List of async action calls to be initiated, if applicable]
-<action_call name="[Action name]">[action arguments using the schema and format]</action_call>
+<action_call name="[Action name]">[action arguments using the schema as JSON]</action_call>
 
 [List of outputs, if applicable]
-<output type="[Output type]" {...output attributes using the attributes_schema}>
+<output type="[Output type]" {...output attributes using the schema}>
 [output content using the content_schema]
 </output>
 </response>`,
 
   footer: `\
-I will remember to:
+Remember:
 - Always correlate results with their original actions using callId
-- Never repeat my outputs
+- Never repeat your outputs
 - Consider the complete chain of events when formulating responses
 - Address any failures or unexpected results explicitly
 - Initiate follow-up actions only when necessary
@@ -146,12 +143,9 @@ I will remember to:
 - Maintain context awareness between original request and final results
 
 IMPORTANT: 
-I must:
-- Always include the 'type' attribute in the output tag and ensure it matches one of the available output types listed above
-- Include the other attributes in the output tag and ensure they match the output attributes schema
-- When I say I will perform an action, I MUST issue the corresponding action call
-- Always check the correct format for each action: JSON or XML
-`,
+Always include the 'type' attribute in the output tag and ensure it matches one of the available output types listed above.
+Remember to include the other attribute in the output tag and ensure it matches the output attributes schema.
+If you say you will perform an action, you MUST issue the corresponding action call here`,
 } as const;
 
 export const promptTemplate = `\
@@ -181,20 +175,6 @@ export function formatPromptSections({
   maxWorkingMemorySize?: number;
   chainOfThoughtSize?: number;
 }) {
-  // Create a simple list of output types
-  const outputTypesSummary =
-    outputs.length > 0
-      ? xml(
-          "output_types_summary",
-          undefined,
-          outputs.map((o) => `- ${o.type}`).join("\\n")
-        )
-      : xml(
-          "output_types_summary",
-          undefined,
-          "No outputs are currently available."
-        );
-
   return {
     actions: xml("available-actions", undefined, actions.map(formatAction)),
     outputs: xml(
@@ -202,7 +182,6 @@ export function formatPromptSections({
       undefined,
       outputs.map(formatOutputInterface)
     ),
-    output_types_summary: outputTypesSummary,
     contexts: xml("contexts", undefined, contexts.map(formatContextState)),
     workingMemory: xml(
       "working-memory",
@@ -232,20 +211,31 @@ export function formatPromptSections({
 }
 
 // WIP
-export const mainPrompt = {
+export const mainStep = {
   name: "main",
   template: promptTemplate,
   sections: templateSections,
   render: (data: ReturnType<typeof formatPromptSections>) => {
     const sections = Object.fromEntries(
-      Object.entries(mainPrompt.sections).map(([key, templateSection]) => [
+      Object.entries(mainStep.sections).map(([key, templateSection]) => [
         key,
         render(templateSection, data as any),
       ])
     ) as Record<keyof typeof templateSections, string>;
-    return render(mainPrompt.template, sections);
+
+    const prompt = render(mainStep.template, sections);
+
+    return prompt;
   },
+
   formatter: formatPromptSections,
+
+  shouldContinue: (state: { chain: AnyRef[] }) => {
+    const pendingResults = state.chain.filter(
+      (i) => i.ref !== "thought" && i.processed === false
+    );
+    return pendingResults.length > 0;
+  },
 } as const;
 
-export type PromptConfig = typeof mainPrompt;
+export type StepConfig = typeof mainStep;
