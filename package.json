@@ -20,7 +20,10 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^1.2.12",
     "@ai-sdk/google": "^1.2.19",
+    "@ai-sdk/openai": "^1.3.22",
+    "@ai-sdk/xai": "^1.2.16",
     "@daydreamsai/chromadb": "workspace:vendored/chroma",
     "@daydreamsai/core": "workspace:vendored/core",
     "@daydreamsai/defai": "workspace:vendored/defai",

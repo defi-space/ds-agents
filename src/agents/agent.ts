@@ -1,4 +1,7 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createXai } from "@ai-sdk/xai";
+import { createOpenAI } from "@ai-sdk/openai";
+import { createAnthropic } from "@ai-sdk/anthropic";
 import { createDreams, createContainer, LogLevel, type MemoryStore } from "@daydreamsai/core";
 import { createFirebaseMemoryStore } from "@daydreamsai/firebase";
 import { createChromaVectorStore } from "@daydreamsai/chromadb";
@@ -28,6 +31,9 @@ dotenv.config();
 export interface AgentConfig {
   id: string;
   googleApiKey?: string;
+  xaiApiKey?: string;
+  openaiApiKey?: string;
+  anthropicApiKey?: string;
   starknetConfig?: {
     rpcUrl: string;
     address: string;
@@ -41,14 +47,67 @@ export interface AgentConfig {
 }
 
 /**
+ * Creates the appropriate model based on agent number
+ * @param agentNumber The agent number (1-4)
+ * @param config The agent configuration
+ * @returns The model instance
+ */
+function createModelForAgent(agentNumber: number, config: AgentConfig) {
+  switch (agentNumber) {
+    case 1: {
+      // Agent 1: Google Gemini 2.0 Flash
+      const googleApiKey = config.googleApiKey || getGoogleApiKey(config.id, agentNumber);
+      const google = createGoogleGenerativeAI({
+        apiKey: googleApiKey,
+      });
+      return google("gemini-2.0-flash");
+    }
+    case 2: {
+      // Agent 2: xAI Grok 3 Mini
+      const xaiApiKey = config.xaiApiKey || process.env.XAI_API_KEY;
+      if (!xaiApiKey) {
+        throw new Error("XAI API key is required for agent-2");
+      }
+      const xai = createXai({
+        apiKey: xaiApiKey,
+      });
+      return xai("grok-3-mini");
+    }
+    case 3: {
+      // Agent 3: OpenAI GPT-4.1 Mini
+      const openaiApiKey = config.openaiApiKey || process.env.OPENAI_API_KEY;
+      if (!openaiApiKey) {
+        throw new Error("OpenAI API key is required for agent-3");
+      }
+      const openai = createOpenAI({
+        apiKey: openaiApiKey,
+      });
+      return openai("gpt-4.1-mini");
+    }
+    case 4: {
+      // Agent 4: Anthropic Claude 3.5 Haiku
+      const anthropicApiKey = config.anthropicApiKey || process.env.ANTHROPIC_API_KEY;
+      if (!anthropicApiKey) {
+        throw new Error("Anthropic API key is required for agent-4");
+      }
+      const anthropic = createAnthropic({
+        apiKey: anthropicApiKey,
+      });
+      return anthropic("claude-3-5-haiku-20241022");
+    }
+    default:
+      throw new Error(`Unsupported agent number: ${agentNumber}`);
+  }
+}
+
+/**
  * Creates an agent with the specified configuration
  * @param config The agent configuration
  * @returns The created agent instance
  */
 export async function createAgent(config: AgentConfig) {
-  // Get Google API key - prioritize the agent-specific key
+  // Get agent number from ID
   const agentNumber = Number.parseInt(config.id.split("-")[1], 10);
-  const googleApiKey = config.googleApiKey || getGoogleApiKey(config.id, agentNumber);
 
   // Store Starknet configuration if provided
   if (config.starknetConfig) {
@@ -57,12 +116,9 @@ export async function createAgent(config: AgentConfig) {
 
   let memoryStore: MemoryStore;
 
-  // Initialize Google model
+  // Initialize model based on agent number
   try {
-    const google = createGoogleGenerativeAI({
-      apiKey: googleApiKey,
-    });
-    const model = google("gemini-2.5-flash");
+    const model = createModelForAgent(agentNumber, config);
 
     // Get the service URLs
     const chromaDbUrl = getChromaDbUrl();
@@ -70,12 +126,12 @@ export async function createAgent(config: AgentConfig) {
     // Get the collection name using the helper function
     const collectionName = await getCollectionName(config.id);
 
-    // Create the Supabase memory store
+    // Create the Firebase memory store
     try {
       const firebaseOptions = config.firebaseConfig || getFirebaseConfig();
 
-      // Create the Supabase memory store with verbose logging enabled
-      // The enhanced createSupabaseMemory will handle table creation internally
+      // Create the Firebase memory store with verbose logging enabled
+      // The enhanced createFirebaseMemory will handle table creation internally
       memoryStore = await createFirebaseMemoryStore({
         serviceAccount: {
           projectId: firebaseOptions.projectId,
@@ -137,6 +193,10 @@ export async function createAndStartAgent(agentNumber: number) {
   const config = {
     id: AGENT_ID,
     googleApiKey: process.env[`AGENT${agentNumber}_API_KEY`] || process.env.GOOGLE_API_KEY,
+    xaiApiKey: process.env[`AGENT${agentNumber}_XAI_API_KEY`] || process.env.XAI_API_KEY,
+    openaiApiKey: process.env[`AGENT${agentNumber}_OPENAI_API_KEY`] || process.env.OPENAI_API_KEY,
+    anthropicApiKey:
+      process.env[`AGENT${agentNumber}_ANTHROPIC_API_KEY`] || process.env.ANTHROPIC_API_KEY,
     starknetConfig: getStarknetConfig(agentNumber),
     firebaseConfig: getFirebaseConfig(),
   };
