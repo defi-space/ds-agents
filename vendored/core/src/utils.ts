@@ -1,26 +1,20 @@
 import { z } from "zod";
 import type {
   Action,
-  ActionCall,
   ActionSchema,
   AnyAgent,
   AnyContext,
-  EventRef,
   ExpertConfig,
   Extension,
   InputConfig,
-  InputRef,
   Memory,
   Optional,
   OutputConfig,
-  OutputRef,
-  OutputRefResponse,
   OutputSchema,
   WorkingMemory,
 } from "./types";
-import { v7 as randomUUIDv7 } from "uuid";
+export { v7 as randomUUIDv7 } from "uuid";
 
-export { randomUUIDv7 };
 /**
  * Creates an input configuration
  * @template Schema - Zod schema type for input validation
@@ -31,7 +25,7 @@ export { randomUUIDv7 };
 export function input<
   Schema extends z.AnyZodObject | z.ZodString | z.ZodRawShape = z.ZodString,
   TContext extends AnyContext = AnyContext,
-  TAgent extends AnyAgent = AnyAgent
+  TAgent extends AnyAgent = AnyAgent,
 >(config: InputConfig<Schema, TContext, TAgent>) {
   return config;
 }
@@ -50,7 +44,7 @@ export function action<
   TError = any,
   TContext extends AnyContext = AnyContext,
   TAgent extends AnyAgent = AnyAgent,
-  TMemory extends Memory<any> = Memory<any>
+  TMemory extends Memory<any> = Memory<any>,
 >(
   action: Optional<
     Action<TSchema, Result, TError, TContext, TAgent, TMemory>,
@@ -72,9 +66,9 @@ export function action<
  */
 export function output<
   Schema extends OutputSchema = OutputSchema,
-  Response extends OutputRefResponse = OutputRefResponse,
-  Context extends AnyContext = AnyContext
->(config: OutputConfig<Schema, Response, Context>) {
+  // TResponse extends OutputResponse = OutputResponse,
+  Context extends AnyContext = AnyContext,
+>(config: OutputConfig<Schema, Context>) {
   return config;
 }
 
@@ -146,7 +140,7 @@ export function extension<
   Inputs extends Record<string, InputConfig<any, any>> = Record<
     string,
     InputConfig<any, any>
-  >
+  >,
 >(
   config: Optional<Extension<AnyContext, Contexts, Inputs>, "inputs">
 ): Extension<AnyContext, Contexts, Inputs> {
@@ -170,8 +164,11 @@ export function validateEnv<T extends z.ZodTypeAny>(
     return schema.parse(env);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errors = error.errors.map((err) => `- ${err.message}`);
-      throw new Error(`Environment validation failed:\n${errors.join("\n")}`);
+      console.error("Environment validation failed:");
+      error.errors.forEach((err) => {
+        console.error(`- ${err.message}`);
+      });
+      process.exit(1);
     }
     throw error;
   }
@@ -215,48 +212,4 @@ export async function tryAsync<T>(fn: Function, ...args: any[]): Promise<T> {
   } catch (error) {
     return Promise.reject(error);
   }
-}
-
-export function createInputRef(
-  ref: Pick<InputRef, "type" | "content" | "data" | "processed">
-): InputRef {
-  return {
-    id: randomUUIDv7(),
-    ref: "input",
-    timestamp: Date.now(),
-    ...ref,
-  };
-}
-
-export function createOutputRef(
-  ref: Pick<OutputRef, "type" | "content" | "data" | "processed">
-): OutputRef {
-  return {
-    id: randomUUIDv7(),
-    ref: "output",
-    timestamp: Date.now(),
-    ...ref,
-  };
-}
-
-export function createEventRef(
-  ref: Pick<EventRef, "name" | "data" | "processed">
-): EventRef {
-  return {
-    id: randomUUIDv7(),
-    ref: "event",
-    timestamp: Date.now(),
-    ...ref,
-  };
-}
-
-export function createActionCall(
-  ref: Pick<ActionCall, "name" | "content" | "data" | "processed" | "params">
-): ActionCall {
-  return {
-    id: randomUUIDv7(),
-    ref: "action_call",
-    timestamp: Date.now(),
-    ...ref,
-  };
 }
