@@ -65,6 +65,15 @@ function getAgentApiKey(): string {
   return apiKey;
 }
 
+/**
+ * Helper function to safely serialize objects containing BigInt values
+ */
+function safeJSONStringify(obj: any): string {
+  return JSON.stringify(obj, (_, value) =>
+    typeof value === 'bigint' ? value.toString() : value
+  );
+}
+
 export const generateEpisodicMemory = async (
   agent: AnyAgent,
   thoughts: Thought[],
@@ -88,7 +97,7 @@ export const generateEpisodicMemory = async (
       throw new Error(`Failed to create model for episodic memory: ${error}`);
     }
   })();
-
+  
   const extractEpisode = await generateObject({
     model: model,
     schema: z.object({
@@ -111,17 +120,17 @@ export const generateEpisodicMemory = async (
 
     ## Context
     <thoughts>
-    ${JSON.stringify(thoughts)}
+    ${safeJSONStringify(thoughts)}
     </thoughts>
 
     ## Actions Taken
     <actions>
-    ${JSON.stringify(actions)}
+    ${safeJSONStringify(actions)}
     </actions>
 
     ## Results & Outcomes
     <results>
-    ${JSON.stringify(results)}
+    ${safeJSONStringify(results)}
     </results>
     
     ## Instructions

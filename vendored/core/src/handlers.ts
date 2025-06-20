@@ -10,37 +10,29 @@ import type {
   AnyAction,
   AnyAgent,
   AnyContext,
-  AnyOutput,
   Context,
   ContextRef,
   ContextState,
-  ContextStateApi,
+  EventRef,
   Input,
   InputConfig,
   InputRef,
-  MaybePromise,
+  Log,
   Memory,
   Output,
-  OutputCtxRef,
   OutputRef,
-  Resolver,
-  TemplateResolver,
   WorkingMemory,
 } from "./types";
 import { randomUUIDv7 } from "./utils";
-import { parse, type Node, type ElementNode, isElement } from "./xml";
-import { jsonPath } from "./jsonpath";
-import { jsonSchema } from "ai";
+import { pushToWorkingMemory } from "./context";
 
 export class NotFoundError extends Error {
-  name = "NotFoundError";
   constructor(public ref: ActionCall | OutputRef | InputRef) {
     super();
   }
 }
 
 export class ParsingError extends Error {
-  name = "ParsingError";
   constructor(
     public ref: ActionCall | OutputRef | InputRef,
     public parsingError: unknown
@@ -57,21 +49,6 @@ function parseJSONContent(content: string) {
   return JSON.parse(content);
 }
 
-function parseXMLContent(content: string) {
-  const nodes = parse(content, (node) => {
-    return node;
-  });
-
-  const data = nodes.reduce((data, node) => {
-    if (node.type === "element") {
-      data[node.name] = node.content;
-    }
-    return data;
-  }, {} as Record<string, string>);
-
-  return data;
-}
-
 export interface TemplateInfo {
   path: (string | number)[];
   template_string: string;
@@ -79,7 +56,7 @@ export interface TemplateInfo {
   primary_key: string | null;
 }
 
-export function detectTemplates(obj: unknown): TemplateInfo[] {
+function detectTemplates(obj: unknown): TemplateInfo[] {
   const foundTemplates: TemplateInfo[] = [];
   const templatePattern = /^\{\{(.*)\}\}$/; // Matches strings that *only* contain {{...}}
   const primaryKeyPattern = /^([a-zA-Z_][a-zA-Z0-9_]*)/; // Extracts the first identifier (simple version)
@@ -180,8 +157,7 @@ export function getValueByPath(source: any, pathString: string): any {
 function setValueByPath(
   target: any,
   path: (string | number)[],
-  value: any,
-  logger: Logger
+  value: any
 ): void {
   let current: any = target;
   const lastIndex = path.length - 1;
@@ -198,11 +174,8 @@ function setValueByPath(
 
     // Safety check: if current is not an object/array, we can't proceed
     if (typeof current !== "object" || current === null) {
-      logger.error(
-        "handlers:setValueByPath",
-        `Cannot set path beyond non-object at segment ${i} ('${key}') for path ${path.join(
-          "."
-        )}`
+      console.error(
+        `Cannot set path beyond non-object at segment ${i} ('${key}') for path ${path.join(".")}`
       );
       return;
     }
@@ -213,11 +186,8 @@ function setValueByPath(
   if (typeof current === "object" && current !== null) {
     current[finalKey] = value;
   } else {
-    logger.error(
-      "handlers:setValueByPath",
-      `Cannot set final value, parent at path ${path
-        .slice(0, -1)
-        .join(".")} is not an object.`
+    console.error(
+      `Cannot set final value, parent at path ${path.slice(0, -1).join(".")} is not an object.`
     );
   }
 }
@@ -229,18 +199,14 @@ function setValueByPath(
 export async function resolveTemplates(
   argsObject: any, // The object containing templates (will be mutated)
   detectedTemplates: TemplateInfo[],
-  resolver: (primary_key: string, path: string) => Promise<any>,
-  logger: Logger
+  resolver: (primary_key: string, path: string) => Promise<any>
 ): Promise<void> {
   for (const templateInfo of detectedTemplates) {
     let resolvedValue: any = undefined;
 
     if (!templateInfo.primary_key) {
-      logger.warn(
-        "handlers:resolveTemplates",
-        `Template at path ${templateInfo.path.join(".")} has no primary key: ${
-          templateInfo.template_string
-        }`
+      console.warn(
+        `Template at path ${templateInfo.path.join(".")} has no primary key: ${templateInfo.template_string}`
       );
       continue;
     }
@@ -252,94 +218,26 @@ export async function resolveTemplates(
     try {
       resolvedValue = await resolver(templateInfo.primary_key, valuePath);
     } catch (error) {
-      logger.error(
-        "handlers:resolveTemplates",
-        `Error resolving template at path ${templateInfo.path.join(
-          "."
-        )}: ${error}`
+      console.error(
+        `Error resolving template at path ${templateInfo.path.join(".")}: ${error}`
       );
-      continue;
     }
 
     if (resolvedValue === undefined) {
-      logger.warn(
-        "handlers:resolveTemplates",
-        `Could not resolve template "${
-          templateInfo.template_string
-        }" at path ${templateInfo.path.join(
-          "."
-        )}. Path or source might be invalid.`
+      console.warn(
+        `Could not resolve template "${templateInfo.template_string}" at path ${templateInfo.path.join(".")}. Path or source might be invalid.`
       );
-      // Skip this template but continue with others
-      continue;
+      throw new Error(
+        `Could not resolve template "${templateInfo.template_string}" at path ${templateInfo.path.join(".")}. Path or source might be invalid.`
+      );
     }
 
     // Use the native setValueByPath function
-    setValueByPath(argsObject, templateInfo.path, resolvedValue, logger);
+    setValueByPath(argsObject, templateInfo.path, resolvedValue);
   }
 }
 
-export async function templateResultsResolver(
-  arr: MaybePromise<ActionResult>[],
-  path: string
-) {
-  const [index, ...resultPath] = getPathSegments(path);
-  const actionResult = arr[Number(index)];
-
-  if (!actionResult) throw new Error("invalid index");
-  const result = await actionResult;
-
-  if (resultPath.length === 0) {
-    return result.data;
-  }
-  return jsonPath(result.data, resultPath.join("."));
-}
-
-export function createResultsTemplateResolver(
-  arr: Array<MaybePromise<any>>
-): TemplateResolver {
-  return (path) => templateResultsResolver(arr, path);
-}
-
-export function createObjectTemplateResolver(obj: object): TemplateResolver {
-  return async function templateObjectResolver(path) {
-    const res = jsonPath(obj, path);
-    if (!res) throw new Error("invalid path: " + path);
-    return res.length > 1 ? res : res[0];
-  };
-}
-
-export function parseActionCallContent({
-  call,
-  action,
-}: {
-  call: ActionCall;
-  action: AnyAction;
-}) {
-  try {
-    const content = call.content.trim();
-
-    let data: any;
-
-    if (action.parser) {
-      data = action.parser(call);
-    } else if (action.schema && action.schema?._def?.typeName !== "ZodString") {
-      if (action.callFormat === "xml") {
-        data = parseXMLContent(content);
-      } else {
-        data = parseJSONContent(content);
-      }
-    } else {
-      data = content;
-    }
-
-    return data;
-  } catch (error) {
-    throw new ParsingError(call, error);
-  }
-}
-
-export function resolveActionCall({
+export async function prepareActionCall({
   call,
   actions,
   logger,
@@ -348,52 +246,51 @@ export function resolveActionCall({
   actions: ActionCtxRef[];
   logger: Logger;
 }) {
-  const contextKey = call.params?.contextKey;
-
-  const action = actions.find(
-    (a) =>
-      (contextKey ? contextKey === a.ctxRef.key : true) && a.name === call.name
-  );
+  const action = actions.find((a) => a.name === call.name);
 
   if (!action) {
     logger.error("agent:action", "ACTION_MISMATCH", {
       name: call.name,
       data: call.content,
-      contextKey,
     });
 
     throw new NotFoundError(call);
   }
 
-  return action;
+  try {
+    const content = call.content.trim();
+    const json = content.length > 0 ? parseJSONContent(content) : {};
+
+    const templates = detectTemplates(json);
+
+    return { action, json, templates };
+  } catch (error) {
+    throw new ParsingError(call, error);
+  }
 }
 
-export async function prepareActionCall({
-  call,
+export async function handleActionCall({
+  state,
+  workingMemory,
   action,
   logger,
-  templateResolver,
-  state,
-  api,
-  workingMemory,
+  call,
+  taskRunner,
   agent,
   agentState,
   abortSignal,
+  pushLog,
 }: {
-  agent: AnyAgent;
   state: ContextState<AnyContext>;
-  api: ContextStateApi<AnyContext>;
   workingMemory: WorkingMemory;
-  agentState?: ContextState;
   call: ActionCall;
-  action: ActionCtxRef;
+  action: AnyAction;
   logger: Logger;
-  templateResolver: (
-    primary_key: string,
-    path: string,
-    callCtx: ActionCallContext
-  ) => MaybePromise<any>;
+  taskRunner: TaskRunner;
+  agent: AnyAgent;
+  agentState?: ContextState;
   abortSignal?: AbortSignal;
+  pushLog?: (log: Log) => void;
 }) {
   let actionMemory: Memory<any> | undefined = undefined;
 
@@ -405,88 +302,45 @@ export async function prepareActionCall({
 
   const callCtx: ActionCallContext = {
     ...state,
-    ...api,
     workingMemory,
     actionMemory,
     agentMemory: agentState?.memory,
     abortSignal,
     call,
+    push(ref) {
+      if (pushLog) pushLog(ref);
+      else pushToWorkingMemory(workingMemory, ref);
+    },
+    emit(event, args, options) {
+      console.log("emitting", { event, args });
+
+      const eventRef: EventRef = {
+        ref: "event",
+        id: randomUUIDv7(),
+        name: event as string,
+        data: args,
+        processed: options?.processed ?? true,
+        timestamp: Date.now(),
+      };
+
+      if (pushLog) pushLog(eventRef);
+      else workingMemory.events.push(eventRef);
+    },
   };
 
-  const data = call.data ?? parseActionCallContent({ call, action });
+  call.processed = true;
 
-  const templates: TemplateInfo[] = [];
+  const result: ActionResult = {
+    ref: "action_result",
+    id: randomUUIDv7(),
+    callId: call.id,
+    data: undefined,
+    name: call.name,
+    timestamp: Date.now(),
+    processed: false,
+  };
 
-  if (action.templateResolver !== false) {
-    templates.push(...detectTemplates(data));
-
-    const actionTemplateResolver =
-      typeof action.templateResolver === "function"
-        ? action.templateResolver
-        : templateResolver;
-
-    if (templates.length > 0)
-      await resolveTemplates(
-        data,
-        templates,
-        (key, path) => actionTemplateResolver(key, path, callCtx),
-        logger
-      );
-  }
-
-  if (action.schema) {
-    try {
-      const schema =
-        "parse" in action.schema || "validate" in action.schema
-          ? action.schema
-          : "$schema" in action.schema
-          ? jsonSchema(action.schema)
-          : z.object(action.schema);
-
-      call.data =
-        "parse" in schema
-          ? (schema as ZodSchema).parse(data)
-          : schema.validate
-          ? schema.validate(data)
-          : data;
-    } catch (error) {
-      throw new ParsingError(call, error);
-    }
-  } else {
-    call.data = data;
-  }
-
-  return callCtx;
-}
-
-export async function handleActionCall({
-  action,
-  logger,
-  call,
-  taskRunner,
-  agent,
-  abortSignal,
-  callCtx,
-  queueKey,
-}: {
-  callCtx: ActionCallContext;
-  call: ActionCall;
-  action: AnyAction;
-  logger: Logger;
-  taskRunner: TaskRunner;
-  agent: AnyAgent;
-  abortSignal?: AbortSignal;
-  queueKey?: string;
-}): Promise<ActionResult> {
-  queueKey =
-    queueKey ??
-    (action.queueKey
-      ? typeof action.queueKey === "function"
-        ? action.queueKey(callCtx)
-        : action.queueKey
-      : undefined);
-
-  const data = await taskRunner.enqueueTask(
+  result.data = await taskRunner.enqueueTask(
     runAction,
     {
       action,
@@ -495,26 +349,16 @@ export async function handleActionCall({
       ctx: callCtx,
     },
     {
+      debug: agent.debugger,
       retry: action.retry,
       abortSignal,
-      queueKey,
     }
   );
 
-  const result: ActionResult = {
-    ref: "action_result",
-    id: randomUUIDv7(),
-    callId: call.id,
-    data,
-    name: call.name,
-    timestamp: Date.now(),
-    processed: false,
-  };
-
   if (action.format) result.formatted = action.format(result);
 
-  if (callCtx.actionMemory) {
-    await agent.memory.store.set(action.memory.key, callCtx.actionMemory);
+  if (action.memory) {
+    await agent.memory.store.set(action.memory.key, actionMemory);
   }
 
   if (action.onSuccess) {
@@ -524,15 +368,21 @@ export async function handleActionCall({
   return result;
 }
 
-export function prepareOutputRef({
+export async function handleOutput({
   outputRef,
   outputs,
   logger,
+  state,
+  workingMemory,
+  agent,
 }: {
+  outputs: Output[];
   outputRef: OutputRef;
-  outputs: OutputCtxRef[];
   logger: Logger;
-}) {
+  workingMemory: WorkingMemory;
+  state: ContextState;
+  agent: AnyAgent;
+}): Promise<OutputRef | OutputRef[]> {
   const output = outputs.find((output) => output.type === outputRef.type);
 
   if (!output) {
@@ -546,93 +396,37 @@ export function prepareOutputRef({
       "parse" in output.schema ? output.schema : z.object(output.schema)
     ) as z.AnyZodObject | z.ZodString;
 
-    let parsedContent: string | Record<string, unknown> | unknown[] = outputRef.content;
+    let parsedContent: any = outputRef.content;
 
     try {
       if (typeof parsedContent === "string") {
-        // Parse XML content using the proper XML parser with children support
-        const nodes = parse(parsedContent, (node, parse) => {
-          if (isElement(node)) {
-            return { ...node, children: parse() };
-          }
-          return node;
-        });
-
-        // Handle both direct content_schema element and nested ones
-        const findNode = (nodes: Node[], name: string): ElementNode | undefined => {
-          for (const node of nodes) {
-            if (isElement(node)) {
-              if (node.name === name) return node;
-              if (node.children) {
-                const found = findNode(node.children, name);
-                if (found) return found;
-              }
-            }
-          }
-          return undefined;
-        };
-
-        // Look for content_schema element
-        const schemaNode = findNode(nodes, "content_schema");
-        
-        if (schemaNode) {
-          try {
-            // Handle both direct content and nested content in content_schema
-            const schemaContent = schemaNode.children?.length 
-              ? JSON.stringify(schemaNode.children.map((child: Node) => 
-                  isElement(child)
-                    ? { [child.name]: child.content }
-                    : child.content
-                ).filter(Boolean))
-              : schemaNode.content;
-
-            outputRef.data = { schema: JSON.parse(schemaContent) };
-            return { output };
-          } catch (schemaError) {
-            logger.warn("agent:output", "Failed to parse content schema", { 
-              error: schemaError,
-              content: schemaNode.content 
-            });
-          }
-        }
-        
-        // Look for content element
-        const contentNode = findNode(nodes, "content");
-        
-        if (contentNode) {
-          // Handle both direct content and nested elements
-          if (contentNode.children?.length) {
-            const contentObj = contentNode.children.map((child: Node) => 
-              isElement(child)
-                ? { [child.name]: child.content }
-                : child.content
-            ).filter(Boolean);
-            parsedContent = contentObj;
-          } else {
-            parsedContent = contentNode.content;
-          }
-        }
-        
-        if (typeof parsedContent === "string") {
-          parsedContent = parsedContent.trim();
-        }
-        
         if (schema._def.typeName !== "ZodString") {
-          try {
-            if (typeof parsedContent === "string") {
-              parsedContent = JSON.parse(parsedContent);
-            }
-          } catch (error) {
-            // If JSON parsing fails but we have XML structure, try to convert it
-            if (nodes.length > 0) {
-              const xmlObj = nodes.map((node: Node) => 
-                isElement(node)
-                  ? { [node.name]: node.content }
-                  : node.content
-              ).filter(Boolean);
-              parsedContent = xmlObj.length === 1 ? xmlObj[0] : xmlObj;
+          const trimmedContent = parsedContent.trim();
+          if (trimmedContent === "") {
+            // Special handling for cli:message type which requires a message field
+            if (outputRef.type === "cli:message") {
+              parsedContent = { message: "" }; // Provide empty message field
             } else {
-              throw error;
+              parsedContent = {}; // Use empty object for other types
+            }
+          } else if (trimmedContent.startsWith('<') && 
+                   (trimmedContent.includes('action_call') || 
+                    trimmedContent.includes('think') || 
+                    trimmedContent.includes('output'))) {
+            // Handle case where content contains XML-like tags instead of JSON
+            console.warn(`Content for ${outputRef.type} contains XML-like tags instead of JSON. Using empty object.`);
+            // For cli:message, ensure we provide the required message field
+            parsedContent = outputRef.type === "cli:message" 
+              ? { message: "" } 
+              : {};
+          } else {
+            try {
+              parsedContent = JSON.parse(trimmedContent);
+            } catch (parseError) {
+              // If JSON.parse fails, provide a more helpful error message
+              console.warn(`Failed to parse content as JSON for output type ${outputRef.type}:`, parseError);
+              // Provide a default empty object instead of throwing
+              parsedContent = {};
             }
           }
         }
@@ -644,24 +438,6 @@ export function prepareOutputRef({
     }
   }
 
-  return { output };
-}
-
-export async function handleOutput({
-  outputRef,
-  output,
-  logger,
-  state,
-  workingMemory,
-  agent,
-}: {
-  output: OutputCtxRef;
-  outputRef: OutputRef;
-  logger: Logger;
-  workingMemory: WorkingMemory;
-  state: ContextState;
-  agent: AnyAgent;
-}): Promise<OutputRef | OutputRef[]> {
   if (output.handler) {
     const response = await Promise.try(
       output.handler,
@@ -684,7 +460,7 @@ export async function handleOutput({
           ...res,
         };
 
-        ref.formatted = output.format ? output.format(ref) : undefined;
+        ref.formatted = output.format ? output.format(response) : undefined;
         refs.push(ref);
       }
       return refs;
@@ -695,7 +471,7 @@ export async function handleOutput({
         processed: response.processed ?? true,
       };
 
-      ref.formatted = output.format ? output.format(ref) : undefined;
+      ref.formatted = output.format ? output.format(response) : undefined;
 
       return ref;
     }
@@ -719,7 +495,7 @@ export async function prepareContextActions(params: {
   const actions =
     typeof context.actions === "function"
       ? await Promise.try(context.actions, state)
-      : context.actions ?? [];
+      : context.actions;
 
   return Promise.all(
     actions.map((action) =>
@@ -729,53 +505,6 @@ export async function prepareContextActions(params: {
       })
     )
   ).then((t) => t.filter((t) => !!t));
-}
-
-async function prepareOutput({
-  output,
-  context,
-  state,
-}: {
-  output: AnyOutput;
-  context: AnyContext;
-  state: ContextState<AnyContext>;
-}): Promise<OutputCtxRef | undefined> {
-  if (output.context && output.context.type !== context.type) return undefined;
-
-  const enabled = output.enabled ? output.enabled(state) : true;
-
-  return enabled
-    ? {
-        ...output,
-        ctxRef: {
-          type: state.context.type,
-          id: state.id,
-          key: state.key,
-        },
-      }
-    : undefined;
-}
-
-export async function prepareContextOutputs(params: {
-  context: Context;
-  state: ContextState<AnyContext>;
-  workingMemory: WorkingMemory;
-  agent: AnyAgent;
-  agentCtxState: ContextState<AnyContext> | undefined;
-}): Promise<OutputCtxRef[]> {
-  return params.context.outputs
-    ? Promise.all(
-        Object.entries(params.context.outputs).map(([type, output]) =>
-          prepareOutput({
-            output: {
-              type,
-              ...output,
-            },
-            ...params,
-          })
-        )
-      ).then((t) => t.filter((t) => !!t))
-    : [];
 }
 
 export async function prepareAction({
@@ -820,106 +549,12 @@ export async function prepareAction({
   return enabled
     ? {
         ...action,
-        ctxRef: {
-          type: state.context.type,
-          id: state.id,
-          key: state.key,
-        },
+        ctxId: state.id,
       }
     : undefined;
 }
 
-function resolve<Value = any, Ctx = any>(
-  value: Value,
-  ctx: Ctx
-): Promise<Value extends (ctx: Ctx) => infer R ? R : Value> {
-  return typeof value === "function" ? value(ctx) : (value as any);
-}
-
-export async function prepareContext(
-  {
-    agent,
-    ctxState,
-    workingMemory,
-    agentCtxState,
-  }: {
-    agent: AnyAgent;
-    ctxState: ContextState;
-    workingMemory: WorkingMemory;
-    agentCtxState?: ContextState;
-  },
-  state: {
-    inputs: Input[];
-    outputs: OutputCtxRef[];
-    actions: ActionCtxRef[];
-    contexts: ContextState[];
-  }
-) {
-  state.contexts.push(ctxState);
-
-  await ctxState.context.loader?.(ctxState, agent);
-
-  const inputs: Input[] = ctxState.context.inputs
-    ? Object.entries(ctxState.context.inputs).map(([type, input]) => ({
-        type,
-        ...input,
-      }))
-    : [];
-
-  state.inputs.push(...inputs);
-
-  const outputs: OutputCtxRef[] = ctxState.context.outputs
-    ? await Promise.all(
-        Object.entries(await resolve(ctxState.context.outputs, ctxState)).map(
-          ([type, output]) =>
-            prepareOutput({
-              output: {
-                type,
-                ...output,
-              },
-              context: ctxState.context,
-              state: ctxState,
-            })
-        )
-      ).then((r) => r.filter((a) => !!a))
-    : [];
-
-  state.outputs.push(...outputs);
-
-  const actions = await prepareContextActions({
-    agent,
-    agentCtxState,
-    context: ctxState.context,
-    state: ctxState,
-    workingMemory,
-  });
-
-  state.actions.push(...actions);
-
-  const ctxRefs: ContextRef[] = [];
-
-  if (ctxState.context.__composers) {
-    for (const composer of ctxState.context.__composers) {
-      ctxRefs.push(...composer(ctxState));
-    }
-  }
-
-  for (const { context, args } of ctxRefs) {
-    await prepareContext(
-      {
-        agent,
-        ctxState: await agent.getContext({ context, args }),
-        workingMemory,
-        agentCtxState,
-      },
-      state
-    );
-  }
-
-  return state;
-}
-
-export async function prepareContexts({
+export async function prepareContext({
   agent,
   ctxState,
   agentCtxState,
@@ -939,29 +574,34 @@ export async function prepareContexts({
 }) {
   await agentCtxState?.context.loader?.(agentCtxState, agent);
 
+  await ctxState?.context.loader?.(ctxState, agent);
+
   const inputs: Input[] = Object.entries({
     ...agent.inputs,
+    ...ctxState.context.inputs,
     ...(params?.inputs ?? {}),
   }).map(([type, input]) => ({
     type,
     ...input,
   }));
 
-  const outputs: OutputCtxRef[] = await Promise.all(
-    Object.entries({
-      ...agent.outputs,
-      ...(params?.outputs ?? {}),
-    }).map(([type, output]) =>
-      prepareOutput({
-        output: {
-          type,
-          ...output,
-        },
-        context: ctxState.context,
-        state: ctxState,
-      })
+  const outputs: Output[] = Object.entries({
+    ...agent.outputs,
+    ...ctxState.context.outputs,
+    ...(params?.outputs ?? {}),
+  })
+    .filter(([_, output]) =>
+      output.enabled
+        ? output.enabled({
+            ...ctxState,
+            workingMemory,
+          })
+        : true
     )
-  ).then((r) => r.filter((a) => !!a));
+    .map(([type, output]) => ({
+      type,
+      ...output,
+    }));
 
   const actions = await Promise.all(
     [agent.actions, params?.actions]
@@ -979,35 +619,69 @@ export async function prepareContexts({
       )
   ).then((r) => r.filter((a) => !!a));
 
-  const contexts: ContextState[] = agentCtxState ? [agentCtxState] : [];
+  const ctxActions = await prepareContextActions({
+    agent,
+    agentCtxState,
+    context: ctxState.context,
+    state: ctxState,
+    workingMemory,
+  });
 
-  const state = {
-    inputs,
-    outputs,
-    actions,
-    contexts,
-  };
+  actions.push(...ctxActions);
 
-  await prepareContext(
-    { agent, ctxState, workingMemory, agentCtxState },
-    state
+  const subCtxsStates = await Promise.all([
+    ...(ctxState?.contexts ?? []).map((ref) => agent.getContextById(ref)),
+    ...(params?.contexts ?? []).map((ref) => agent.getContext(ref)),
+  ]).then((res) => res.filter((r) => !!r));
+
+  await Promise.all(
+    subCtxsStates.map((state) => state.context.loader?.(state, agent))
   );
 
-  if (params?.contexts) {
-    for (const ctxRef of params?.contexts) {
-      await prepareContext(
-        {
-          agent,
-          ctxState: await agent.getContext(ctxRef),
-          workingMemory,
-          agentCtxState,
-        },
-        state
-      );
-    }
-  }
+  const subCtxsStatesInputs: Input[] = subCtxsStates
+    .map((state) => Object.entries(state.context.inputs))
+    .flat()
+    .map(([type, input]) => ({
+      type,
+      ...input,
+    }));
 
-  return state;
+  inputs.push(...subCtxsStatesInputs);
+
+  const subCtxsStatesOutputs: Output[] = subCtxsStates
+    .map((state) => Object.entries(state.context.outputs))
+    .flat()
+    .map(([type, output]) => ({
+      type,
+      ...output,
+    }));
+
+  outputs.push(...subCtxsStatesOutputs);
+
+  const subCtxsActions = await Promise.all(
+    subCtxsStates.map((state) =>
+      prepareContextActions({
+        agent,
+        agentCtxState,
+        context: state.context,
+        state: state,
+        workingMemory,
+      })
+    )
+  );
+
+  actions.push(...subCtxsActions.flat());
+
+  const contexts = [agentCtxState, ctxState, ...subCtxsStates].filter(
+    (t) => !!t
+  );
+
+  return {
+    contexts,
+    outputs,
+    actions,
+    inputs,
+  };
 }
 
 export async function handleInput({
@@ -1018,14 +692,14 @@ export async function handleInput({
   workingMemory,
   agent,
 }: {
-  inputs: Input[];
+  inputs: Record<string, InputConfig>;
   inputRef: InputRef;
   logger: Logger;
   workingMemory: WorkingMemory;
   ctxState: ContextState;
   agent: AnyAgent;
 }) {
-  const input = inputs.find((input) => input.type === inputRef.type);
+  const input = inputs[inputRef.type];
 
   if (!input) {
     throw new NotFoundError(inputRef);
