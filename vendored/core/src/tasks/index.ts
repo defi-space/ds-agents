@@ -140,20 +140,43 @@ export const runGenerate = task(
     }
 
     try {
-    const stream = streamText({
+    // GROK MODEL COMPATIBILITY FIX:
+    // Grok models use a different parameter name for stop sequences.
+    // While most AI SDK models use 'stopSequences', Grok expects 'stop'.
+    // We detect Grok models by checking if 'grok' is in the model ID.
+    const isGrokModel = model.modelId.toLowerCase().includes('grok');
+    
+    // BUILD STREAM OPTIONS OBJECT:
+    // Create the base configuration object that will be passed to streamText.
+    // Using 'any' type to allow dynamic property assignment for stop parameters.
+    const streamOptions: any = {
       model,
       messages,
-      stopSequences: ["\n</response>"],
       temperature: 0.6,
       abortSignal,
-        // experimental_transform: smoothStream({
-        //   chunking: "word",
-        // }),
-      onError: (event) => {
+      // ERROR HANDLING:
+      // Type the onError callback properly to satisfy TypeScript.
+      // The event object contains an 'error' property of unknown type.
+      onError: (event: { error: unknown }) => {
           console.log({ event });
         onError(event.error);
       },
-    });
+    };
+
+    // CONDITIONAL STOP PARAMETER ASSIGNMENT:
+    // Dynamically add the correct stop sequence parameter based on the model type.
+    // This ensures compatibility across different AI providers and models.
+    if (isGrokModel) {
+      // Grok models expect 'stop' parameter
+      streamOptions.stop = ["\n</response>"];
+    } else {
+      // Standard AI SDK models expect 'stopSequences' parameter
+      streamOptions.stopSequences = ["\n</response>"];
+    }
+
+    // EXECUTE STREAM WITH MODEL-SPECIFIC PARAMETERS:
+    // Call streamText with the dynamically constructed options object
+    const stream = streamText(streamOptions);
 
     return prepareStreamResponse({
       model,

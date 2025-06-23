@@ -1,7 +1,4 @@
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { createXai } from "@ai-sdk/xai";
-import { createOpenAI } from "@ai-sdk/openai";
-import { createAnthropic } from "@ai-sdk/anthropic";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { createDreams, createContainer, LogLevel, type MemoryStore } from "@daydreamsai/core";
 import { createFirebaseMemoryStore } from "@daydreamsai/firebase";
 import { createChromaVectorStore } from "@daydreamsai/chromadb";
@@ -15,7 +12,6 @@ import {
   validateAgentNumber,
   getAgentId,
   isManualMode,
-  getGoogleApiKey,
   getStarknetConfig,
   getChromaDbUrl,
   getFirebaseConfig,
@@ -30,10 +26,7 @@ dotenv.config();
  */
 export interface AgentConfig {
   id: string;
-  googleApiKey?: string;
-  xaiApiKey?: string;
-  openaiApiKey?: string;
-  anthropicApiKey?: string;
+  openrouterApiKey?: string;
   starknetConfig?: {
     rpcUrl: string;
     address: string;
@@ -47,53 +40,37 @@ export interface AgentConfig {
 }
 
 /**
- * Creates the appropriate model based on agent number
+ * Creates the appropriate model based on agent number using OpenRouter
  * @param agentNumber The agent number (1-4)
  * @param config The agent configuration
  * @returns The model instance
  */
 function createModelForAgent(agentNumber: number, config: AgentConfig) {
+  const openrouterApiKey = config.openrouterApiKey || process.env.OPENROUTER_API_KEY;
+  if (!openrouterApiKey) {
+    throw new Error("OpenRouter API key is required");
+  }
+
+  const openrouter = createOpenRouter({
+    apiKey: openrouterApiKey,
+  });
+
   switch (agentNumber) {
     case 1: {
-      // Agent 1: Google Gemini 2.0 Flash
-      const googleApiKey = config.googleApiKey || getGoogleApiKey(config.id, agentNumber);
-      const google = createGoogleGenerativeAI({
-        apiKey: googleApiKey,
-      });
-      return google("gemini-2.0-flash");
+      // Agent 1: Google Gemini 2.0 Flash via OpenRouter
+      return openrouter("google/gemini-2.0-flash-001");
     }
     case 2: {
-      // Agent 2: xAI Grok 3 Mini
-      const xaiApiKey = config.xaiApiKey || process.env.XAI_API_KEY;
-      if (!xaiApiKey) {
-        throw new Error("XAI API key is required for agent-2");
-      }
-      const xai = createXai({
-        apiKey: xaiApiKey,
-      });
-      return xai("grok-3-mini");
+      // Agent 2: xAI Grok Beta via OpenRouter
+      return openrouter("x-ai/grok-3-mini");
     }
     case 3: {
-      // Agent 3: OpenAI GPT-4.1 Mini
-      const openaiApiKey = config.openaiApiKey || process.env.OPENAI_API_KEY;
-      if (!openaiApiKey) {
-        throw new Error("OpenAI API key is required for agent-3");
-      }
-      const openai = createOpenAI({
-        apiKey: openaiApiKey,
-      });
-      return openai("gpt-4.1-mini");
+      // Agent 3: OpenAI GPT-4o Mini via OpenRouter
+      return openrouter("openai/gpt-4.1-mini");
     }
     case 4: {
-      // Agent 4: Anthropic Claude 3.5 Haiku
-      const anthropicApiKey = config.anthropicApiKey || process.env.ANTHROPIC_API_KEY;
-      if (!anthropicApiKey) {
-        throw new Error("Anthropic API key is required for agent-4");
-      }
-      const anthropic = createAnthropic({
-        apiKey: anthropicApiKey,
-      });
-      return anthropic("claude-3-5-haiku-20241022");
+      // Agent 4: Anthropic Claude 3.5 Haiku via OpenRouter
+      return openrouter("anthropic/claude-3.5-haiku");
     }
     default:
       throw new Error(`Unsupported agent number: ${agentNumber}`);
@@ -192,11 +169,7 @@ export async function createAndStartAgent(agentNumber: number) {
   // Create agent configuration
   const config = {
     id: AGENT_ID,
-    googleApiKey: process.env[`AGENT${agentNumber}_API_KEY`] || process.env.GOOGLE_API_KEY,
-    xaiApiKey: process.env[`AGENT${agentNumber}_XAI_API_KEY`] || process.env.XAI_API_KEY,
-    openaiApiKey: process.env[`AGENT${agentNumber}_OPENAI_API_KEY`] || process.env.OPENAI_API_KEY,
-    anthropicApiKey:
-      process.env[`AGENT${agentNumber}_ANTHROPIC_API_KEY`] || process.env.ANTHROPIC_API_KEY,
+    openrouterApiKey: process.env[`AGENT${agentNumber}_OPENROUTER_API_KEY`] || process.env.OPENROUTER_API_KEY,
     starknetConfig: getStarknetConfig(agentNumber),
     firebaseConfig: getFirebaseConfig(),
   };

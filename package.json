@@ -28,6 +28,7 @@
     "@daydreamsai/core": "workspace:vendored/core",
     "@daydreamsai/defai": "workspace:vendored/defai",
     "@daydreamsai/firebase": "workspace:vendored/firebase",
+    "@openrouter/ai-sdk-provider": "^0.7.2",
     "dotenv": "^16.5.0",
     "graphql": "^16.11.0",
     "graphql-request": "^7.2.0",
