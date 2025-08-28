@@ -57,20 +57,20 @@ function createModelForAgent(agentNumber: number, config: AgentConfig) {
 
   switch (agentNumber) {
     case 1: {
-      // Agent 1: Google Gemini 2.0 Flash via OpenRouter
-      return openrouter("google/gemini-2.0-flash-001");
+      // Agent 1: Google Gemini 2.5 Flash via OpenRouter
+      return openrouter("google/gemini-2.5-flash");
     }
     case 2: {
-      // Agent 2: xAI Grok Beta via OpenRouter
+      // Agent 2: xAI Grok 3 Mini via OpenRouter
       return openrouter("x-ai/grok-3-mini");
     }
     case 3: {
-      // Agent 3: OpenAI GPT-4o Mini via OpenRouter
-      return openrouter("openai/gpt-4.1-mini");
+      // Agent 3: OpenAI GPT-5 Mini via OpenRouter
+      return openrouter("openai/gpt-5-mini");
     }
     case 4: {
-      // Agent 4: Anthropic Claude 3.5 Haiku via OpenRouter
-      return openrouter("anthropic/claude-3.5-haiku");
+      // Agent 4: Moonshot AI Kimi-K2 via OpenRouter
+      return openrouter("moonshotai/kimi-k2");
     }
     default:
       throw new Error(`Unsupported agent number: ${agentNumber}`);
